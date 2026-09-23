@@ -13,12 +13,14 @@ namespace Racoon.Player
     /// Controlador del jugador en red (Netcode for GameObjects, Client-Server).
     ///
     /// Quién hace qué:
-    ///  - DUEÑO (el cliente que controla este mapache): lee input, mueve el CharacterController,
-    ///    gasta estamina y escribe el estado. Su NetworkTransform (modo Owner) replica la posición.
+    ///  - DUEÑO (el cliente que controla este mapache): lee input, mueve el Rigidbody,
+    ///    gasta estamina y escribe el estado. NetworkTransform (modo Owner) + NetworkRigidbody
+    ///    (Use Rigid Body For Motion) replican la posición.
     ///  - SERVIDOR: valida y ejecuta lo que afecta a la partida (inventario, golpes, interacciones).
     ///  - RESTO DE CLIENTES: solo leen el estado replicado para animar y mostrar la barra.
+    ///    Allí NetworkRigidbody pone el Rigidbody en kinematic y lo mueve con lo que llega por red.
     /// </summary>
-    [RequireComponent(typeof(CharacterController), typeof(PlayerInputHandler), typeof(PlayerInventory))]
+    [RequireComponent(typeof(Rigidbody), typeof(PlayerInputHandler), typeof(PlayerInventory))]
     public class PlayerController : NetworkBehaviour
     {
         [Header("Movimiento")]
@@ -26,7 +28,8 @@ namespace Racoon.Player
         [SerializeField] float runSpeed = 6.5f;
         [SerializeField] float acceleration = 30f;
         [SerializeField] float rotationSpeed = 720f;
-        [SerializeField] float gravity = -25f;
+        [Tooltip("Gravedad extra sobre la del Rigidbody para que caiga con peso (0 = solo la de Unity).")]
+        [SerializeField] float extraGravity = 10f;
         [SerializeField, Range(0f, 1f)] float moveDeadzone = 0.15f;
         [Tooltip("Multiplicador de velocidad mientras se hace una acción (golpear, usar...).")]
         [SerializeField, Range(0f, 1f)] float actionMoveMultiplier = 0.3f;
@@ -111,15 +114,18 @@ namespace Racoon.Player
 
         static readonly Collider[] overlapBuffer = new Collider[16];
 
-        CharacterController characterController;
+        Rigidbody body;
+        CapsuleCollider capsule;
         PlayerInputHandler input;
         PlayerInventory inventory;
         NetworkTransform networkTransform;
         Transform cameraTransform;
 
-        Vector3 horizontalVelocity;
+        // Lo calcula Update (input, a ritmo de frames) y lo aplica FixedUpdate (física).
+        Vector3 desiredVelocity;
+        Vector3 desiredDirection;
+        Vector3 moveVelocity;
         Vector3 knockbackVelocity;
-        float verticalVelocity;
         float stamina;
         float staminaRegenTimer;
         bool exhausted;
@@ -130,7 +136,8 @@ namespace Racoon.Player
 
         void Awake()
         {
-            characterController = GetComponent<CharacterController>();
+            body = GetComponent<Rigidbody>();
+            capsule = GetComponent<CapsuleCollider>();
             input = GetComponent<PlayerInputHandler>();
             inventory = GetComponent<PlayerInventory>();
             networkTransform = GetComponent<NetworkTransform>();
@@ -145,6 +152,8 @@ namespace Racoon.Player
 
             if (networkTransform != null && networkTransform.AuthorityMode != NetworkTransform.AuthorityModes.Owner)
                 Debug.LogWarning("El NetworkTransform del jugador debe estar en Authority Mode = Owner.", this);
+            if (!TryGetComponent(out NetworkRigidbody networkRigidbody) || !networkRigidbody.UseRigidBodyForMotion)
+                Debug.LogWarning("Falta NetworkRigidbody con 'Use Rigid Body For Motion' activado.", this);
 
             input.SetInputEnabled(IsOwner);
             if (!IsOwner) return;
@@ -205,7 +214,13 @@ namespace Racoon.Player
             bool isRunning = hasMoveInput && input.RunHeld && !IsInAction && !exhausted && stamina > 0f;
 
             UpdateStamina(isRunning, dt);
-            UpdateMovement(hasMoveInput ? move : Vector2.zero, isRunning, dt);
+
+            // Solo se calcula la intención; la física se aplica en FixedUpdate.
+            if (!hasMoveInput) move = Vector2.zero;
+            desiredDirection = GetCameraRelativeDirection(move);
+            float targetSpeed = (isRunning ? runSpeed : walkSpeed) * move.magnitude;
+            if (IsInAction) targetSpeed *= actionMoveMultiplier;
+            desiredVelocity = desiredDirection * targetSpeed;
 
             if (!IsInAction)
                 SetLocomotionState(!hasMoveInput ? PlayerState.Idle : isRunning ? PlayerState.Run : PlayerState.Walk);
@@ -237,26 +252,26 @@ namespace Racoon.Player
             staminaNormalized.Value = stamina / maxStamina;
         }
 
-        void UpdateMovement(Vector2 move, bool isRunning, float dt)
+        void FixedUpdate()
         {
-            Vector3 direction = GetCameraRelativeDirection(move);
+            // En el rival el Rigidbody es kinematic y lo mueve NetworkRigidbody: no tocar.
+            if (!IsSpawned || !IsOwner || body.isKinematic) return;
 
-            float targetSpeed = (isRunning ? runSpeed : walkSpeed) * move.magnitude;
-            if (IsInAction) targetSpeed *= actionMoveMultiplier;
-            horizontalVelocity = Vector3.MoveTowards(horizontalVelocity, direction * targetSpeed, acceleration * dt);
-
-            if (characterController.isGrounded && verticalVelocity < 0f) verticalVelocity = -2f;
-            verticalVelocity += gravity * dt;
-
+            float dt = Time.fixedDeltaTime;
+            moveVelocity = Vector3.MoveTowards(moveVelocity, desiredVelocity, acceleration * dt);
             knockbackVelocity = Vector3.Lerp(knockbackVelocity, Vector3.zero, 1f - Mathf.Exp(-knockbackDamping * dt));
 
-            Vector3 velocity = horizontalVelocity + knockbackVelocity + Vector3.up * verticalVelocity;
-            characterController.Move(velocity * dt);
+            // Controlamos la velocidad horizontal; la vertical la sigue llevando la física (gravedad, rampas).
+            Vector3 horizontal = moveVelocity + knockbackVelocity;
+            body.linearVelocity = new Vector3(horizontal.x, body.linearVelocity.y, horizontal.z);
+            if (extraGravity > 0f) body.AddForce(Vector3.down * extraGravity, ForceMode.Acceleration);
+            // Los choques no deben hacer girar al personaje; la rotación la decidimos nosotros.
+            body.angularVelocity = Vector3.zero;
 
-            if (direction.sqrMagnitude > 0.0001f)
+            if (desiredDirection.sqrMagnitude > 0.0001f)
             {
-                Quaternion targetRotation = Quaternion.LookRotation(direction, Vector3.up);
-                transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, rotationSpeed * dt);
+                Quaternion targetRotation = Quaternion.LookRotation(desiredDirection, Vector3.up);
+                body.MoveRotation(Quaternion.RotateTowards(body.rotation, targetRotation, rotationSpeed * dt));
             }
         }
 
@@ -295,16 +310,16 @@ namespace Racoon.Player
 
         void Teleport(Vector3 position, Quaternion rotation)
         {
-            // El CharacterController ignora cambios directos de posición mientras está activo.
-            characterController.enabled = false;
+            // Teleport avisa a los demás de que no interpolen el salto de posición.
             if (networkTransform != null && networkTransform.CanCommitToTransform)
                 networkTransform.Teleport(position, rotation, transform.localScale);
             else
                 transform.SetPositionAndRotation(position, rotation);
-            characterController.enabled = true;
 
-            horizontalVelocity = knockbackVelocity = Vector3.zero;
-            verticalVelocity = 0f;
+            body.position = position;
+            body.rotation = rotation;
+            if (!body.isKinematic) body.linearVelocity = Vector3.zero;
+            moveVelocity = knockbackVelocity = desiredVelocity = Vector3.zero;
         }
 
         // ---------------- Input (solo dueño) ----------------
@@ -419,7 +434,7 @@ namespace Racoon.Player
 
             Vector3 toVictim = victim.transform.position - transform.position;
             toVictim.y = 0f;
-            float maxDistance = punchRange + punchRadius + characterController.radius * 2f + hitValidationTolerance;
+            float maxDistance = punchRange + punchRadius + (capsule != null ? capsule.radius * 2f : 1f) + hitValidationTolerance;
             if (toVictim.magnitude > maxDistance) return;
 
             Vector3 direction = toVictim.sqrMagnitude > 0.0001f ? toVictim.normalized : transform.forward;

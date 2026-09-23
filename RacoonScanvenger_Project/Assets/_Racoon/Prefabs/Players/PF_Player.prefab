@@ -67,7 +67,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
+  - {fileID: 2100000, guid: 191faa851cdb88640b2df15caff41a4a, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -122,7 +122,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4461479425360024682}
-  - component: {fileID: 5419032296249258317}
   - component: {fileID: 2426525930917660955}
   - component: {fileID: 7751890442590411093}
   - component: {fileID: 2034249300856793685}
@@ -130,7 +129,6 @@ GameObject:
   - component: {fileID: 6877927705847804177}
   - component: {fileID: 4584103816076866246}
   - component: {fileID: 2368114784026257326}
-  - component: {fileID: 8542840051035477745}
   - component: {fileID: 4734997286130547212}
   - component: {fileID: 5812787108930251625}
   m_Layer: 0
@@ -156,31 +154,6 @@ Transform:
   - {fileID: 4285785264062295894}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!143 &5419032296249258317
-CharacterController:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6443071073951013002}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Height: 1.5
-  m_Radius: 0.375
-  m_SlopeLimit: 45
-  m_StepOffset: 0.3
-  m_SkinWidth: 0.08
-  m_MinMoveDistance: 0.001
-  m_Center: {x: 0, y: 0, z: 0}
 --- !u!114 &2426525930917660955
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -256,7 +229,7 @@ MonoBehaviour:
   runSpeed: 6.5
   acceleration: 30
   rotationSpeed: 720
-  gravity: -25
+  extraGravity: 10
   moveDeadzone: 0.15
   actionMoveMultiplier: 0.3
   maxStamina: 100
@@ -268,13 +241,13 @@ MonoBehaviour:
   switchItemDuration: 0.25
   punchDuration: 0.45
   useItemDuration: 0.5
-  interactRadius: 1.5
+  interactRadius: 1.2
   interactMask:
     serializedVersion: 2
     m_Bits: 64
   punchHitDelay: 0.15
   punchRange: 0.9
-  punchHeight: 1
+  punchHeight: 0
   punchRadius: 0.6
   punchKnockback: 8
   knockbackDamping: 6
@@ -319,7 +292,7 @@ CapsuleCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6443071073951013002}
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 13400000, guid: 47a6885dbbd90f143bf1b727723c0fe5, type: 2}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -361,7 +334,7 @@ MonoBehaviour:
   ScaleMaxInterpolationTime: 0.1
   AuthorityMode: 1
   TickSyncChildren: 0
-  UseUnreliableDeltas: 0
+  UseUnreliableDeltas: 1
   SyncPositionX: 1
   SyncPositionY: 1
   SyncPositionZ: 1
@@ -381,26 +354,6 @@ MonoBehaviour:
   SwitchTransformSpaceWhenParented: 0
   Interpolate: 1
   SlerpPosition: 0
---- !u!114 &8542840051035477745
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6443071073951013002}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e8d0727d5ae3244e3b569694d3912374, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.Components.NetworkAnimator
-  ShowTopMostFoldoutHeaderGroup: 1
-  NetworkAnimatorExpanded: 0
-  AuthorityMode: 1
-  m_Animator: {fileID: 6927876798064382780}
-  TransitionStateInfoList: []
-  AnimatorParameterEntries:
-    ParameterEntries: []
-  AnimatorParametersExpanded: 0
 --- !u!54 &4734997286130547212
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -425,9 +378,9 @@ Rigidbody:
   m_ImplicitTensor: 1
   m_UseGravity: 1
   m_IsKinematic: 0
-  m_Interpolate: 0
-  m_Constraints: 0
-  m_CollisionDetection: 0
+  m_Interpolate: 1
+  m_Constraints: 80
+  m_CollisionDetection: 3
 --- !u!114 &5812787108930251625
 MonoBehaviour:
   m_ObjectHideFlags: 0
