@@ -101,7 +101,7 @@ Animator:
   m_GameObject: {fileID: 4439787728245799242}
   m_Enabled: 1
   m_Avatar: {fileID: 0}
-  m_Controller: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: 30c65bd3c016eb144aadb2476411169d, type: 2}
   m_CullingMode: 0
   m_UpdateMode: 0
   m_ApplyRootMotion: 0
@@ -123,14 +123,15 @@ GameObject:
   m_Component:
   - component: {fileID: 4461479425360024682}
   - component: {fileID: 5419032296249258317}
-  - component: {fileID: 7751890442590411093}
   - component: {fileID: 2426525930917660955}
+  - component: {fileID: 7751890442590411093}
   - component: {fileID: 2034249300856793685}
   - component: {fileID: 6147228204243766040}
   - component: {fileID: 6877927705847804177}
   - component: {fileID: 4584103816076866246}
+  - component: {fileID: 2368114784026257326}
   m_Layer: 0
-  m_Name: Player
+  m_Name: PF_Player
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -177,20 +178,6 @@ CharacterController:
   m_SkinWidth: 0.08
   m_MinMoveDistance: 0.001
   m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &7751890442590411093
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6443071073951013002}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4ea15b229418c7a45950a0c546bc77d2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Racoon.Player.PlayerInputHandler
-  inputActions: {fileID: -944628639613478452, guid: c0b4891f8aeba5445ae61b81fbeb1aef, type: 3}
-  actionMapName: Player1
 --- !u!114 &2426525930917660955
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -218,6 +205,20 @@ MonoBehaviour:
   AutoObjectParentSync: 1
   SyncOwnerTransformWhenParented: 1
   AllowOwnerToParent: 0
+--- !u!114 &7751890442590411093
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6443071073951013002}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4ea15b229418c7a45950a0c546bc77d2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.Player.PlayerInputHandler
+  inputActions: {fileID: -944628639613478452, guid: c0b4891f8aeba5445ae61b81fbeb1aef, type: 3}
+  actionMapName: Player1
 --- !u!114 &2034249300856793685
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -302,7 +303,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Racoon.Player.PlayerAnimatorDriver
   controller: {fileID: 6147228204243766040}
-  animator: {fileID: 0}
+  animator: {fileID: 6927876798064382780}
   stateParameter: State
   actionTriggerParameter: ActionStart
   speedParameter: Speed
@@ -331,3 +332,49 @@ CapsuleCollider:
   m_Height: 1.5
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &2368114784026257326
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6443071073951013002}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e96cb6065543e43c4a752faaa1468eb1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.Components.NetworkTransform
+  ShowTopMostFoldoutHeaderGroup: 1
+  NetworkTransformExpanded: 0
+  AutoOwnerAuthorityTickOffset: 1
+  PositionInterpolationType: 0
+  RotationInterpolationType: 0
+  ScaleInterpolationType: 0
+  PositionLerpSmoothing: 1
+  PositionMaxInterpolationTime: 0.1
+  RotationLerpSmoothing: 1
+  RotationMaxInterpolationTime: 0.1
+  ScaleLerpSmoothing: 1
+  ScaleMaxInterpolationTime: 0.1
+  AuthorityMode: 1
+  TickSyncChildren: 0
+  UseUnreliableDeltas: 0
+  SyncPositionX: 1
+  SyncPositionY: 1
+  SyncPositionZ: 1
+  SyncRotAngleX: 0
+  SyncRotAngleY: 1
+  SyncRotAngleZ: 0
+  SyncScaleX: 0
+  SyncScaleY: 0
+  SyncScaleZ: 0
+  PositionThreshold: 0.001
+  RotAngleThreshold: 0.01
+  ScaleThreshold: 0.01
+  UseQuaternionSynchronization: 0
+  UseQuaternionCompression: 0
+  UseHalfFloatPrecision: 0
+  InLocalSpace: 0
+  SwitchTransformSpaceWhenParented: 0
+  Interpolate: 1
+  SlerpPosition: 0
