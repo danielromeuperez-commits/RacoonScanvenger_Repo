@@ -5,9 +5,10 @@ using UnityEngine;
 namespace Racoon.Cameras
 {
     /// <summary>
-    /// Va en el GameObject del CinemachineTargetGroup de la escena. Los jugadores se apuntan solos
-    /// al spawnear. La cámara NO es un objeto de red: cada máquina tiene la suya y añade localmente
-    /// a los dos jugadores, así ambos ven a los dos mapaches encuadrados.
+    /// Mete automáticamente a los jugadores en el CinemachineTargetGroup de la escena.
+    /// No hace falta añadir este componente a mano: si no está, se añade solo al primer
+    /// CinemachineTargetGroup que encuentre. La cámara NO es un objeto de red: cada máquina
+    /// añade localmente a los dos jugadores.
     /// </summary>
     [RequireComponent(typeof(CinemachineTargetGroup))]
     public class TargetGroupRegistry : MonoBehaviour
@@ -20,7 +21,7 @@ namespace Racoon.Cameras
         }
 
         static TargetGroupRegistry instance;
-        // Por si un jugador spawnea antes de que exista el registro.
+        // Jugadores que aparecieron antes de que existiera el Target Group.
         static readonly List<Member> pending = new();
 
         CinemachineTargetGroup targetGroup;
@@ -36,6 +37,8 @@ namespace Racoon.Cameras
         {
             instance = this;
             targetGroup = GetComponent<CinemachineTargetGroup>();
+            // Quita miembros vacíos (el menú de Cinemachine suele dejar uno).
+            targetGroup.Targets.RemoveAll(target => target.Object == null);
 
             foreach (Member member in pending)
                 if (member.Target != null) Add(member);
@@ -50,7 +53,8 @@ namespace Racoon.Cameras
         public static void Register(Transform target, float weight, float radius)
         {
             var member = new Member { Target = target, Weight = weight, Radius = radius };
-            if (instance != null) instance.Add(member);
+            TargetGroupRegistry registry = FindOrCreate();
+            if (registry != null) registry.Add(member);
             else pending.Add(member);
         }
 
@@ -58,6 +62,18 @@ namespace Racoon.Cameras
         {
             pending.RemoveAll(m => m.Target == target);
             if (instance != null) instance.targetGroup.RemoveMember(target);
+        }
+
+        static TargetGroupRegistry FindOrCreate()
+        {
+            if (instance != null) return instance;
+
+            var group = FindAnyObjectByType<CinemachineTargetGroup>();
+            if (group == null) return null;
+            // AddComponent ejecuta Awake al momento, que asigna 'instance'.
+            return group.TryGetComponent(out TargetGroupRegistry existing)
+                ? existing
+                : group.gameObject.AddComponent<TargetGroupRegistry>();
         }
 
         void Add(Member member)

@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 5187434092263714053}
   - component: {fileID: 7803988480859515675}
   - component: {fileID: 5768279022210801015}
+  - component: {fileID: 582876100012583536}
   m_Layer: 0
   m_Name: PF_MNG_NetworkManager
   m_TagString: Untagged
@@ -121,5 +122,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Racoon.Network.NetworkTestMenu
   port: 7777
-  maxPlayers: 2
   uiScale: 1.5
+--- !u!114 &582876100012583536
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3695418839482610812}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: af9ea5aeba665f645bcac0b0c359a417, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.Network.PlayerSpawnManager
+  roster: {fileID: 11400000, guid: cdb954a8fc48bc44980b3000fc022dd9, type: 2}
+  maxPlayers: 2

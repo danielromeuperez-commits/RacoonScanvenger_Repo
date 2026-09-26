@@ -5,6 +5,7 @@ using Unity.Netcode.Transports.UTP;
 using Unity.Services.Authentication;
 using Unity.Services.Core;
 using Unity.Services.Multiplayer;
+using Racoon.Player;
 using UnityEngine;
 
 namespace Racoon.Network
@@ -13,18 +14,19 @@ namespace Racoon.Network
     /// Menú de pruebas (OnGUI, no necesita Canvas). Ponlo en el mismo GameObject que el NetworkManager.
     ///  - LOCAL: host y cliente por IP directa (mismo PC o misma red).
     ///  - ONLINE: sesión con Relay de Unity (redes distintas, sin abrir puertos). El host recibe un código.
-    /// Además limita la partida a 'maxPlayers' con Connection Approval.
+    /// Antes de conectar se elige personaje; PlayerSpawnManager se encarga del resto.
     /// </summary>
-    [RequireComponent(typeof(NetworkManager), typeof(UnityTransport))]
+    [RequireComponent(typeof(NetworkManager), typeof(UnityTransport), typeof(PlayerSpawnManager))]
     public class NetworkTestMenu : MonoBehaviour
     {
         [SerializeField] ushort port = 7777;
-        [SerializeField] int maxPlayers = 2;
         [SerializeField] float uiScale = 1.5f;
 
         NetworkManager networkManager;
         UnityTransport transport;
+        PlayerSpawnManager spawnManager;
         ISession session;
+        int selectedCharacter;
 
         string joinAddress = "127.0.0.1";
         string joinCode = "";
@@ -35,24 +37,13 @@ namespace Racoon.Network
         {
             networkManager = GetComponent<NetworkManager>();
             transport = GetComponent<UnityTransport>();
-
-            // 1vs1: el host rechaza a un tercer jugador.
-            networkManager.NetworkConfig.ConnectionApproval = true;
-            networkManager.ConnectionApprovalCallback = ApproveConnection;
+            spawnManager = GetComponent<PlayerSpawnManager>();
             networkManager.OnClientDisconnectCallback += OnClientDisconnect;
         }
 
         void OnDestroy()
         {
             if (networkManager != null) networkManager.OnClientDisconnectCallback -= OnClientDisconnect;
-        }
-
-        void ApproveConnection(NetworkManager.ConnectionApprovalRequest request, NetworkManager.ConnectionApprovalResponse response)
-        {
-            bool hasRoom = networkManager.ConnectedClientsIds.Count < maxPlayers;
-            response.Approved = hasRoom;
-            response.CreatePlayerObject = hasRoom;
-            if (!hasRoom) response.Reason = "La partida está llena.";
         }
 
         void OnClientDisconnect(ulong clientId)
@@ -67,8 +58,14 @@ namespace Racoon.Network
 
         // ---------------- Local (IP directa) ----------------
 
+        int MaxPlayers => spawnManager.MaxPlayers;
+
+        // El personaje elegido viaja al host dentro de los datos de conexión.
+        void ApplySelection() => spawnManager.SetLocalSelection(selectedCharacter);
+
         void StartLocalHost()
         {
+            ApplySelection();
             // 0.0.0.0 = acepta conexiones de este PC y de otros de la misma red.
             transport.SetConnectionData("127.0.0.1", port, "0.0.0.0");
             status = networkManager.StartHost() ? $"Host local en el puerto {port}" : "No se pudo iniciar el host.";
@@ -76,6 +73,7 @@ namespace Racoon.Network
 
         void StartLocalClient()
         {
+            ApplySelection();
             transport.SetConnectionData(joinAddress.Trim(), port);
             status = networkManager.StartClient() ? $"Conectando a {joinAddress}:{port}..." : "No se pudo iniciar el cliente.";
         }
@@ -104,7 +102,8 @@ namespace Racoon.Network
             await RunBusy("Creando partida online...", async () =>
             {
                 await EnsureSignedInAsync();
-                var options = new SessionOptions { MaxPlayers = maxPlayers, IsPrivate = true }.WithRelayNetwork();
+                ApplySelection();
+                var options = new SessionOptions { MaxPlayers = MaxPlayers, IsPrivate = true }.WithRelayNetwork();
                 // La sesión configura el transporte con Relay y llama a StartHost por nosotros.
                 session = await MultiplayerService.Instance.CreateSessionAsync(options);
                 status = $"Partida creada. Código: {session.Code}";
@@ -123,6 +122,7 @@ namespace Racoon.Network
             await RunBusy("Uniéndose...", async () =>
             {
                 await EnsureSignedInAsync();
+                ApplySelection();
                 // Configura Relay y llama a StartClient por nosotros.
                 session = await MultiplayerService.Instance.JoinSessionByCodeAsync(code);
                 status = $"Unido a la partida {session.Code}";
@@ -169,7 +169,7 @@ namespace Racoon.Network
         void OnGUI()
         {
             GUI.matrix = Matrix4x4.Scale(new Vector3(uiScale, uiScale, 1f));
-            GUILayout.BeginArea(new Rect(10, 10, 260, 400), GUI.skin.box);
+            GUILayout.BeginArea(new Rect(10, 10, 280, 460), GUI.skin.box);
 
             GUI.enabled = !busy;
             if (!networkManager.IsListening && session == null)
@@ -184,6 +184,9 @@ namespace Racoon.Network
 
         void DrawStartMenu()
         {
+            DrawCharacterSelection();
+            GUILayout.Space(10);
+
             GUILayout.Label("LOCAL (mismo PC / misma red)");
             if (GUILayout.Button("Host local")) StartLocalHost();
             GUILayout.BeginHorizontal();
@@ -205,7 +208,7 @@ namespace Racoon.Network
             string role = networkManager.IsHost ? "Host" : networkManager.IsClient ? "Cliente" : "Iniciando...";
             GUILayout.Label($"Modo: {role}");
             if (networkManager.IsServer)
-                GUILayout.Label($"Jugadores: {networkManager.ConnectedClientsIds.Count}/{maxPlayers}");
+                GUILayout.Label($"Jugadores: {networkManager.ConnectedClientsIds.Count}/{MaxPlayers}");
 
             if (session != null && !string.IsNullOrEmpty(session.Code))
             {
@@ -213,7 +216,41 @@ namespace Racoon.Network
                 if (GUILayout.Button("Copiar código")) GUIUtility.systemCopyBuffer = session.Code;
             }
 
+            PlayerController local = PlayerController.Local;
+            if (local != null)
+            {
+                PlayerInputHandler input = local.InputHandler;
+                if (input.IsWaitingForDevice)
+                    GUILayout.Label("Pulsa un botón del mando (o una tecla) EN ESTA VENTANA para controlar tu personaje.");
+                else if (input.PairedDevice != null)
+                    GUILayout.Label($"Controlando con: {input.PairedDevice.displayName}");
+            }
+
             if (GUILayout.Button("Desconectar")) Disconnect();
+        }
+
+        void DrawCharacterSelection()
+        {
+            var roster = spawnManager.Roster;
+            if (roster == null || roster.Count == 0)
+            {
+                GUILayout.Label("Asigna un Character Roster en PlayerSpawnManager.");
+                return;
+            }
+
+            selectedCharacter = Mathf.Clamp(selectedCharacter, 0, roster.Count - 1);
+            var character = roster.Get(selectedCharacter);
+
+            GUILayout.Label("PERSONAJE");
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("<", GUILayout.Width(30)))
+                selectedCharacter = (selectedCharacter - 1 + roster.Count) % roster.Count;
+            if (character != null && character.portrait != null)
+                GUILayout.Label(character.portrait.texture, GUILayout.Width(40), GUILayout.Height(40));
+            GUILayout.Label(character != null ? character.displayName : "(vacío)", GUILayout.ExpandWidth(true));
+            if (GUILayout.Button(">", GUILayout.Width(30)))
+                selectedCharacter = (selectedCharacter + 1) % roster.Count;
+            GUILayout.EndHorizontal();
         }
     }
 }
