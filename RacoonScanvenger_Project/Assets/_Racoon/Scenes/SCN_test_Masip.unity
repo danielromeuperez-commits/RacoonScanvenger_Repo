@@ -7131,7 +7131,8 @@ PrefabInstance:
       propertyPath: m_Name
       value: PF_MNG_NetworkManager
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 5768279022210801015, guid: 3109cb6b9c86eca44a8d8f649ccf9493, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
