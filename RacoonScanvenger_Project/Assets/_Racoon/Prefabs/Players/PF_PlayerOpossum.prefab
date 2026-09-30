@@ -67,7 +67,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 8fa5eb83f6e24984190d7ea44100c306, type: 2}
+  - {fileID: 2100000, guid: 620b4789a208ff541bbf3b5850c81f7c, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -166,7 +166,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 3977665407
+  GlobalObjectIdHash: 3046989128
   InScenePlacedSourceGlobalObjectIdHash: 0
   m_InScenePlacedDisabledByDefault: 0
   DeferredDespawnTick: 0
@@ -195,6 +195,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Racoon.Player.PlayerInputHandler
   inputActions: {fileID: -944628639613478452, guid: c0b4891f8aeba5445ae61b81fbeb1aef, type: 3}
   actionMapName: Player1
+  deviceAssignment: 0
 --- !u!114 &2034249300856793685
 MonoBehaviour:
   m_ObjectHideFlags: 0
