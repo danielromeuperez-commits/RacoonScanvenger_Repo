@@ -6,32 +6,29 @@ namespace Racoon.Items
 {
     public class ItemBox : NetworkBehaviour
     {
+        [Header("Aparición")]
+        [SerializeField] bool startVisible = true;
+
+        [Tooltip("Segundos que tarda en aparecer al empezar la partida.")]
+        [SerializeField, Min(0f)] float spawnDelay = 0f;
+
         [Header("Animación")]
-        [Tooltip("Objeto visual que gira y sube/baja. Normalmente será el hijo que contiene el modelo.")]
         [SerializeField] Transform animatedVisual;
-
-        [Tooltip("Velocidad de giro en grados por segundo.")]
         [SerializeField] float rotationSpeed = 90f;
-
-        [Tooltip("Cuánto sube y baja la caja desde su posición inicial.")]
         [SerializeField] float bobHeight = 0.25f;
-
-        [Tooltip("Velocidad de la animación de subida y bajada, en ciclos por segundo.")]
         [SerializeField] float bobSpeed = 1f;
 
         [Header("Pickup")]
         [SerializeField] Collider pickupCollider;
-
         [SerializeField] float messageDuration = 2f;
 
-        NetworkVariable<bool> available = new(
-            true,
+        readonly NetworkVariable<bool> available = new(
+            false,
             NetworkVariableReadPermission.Everyone,
             NetworkVariableWritePermission.Server
         );
 
         Renderer[] renderers;
-
         Vector3 initialLocalPosition;
         float messageTimer;
 
@@ -40,12 +37,10 @@ namespace Racoon.Items
             if (pickupCollider == null)
                 pickupCollider = GetComponent<Collider>();
 
-            renderers = GetComponentsInChildren<Renderer>(true);
-
-            // Si no asignamos un visual, animamos el propio objeto.
             if (animatedVisual == null)
                 animatedVisual = transform;
 
+            renderers = GetComponentsInChildren<Renderer>(true);
             initialLocalPosition = animatedVisual.localPosition;
         }
 
@@ -62,11 +57,28 @@ namespace Racoon.Items
             available.OnValueChanged += OnAvailabilityChanged;
 
             ApplyAvailability(available.Value);
+
+            if (IsServer)
+            {
+                if (startVisible)
+                {
+                    available.Value = true;
+                }
+                else if (spawnDelay <= 0f)
+                {
+                    available.Value = true;
+                }
+                else
+                {
+                    Invoke(nameof(ServerShowBox), spawnDelay);
+                }
+            }
         }
 
         public override void OnNetworkDespawn()
         {
             available.OnValueChanged -= OnAvailabilityChanged;
+            CancelInvoke();
         }
 
         void Update()
@@ -79,18 +91,18 @@ namespace Racoon.Items
 
         void AnimateBox()
         {
-            if (animatedVisual == null)
+            if (animatedVisual == null || !available.Value)
                 return;
 
-            // Giro continuo sobre el eje Y.
             animatedVisual.Rotate(
                 Vector3.up,
                 rotationSpeed * Time.deltaTime,
                 Space.Self
             );
 
-            // Movimiento suave de subida y bajada.
-            float offset = Mathf.Sin(Time.time * bobSpeed * Mathf.PI * 2f) * bobHeight;
+            float offset =
+                Mathf.Sin(Time.time * bobSpeed * Mathf.PI * 2f)
+                * bobHeight;
 
             Vector3 position = initialLocalPosition;
             position.y += offset;
@@ -103,17 +115,18 @@ namespace Racoon.Items
             if (!IsServer || !available.Value)
                 return;
 
-            PlayerController player = other.GetComponentInParent<PlayerController>();
+            PlayerController player =
+                other.GetComponentInParent<PlayerController>();
 
             if (player == null)
                 return;
 
+            // La caja desaparece para todos.
             available.Value = false;
 
-            // Ocultar inmediatamente en el host.
             ApplyAvailability(false);
 
-            // Mostrar el mensaje solamente al jugador que la ha recogido.
+            // Mensaje solo para quien la recoge.
             ShowMessageClientRpc(
                 new ClientRpcParams
                 {
@@ -123,6 +136,14 @@ namespace Racoon.Items
                     }
                 }
             );
+        }
+
+        void ServerShowBox()
+        {
+            if (!IsServer)
+                return;
+
+            available.Value = true;
         }
 
         [ClientRpc]
