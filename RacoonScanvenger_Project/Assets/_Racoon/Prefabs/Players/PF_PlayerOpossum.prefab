@@ -166,7 +166,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 3977665407
+  GlobalObjectIdHash: 3046989128
   InScenePlacedSourceGlobalObjectIdHash: 0
   m_InScenePlacedDisabledByDefault: 0
   DeferredDespawnTick: 0
@@ -195,6 +195,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Racoon.Player.PlayerInputHandler
   inputActions: {fileID: -944628639613478452, guid: c0b4891f8aeba5445ae61b81fbeb1aef, type: 3}
   actionMapName: Player1
+  deviceAssignment: 0
 --- !u!114 &2034249300856793685
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -255,6 +256,37 @@ MonoBehaviour:
   hitMask:
     serializedVersion: 2
     m_Bits: 128
+  hitStunDuration: 0.6
+  dashSpeed: 14
+  dashDuration: 0.25
+  dashSpeedCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 0.4
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  dashCooldown: 0.35
+  dashStaminaCost: 15
+  invincibilityStart: 0
+  invincibilityDuration: 0.2
   cameraWeight: 1
   cameraRadius: 1.5
   onInteract:
@@ -264,6 +296,9 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   onHitReceived:
+    m_PersistentCalls:
+      m_Calls: []
+  onDash:
     m_PersistentCalls:
       m_Calls: []
 --- !u!114 &6877927705847804177

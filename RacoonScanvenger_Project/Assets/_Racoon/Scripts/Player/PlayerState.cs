@@ -17,6 +17,8 @@ namespace Racoon.Player
         SwitchItem = 11,
         Punch = 12,
         UseItem = 13,
+        HitStun = 14, // Knockback + aturdido tras recibir un golpe (sin control)
+        Dash = 15,
     }
 
     public static class PlayerStateExtensions

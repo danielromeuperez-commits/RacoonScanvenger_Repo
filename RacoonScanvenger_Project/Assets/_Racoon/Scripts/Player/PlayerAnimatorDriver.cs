@@ -7,7 +7,8 @@ namespace Racoon.Player
     /// así que no hace falta NetworkAnimator.
     ///
     /// Parámetros esperados en el Animator Controller:
-    ///  - "State" (int): valor de PlayerState (0 Idle, 1 Walk, 2 Run, 10 Interact, 11 SwitchItem, 12 Punch, 13 UseItem)
+    ///  - "State" (int): valor de PlayerState (0 Idle, 1 Walk, 2 Run, 10 Interact, 11 SwitchItem, 12 Punch,
+    ///    13 UseItem, 14 HitStun, 15 Dash)
     ///  - "ActionStart" (trigger): se dispara al empezar cualquier acción
     ///  - "Speed" (float, opcional): velocidad horizontal normalizada 0-1 para blend trees
     /// Si falta algún parámetro, simplemente se ignora.

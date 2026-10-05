@@ -64,6 +64,23 @@ namespace Racoon.Player
         [SerializeField] float hitValidationTolerance = 1.5f;
         [SerializeField] LayerMask hitMask = ~0;
 
+        [Header("Recibir golpe")]
+        [Tooltip("Segundos sin control tras recibir un golpe (el knockback se aplica durante este tiempo).")]
+        [SerializeField] float hitStunDuration = 0.6f;
+
+        [Header("Dash")]
+        [SerializeField] float dashSpeed = 14f;
+        [SerializeField] float dashDuration = 0.25f;
+        [Tooltip("Multiplicador de dashSpeed a lo largo del dash (X: 0-1 tiempo normalizado).")]
+        [SerializeField] AnimationCurve dashSpeedCurve = AnimationCurve.EaseInOut(0f, 1f, 1f, 0.4f);
+        [Tooltip("Segundos de espera tras terminar un dash antes de poder hacer otro.")]
+        [SerializeField] float dashCooldown = 0.35f;
+        [SerializeField] float dashStaminaCost = 15f;
+        [Tooltip("Inicio de los invincibility-frames, en segundos desde que empieza el dash.")]
+        [SerializeField] float invincibilityStart = 0f;
+        [Tooltip("Duración de los invincibility-frames (0 = sin invencibilidad).")]
+        [SerializeField] float invincibilityDuration = 0.2f;
+
         [Header("Cámara (Target Group)")]
         [SerializeField] float cameraWeight = 1f;
         [SerializeField] float cameraRadius = 1.5f;
@@ -73,6 +90,8 @@ namespace Racoon.Player
         public UnityEvent<ItemData> onItemUsed;
         /// <summary>Parámetro: quien golpea (puede ser null).</summary>
         public UnityEvent<PlayerController> onHitReceived;
+        /// <summary>Parámetro: dirección del dash (horizontal, normalizada).</summary>
+        public UnityEvent<Vector3> onDash;
 
         /// <summary>Estado + contador de acciones en una sola variable, para que lleguen juntos.</summary>
         public struct NetState : INetworkSerializeByMemcpy, IEquatable<NetState>
@@ -81,8 +100,11 @@ namespace Racoon.Player
             // Se incrementa en cada acción: así se detectan dos golpes seguidos aunque el
             // estado no pase visiblemente por Idle entre ellos.
             public byte ActionSequence;
+            // Invincibility-frames del dash: el servidor lo consulta para descartar golpes.
+            public bool Invulnerable;
 
-            public bool Equals(NetState other) => State == other.State && ActionSequence == other.ActionSequence;
+            public bool Equals(NetState other) =>
+                State == other.State && ActionSequence == other.ActionSequence && Invulnerable == other.Invulnerable;
         }
 
         // El dueño escribe, todos leen.
@@ -104,8 +126,16 @@ namespace Racoon.Player
         public event Action<PlayerState, PlayerState> StateChanged;
         /// <summary>Se lanza al empezar una acción (Interact, SwitchItem, Punch, UseItem). Todos los clientes.</summary>
         public event Action<PlayerState> ActionStarted;
+        /// <summary>Al recibir un golpe que sí entra (quien golpea, puede ser null). Todos los clientes.</summary>
+        public event Action<PlayerController> HitReceived;
+        /// <summary>Al empezar un dash (dirección). Todos los clientes.</summary>
+        public event Action<Vector3> DashStarted;
 
         public PlayerState State => netState.Value.State;
+        /// <summary>Está en invincibility-frames. Replicado: válido en todos los clientes y en el servidor.</summary>
+        public bool IsInvulnerable => netState.Value.Invulnerable;
+        public float DashDuration => dashDuration;
+        public float HitStunDuration => hitStunDuration;
         public float StaminaNormalized => staminaNormalized.Value;
         /// <summary>Solo tiene sentido en el dueño.</summary>
         public bool IsExhausted => exhausted;
@@ -131,8 +161,13 @@ namespace Racoon.Player
         bool exhausted;
         float actionTimer;
         float punchHitTimer = -1f;
+        Vector3 dashDirection;
+        float dashCooldownTimer;
 
         bool IsInAction => actionTimer > 0f;
+        // Solo en el dueño (el estado lo escribe él, así que su copia siempre está al día).
+        bool IsStunned => IsInAction && State == PlayerState.HitStun;
+        bool IsDashing => IsInAction && State == PlayerState.Dash;
 
         void Awake()
         {
@@ -164,6 +199,7 @@ namespace Racoon.Player
             input.InteractPressed += OnInteractPressed;
             input.SwitchItemPressed += OnSwitchItemPressed;
             input.UsePressed += OnUsePressed;
+            input.DashPressed += OnDashPressed;
             LocalPlayerSpawned?.Invoke(this);
         }
 
@@ -177,6 +213,7 @@ namespace Racoon.Player
             input.InteractPressed -= OnInteractPressed;
             input.SwitchItemPressed -= OnSwitchItemPressed;
             input.UsePressed -= OnUsePressed;
+            input.DashPressed -= OnDashPressed;
             if (Local == this) Local = null;
         }
 
@@ -196,11 +233,14 @@ namespace Racoon.Player
 
             float dt = Time.deltaTime;
             if (actionTimer > 0f) actionTimer -= dt;
+            if (dashCooldownTimer > 0f) dashCooldownTimer -= dt;
             if (punchHitTimer >= 0f)
             {
                 punchHitTimer -= dt;
                 if (punchHitTimer < 0f) OwnerCheckPunchHit();
             }
+
+            UpdateInvulnerability();
 
             Vector2 move = input.Move;
             bool hasMoveInput = move.sqrMagnitude > moveDeadzone * moveDeadzone;
@@ -209,11 +249,25 @@ namespace Racoon.Player
             UpdateStamina(isRunning, dt);
 
             // Solo se calcula la intención; la física se aplica en FixedUpdate.
-            if (!hasMoveInput) move = Vector2.zero;
-            desiredDirection = GetCameraRelativeDirection(move);
-            float targetSpeed = (isRunning ? runSpeed : walkSpeed) * move.magnitude;
-            if (IsInAction) targetSpeed *= actionMoveMultiplier;
-            desiredVelocity = desiredDirection * targetSpeed;
+            if (IsStunned)
+            {
+                // Sin control: solo actúa el knockback.
+                desiredDirection = desiredVelocity = Vector3.zero;
+            }
+            else if (IsDashing)
+            {
+                // La velocidad del dash la pone FixedUpdate.
+                desiredDirection = dashDirection;
+                desiredVelocity = Vector3.zero;
+            }
+            else
+            {
+                if (!hasMoveInput) move = Vector2.zero;
+                desiredDirection = GetCameraRelativeDirection(move);
+                float targetSpeed = (isRunning ? runSpeed : walkSpeed) * move.magnitude;
+                if (IsInAction) targetSpeed *= actionMoveMultiplier;
+                desiredVelocity = desiredDirection * targetSpeed;
+            }
 
             if (!IsInAction)
                 SetLocomotionState(!hasMoveInput ? PlayerState.Idle : isRunning ? PlayerState.Run : PlayerState.Walk);
@@ -245,13 +299,41 @@ namespace Racoon.Player
             staminaNormalized.Value = stamina / maxStamina;
         }
 
+        void UpdateInvulnerability()
+        {
+            bool invulnerable = false;
+            if (IsDashing && invincibilityDuration > 0f)
+            {
+                float elapsed = dashDuration - actionTimer;
+                invulnerable = elapsed >= invincibilityStart && elapsed < invincibilityStart + invincibilityDuration;
+            }
+            SetInvulnerable(invulnerable);
+        }
+
+        void SetInvulnerable(bool invulnerable)
+        {
+            NetState value = netState.Value;
+            if (value.Invulnerable == invulnerable) return;
+            value.Invulnerable = invulnerable;
+            netState.Value = value;
+        }
+
         void FixedUpdate()
         {
             // En el rival el Rigidbody es kinematic y lo mueve NetworkRigidbody: no tocar.
             if (!IsSpawned || !IsOwner || body.isKinematic) return;
 
             float dt = Time.fixedDeltaTime;
-            moveVelocity = Vector3.MoveTowards(moveVelocity, desiredVelocity, acceleration * dt);
+            if (IsDashing)
+            {
+                // Se mueve con velocidad (no atraviesa nada): choca con el entorno y con el otro jugador.
+                float t = dashDuration > 0f ? 1f - actionTimer / dashDuration : 1f;
+                moveVelocity = dashDirection * (dashSpeed * dashSpeedCurve.Evaluate(t));
+            }
+            else
+            {
+                moveVelocity = Vector3.MoveTowards(moveVelocity, desiredVelocity, acceleration * dt);
+            }
             knockbackVelocity = Vector3.Lerp(knockbackVelocity, Vector3.zero, 1f - Mathf.Exp(-knockbackDamping * dt));
 
             // Controlamos la velocidad horizontal; la vertical la sigue llevando la física (gravedad, rampas).
@@ -264,7 +346,8 @@ namespace Racoon.Player
             if (desiredDirection.sqrMagnitude > 0.0001f)
             {
                 Quaternion targetRotation = Quaternion.LookRotation(desiredDirection, Vector3.up);
-                body.MoveRotation(Quaternion.RotateTowards(body.rotation, targetRotation, rotationSpeed * dt));
+                // En el dash mira directamente hacia donde sale.
+                body.MoveRotation(IsDashing ? targetRotation : Quaternion.RotateTowards(body.rotation, targetRotation, rotationSpeed * dt));
             }
         }
 
@@ -349,6 +432,47 @@ namespace Racoon.Player
             }
         }
 
+        void OnDashPressed()
+        {
+            // Incluye el stun: no se puede salir del aturdimiento con un dash.
+            if (IsInAction || dashCooldownTimer > 0f) return;
+            if (dashStaminaCost > 0f && (exhausted || stamina < dashStaminaCost)) return;
+
+            if (dashStaminaCost > 0f)
+            {
+                stamina -= dashStaminaCost;
+                staminaRegenTimer = staminaRegenDelay;
+                if (stamina <= 0f)
+                {
+                    stamina = 0f;
+                    exhausted = true;
+                }
+            }
+
+            // Hacia donde apunta el stick; sin input, hacia delante.
+            Vector2 move = input.Move;
+            Vector3 direction = move.sqrMagnitude > moveDeadzone * moveDeadzone
+                ? GetCameraRelativeDirection(move)
+                : Vector3.ProjectOnPlane(transform.forward, Vector3.up).normalized;
+            if (direction.sqrMagnitude < 0.0001f) direction = Vector3.forward;
+
+            dashDirection = direction;
+            dashCooldownTimer = dashDuration + dashCooldown;
+            StartAction(PlayerState.Dash, dashDuration);
+            UpdateInvulnerability(); // Si los i-frames empiezan en 0, ya cuentan desde este frame.
+            DashRpc(direction);
+        }
+
+        // ---------------- Dash ----------------
+
+        // SendTo.Everyone: los VFX salen al instante en el dueño y con la dirección exacta en el resto.
+        [Rpc(SendTo.Everyone, InvokePermission = RpcInvokePermission.Owner)]
+        void DashRpc(Vector3 direction)
+        {
+            DashStarted?.Invoke(direction);
+            onDash?.Invoke(direction);
+        }
+
         // ---------------- Interactuar ----------------
 
         // SendTo.Everyone: se ejecuta al instante en el dueño y luego en servidor y rival.
@@ -413,7 +537,8 @@ namespace Racoon.Player
                 PlayerController victim = overlapBuffer[i].GetComponentInParent<PlayerController>();
                 if (victim == null || victim == this) continue;
 
-                PunchHitRpc(victim.NetworkObject);
+                // Lo esquivó con un dash: no gastamos un RPC.
+                if (!victim.IsInvulnerable) PunchHitRpc(victim.NetworkObject);
                 return;
             }
         }
@@ -432,18 +557,49 @@ namespace Racoon.Player
             if (toVictim.magnitude > maxDistance) return;
 
             Vector3 direction = toVictim.sqrMagnitude > 0.0001f ? toVictim.normalized : transform.forward;
-            victim.ReceiveHitRpc(direction * punchKnockback, NetworkObjectId);
+            victim.ServerApplyHit(direction * punchKnockback, this);
         }
 
-        [Rpc(SendTo.Everyone, InvokePermission = RpcInvokePermission.Server)]
+        // ---------------- Recibir golpe ----------------
+
+        /// <summary>
+        /// Solo servidor. Punto de entrada para CUALQUIER cosa que golpee al jugador (puñetazo,
+        /// objetos lanzados...). Se ignora si está en invincibility-frames.
+        /// </summary>
+        public void ServerApplyHit(Vector3 knockback, PlayerController attacker = null)
+        {
+            if (!IsServer)
+            {
+                Debug.LogWarning("ServerApplyHit solo se puede llamar en el servidor.", this);
+                return;
+            }
+            if (IsInvulnerable) return;
+
+            ReceiveHitRpc(knockback, attacker != null ? attacker.NetworkObjectId : ulong.MaxValue);
+        }
+
+        // El golpe lo resuelve el dueño de la víctima: tiene la información más reciente de sus
+        // i-frames (el valor que ve el servidor llega con latencia), así el dash se siente justo.
+        [Rpc(SendTo.Owner, InvokePermission = RpcInvokePermission.Server)]
         void ReceiveHitRpc(Vector3 knockback, ulong attackerObjectId)
         {
-            // Solo el dueño mueve su personaje, así que es él quien aplica el empujón.
-            if (IsOwner) knockbackVelocity += knockback;
+            if (IsInvulnerable) return;
 
+            // Solo el dueño mueve su personaje, así que es él quien aplica el empujón.
+            knockbackVelocity += knockback;
+            moveVelocity = Vector3.zero;
+            punchHitTimer = -1f; // Un golpe recibido cancela el tuyo.
+            StartAction(PlayerState.HitStun, hitStunDuration);
+            HitReactedRpc(attackerObjectId);
+        }
+
+        [Rpc(SendTo.Everyone, InvokePermission = RpcInvokePermission.Owner)]
+        void HitReactedRpc(ulong attackerObjectId)
+        {
             PlayerController attacker = null;
             if (NetworkManager.SpawnManager.SpawnedObjects.TryGetValue(attackerObjectId, out NetworkObject attackerObject))
                 attackerObject.TryGetComponent(out attacker);
+            HitReceived?.Invoke(attacker);
             onHitReceived?.Invoke(attacker);
         }
 
