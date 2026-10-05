@@ -11,6 +11,9 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/_Racoon/Scenes/SCN_test_Masip.unity
     guid: 6007b9c989a44ea459885fb5fb18d2cc
+  - enabled: 1
+    path: Assets/_Racoon/Scenes/SCN_test_Masip2_Shader.unity
+    guid: 86eecc9327a2bab46bc9b117a044a229
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   m_UseUCBPForAssetBundles: 0

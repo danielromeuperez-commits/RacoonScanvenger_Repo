@@ -67,7 +67,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 245482203cfc24e44b1979b13b0d3ca0, type: 2}
+  - {fileID: 2100000, guid: fb759ca1eeb71f8479c54959070b2dc2, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -195,6 +195,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Racoon.Player.PlayerInputHandler
   inputActions: {fileID: -944628639613478452, guid: c0b4891f8aeba5445ae61b81fbeb1aef, type: 3}
   actionMapName: Player1
+  deviceAssignment: 0
 --- !u!114 &2034249300856793685
 MonoBehaviour:
   m_ObjectHideFlags: 0
