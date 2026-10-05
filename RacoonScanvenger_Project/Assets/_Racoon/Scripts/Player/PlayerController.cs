@@ -81,6 +81,12 @@ namespace Racoon.Player
         [Tooltip("Duración de los invincibility-frames (0 = sin invencibilidad).")]
         [SerializeField] float invincibilityDuration = 0.2f;
 
+        [Header("Debug")]
+        [Tooltip("Gizmos en Play: rango del puñetazo, i-frames del dash e interacción mientras ocurren.")]
+        [SerializeField] bool drawRuntimeGizmos = true;
+        [Tooltip("Segundos que se queda dibujada la comprobación del golpe (frame activo).")]
+        [SerializeField] float punchGizmoTime = 0.25f;
+
         [Header("Cámara (Target Group)")]
         [SerializeField] float cameraWeight = 1f;
         [SerializeField] float cameraRadius = 1.5f;
@@ -88,9 +94,15 @@ namespace Racoon.Player
         [Header("Eventos (se lanzan en TODOS los clientes)")]
         public UnityEvent<PlayerController> onInteract;
         public UnityEvent<ItemData> onItemUsed;
-        /// <summary>Parámetro: quien golpea (puede ser null).</summary>
+        /// <summary>
+        /// Solo cuando el golpe ENTRA (no en i-frames). Parámetro: quien golpea (puede ser null).
+        /// Conecta aquí la reacción visual: PlayerVFX.OnHitReceived (parpadeo durante el stun).
+        /// </summary>
         public UnityEvent<PlayerController> onHitReceived;
-        /// <summary>Parámetro: dirección del dash (horizontal, normalizada).</summary>
+        /// <summary>
+        /// Al empezar un dash. Parámetro: dirección del dash (horizontal, normalizada), la misma en todos
+        /// los clientes. Conecta aquí PlayerVFX.OnDash (polvo + trail orientados) o sonido, cámara...
+        /// </summary>
         public UnityEvent<Vector3> onDash;
 
         /// <summary>Estado + contador de acciones en una sola variable, para que lleguen juntos.</summary>
@@ -126,10 +138,6 @@ namespace Racoon.Player
         public event Action<PlayerState, PlayerState> StateChanged;
         /// <summary>Se lanza al empezar una acción (Interact, SwitchItem, Punch, UseItem). Todos los clientes.</summary>
         public event Action<PlayerState> ActionStarted;
-        /// <summary>Al recibir un golpe que sí entra (quien golpea, puede ser null). Todos los clientes.</summary>
-        public event Action<PlayerController> HitReceived;
-        /// <summary>Al empezar un dash (dirección). Todos los clientes.</summary>
-        public event Action<Vector3> DashStarted;
 
         public PlayerState State => netState.Value.State;
         /// <summary>Está en invincibility-frames. Replicado: válido en todos los clientes y en el servidor.</summary>
@@ -161,6 +169,9 @@ namespace Racoon.Player
         bool exhausted;
         float actionTimer;
         float punchHitTimer = -1f;
+        // Solo para gizmos: última comprobación del golpe (dueño).
+        float lastPunchCheckTime = float.NegativeInfinity;
+        bool lastPunchConnected;
         Vector3 dashDirection;
         float dashCooldownTimer;
 
@@ -469,7 +480,6 @@ namespace Racoon.Player
         [Rpc(SendTo.Everyone, InvokePermission = RpcInvokePermission.Owner)]
         void DashRpc(Vector3 direction)
         {
-            DashStarted?.Invoke(direction);
             onDash?.Invoke(direction);
         }
 
@@ -527,10 +537,13 @@ namespace Racoon.Player
         // ---------------- Golpe ----------------
 
         // El dueño detecta el impacto (se siente instantáneo) y el servidor lo valida.
+        Vector3 PunchCenter => transform.position + Vector3.up * punchHeight + transform.forward * punchRange;
+
         void OwnerCheckPunchHit()
         {
-            Vector3 center = transform.position + Vector3.up * punchHeight + transform.forward * punchRange;
-            int count = Physics.OverlapSphereNonAlloc(center, punchRadius, overlapBuffer, hitMask, QueryTriggerInteraction.Ignore);
+            lastPunchCheckTime = Time.time;
+            lastPunchConnected = false;
+            int count = Physics.OverlapSphereNonAlloc(PunchCenter, punchRadius, overlapBuffer, hitMask, QueryTriggerInteraction.Ignore);
 
             for (int i = 0; i < count; i++)
             {
@@ -538,7 +551,9 @@ namespace Racoon.Player
                 if (victim == null || victim == this) continue;
 
                 // Lo esquivó con un dash: no gastamos un RPC.
-                if (!victim.IsInvulnerable) PunchHitRpc(victim.NetworkObject);
+                if (victim.IsInvulnerable) return;
+                lastPunchConnected = true;
+                PunchHitRpc(victim.NetworkObject);
                 return;
             }
         }
@@ -599,16 +614,54 @@ namespace Racoon.Player
             PlayerController attacker = null;
             if (NetworkManager.SpawnManager.SpawnedObjects.TryGetValue(attackerObjectId, out NetworkObject attackerObject))
                 attackerObject.TryGetComponent(out attacker);
-            HitReceived?.Invoke(attacker);
             onHitReceived?.Invoke(attacker);
         }
 
+        // Rangos configurados (con el objeto seleccionado, también fuera de Play).
         void OnDrawGizmosSelected()
         {
-            Gizmos.color = Color.cyan;
+            Gizmos.color = new Color(0f, 1f, 1f, 0.35f);
             Gizmos.DrawWireSphere(transform.position, interactRadius);
-            Gizmos.color = Color.red;
-            Gizmos.DrawWireSphere(transform.position + Vector3.up * punchHeight + transform.forward * punchRange, punchRadius);
+            Gizmos.color = new Color(1f, 0f, 0f, 0.35f);
+            Gizmos.DrawWireSphere(PunchCenter, punchRadius);
+        }
+
+        // En Play, lo que está pasando ahora mismo. Funciona en todos los clientes porque usa el
+        // estado replicado (la comprobación real del golpe solo se ve en el dueño del que golpea).
+        // En la Game view hay que activar el botón "Gizmos".
+        void OnDrawGizmos()
+        {
+            if (!drawRuntimeGizmos || !Application.isPlaying || !IsSpawned) return;
+
+            if (State == PlayerState.Interact)
+            {
+                Gizmos.color = Color.cyan;
+                Gizmos.DrawWireSphere(transform.position, interactRadius);
+            }
+
+            if (State == PlayerState.Punch)
+            {
+                Gizmos.color = new Color(1f, 0.5f, 0f);
+                Gizmos.DrawWireSphere(PunchCenter, punchRadius);
+            }
+
+            // Frame activo: rojo si ha encontrado a alguien, amarillo si ha fallado.
+            if (Time.time - lastPunchCheckTime < punchGizmoTime)
+            {
+                Gizmos.color = lastPunchConnected ? new Color(1f, 0f, 0f, 0.5f) : new Color(1f, 1f, 0f, 0.35f);
+                Gizmos.DrawSphere(PunchCenter, punchRadius);
+            }
+
+            if (IsInvulnerable)
+            {
+                // Burbuja azul que envuelve la cápsula mientras duran los i-frames.
+                Vector3 center = capsule != null ? transform.TransformPoint(capsule.center) : transform.position;
+                float radius = capsule != null ? Mathf.Max(capsule.radius, capsule.height * 0.5f) + 0.1f : 0.8f;
+                Gizmos.color = new Color(0.3f, 0.6f, 1f, 0.3f);
+                Gizmos.DrawSphere(center, radius);
+                Gizmos.color = new Color(0.3f, 0.6f, 1f);
+                Gizmos.DrawWireSphere(center, radius);
+            }
         }
     }
 }

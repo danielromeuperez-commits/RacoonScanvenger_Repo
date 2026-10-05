@@ -6,17 +6,18 @@ using UnityEngine;
 namespace Racoon.Player
 {
     /// <summary>
-    /// Efectos visuales del jugador. Se ejecuta en TODOS los clientes (reacciona al estado replicado
-    /// y a los eventos del PlayerController), así que no hace falta sincronizar nada más por red.
+    /// Efectos visuales del jugador. Se ejecuta en TODOS los clientes (los UnityEvents del
+    /// PlayerController se lanzan en todos), así que no hace falta sincronizar nada más por red.
     ///
     /// Ponlo en el MISMO GameObject que el Animator (el modelo): los Animation Events solo llaman
     /// a métodos de componentes de ese GameObject.
     ///
-    ///  - Animation Events: función "PlayVFX" con parámetro string = id del efecto (p. ej. "HitDust"
-    ///    en los keyframes de la animación de recibir golpe).
-    ///  - Dash: instancia el polvo (una vez por cada valor de dashDustDelays) y el trail de viento,
-    ///    orientados en la dirección del dash.
-    ///  - HitStun: el personaje parpadea hasta que vuelve a poder moverse.
+    /// Conexiones (Inspector del PlayerController, sección Eventos, opción "Dynamic"):
+    ///  - onHitReceived → PlayerVFX.OnHitReceived: parpadeo hasta que vuelve a poder moverse.
+    ///  - onDash        → PlayerVFX.OnDash: polvo (uno por cada valor de dashDustDelays) + trail de viento,
+    ///                    orientados en la dirección del dash.
+    /// Animation Events: función "PlayVFX" con parámetro string = id del efecto (p. ej. "HitDust"
+    /// en los keyframes de la animación de recibir golpe).
     /// </summary>
     public class PlayerVFX : MonoBehaviour
     {
@@ -62,18 +63,7 @@ namespace Racoon.Player
                 if (!string.IsNullOrEmpty(entry.id)) lookup[entry.id] = entry;
         }
 
-        void OnEnable()
-        {
-            controller.StateChanged += OnStateChanged;
-            controller.DashStarted += OnDashStarted;
-        }
-
-        void OnDisable()
-        {
-            controller.StateChanged -= OnStateChanged;
-            controller.DashStarted -= OnDashStarted;
-            StopBlink();
-        }
+        void OnDisable() => StopBlink();
 
         // ---------------- API ----------------
 
@@ -103,7 +93,8 @@ namespace Racoon.Player
 
         // ---------------- Dash ----------------
 
-        void OnDashStarted(Vector3 direction)
+        /// <summary>Conectar a PlayerController.onDash (Dynamic Vector3).</summary>
+        public void OnDash(Vector3 direction)
         {
             foreach (float delay in dashDustDelays)
             {
@@ -137,13 +128,11 @@ namespace Racoon.Player
 
         // ---------------- Parpadeo ----------------
 
-        void OnStateChanged(PlayerState previous, PlayerState current)
-        {
-            if (current == PlayerState.HitStun) StartBlink();
-            else if (previous == PlayerState.HitStun) StopBlink();
-        }
-
-        void StartBlink()
+        /// <summary>
+        /// Conectar a PlayerController.onHitReceived (Dynamic PlayerController). Parpadea durante el stun;
+        /// un golpe nuevo reinicia el tiempo.
+        /// </summary>
+        public void OnHitReceived(PlayerController attacker)
         {
             StopBlink();
 
@@ -152,19 +141,22 @@ namespace Racoon.Player
                 if ((rend is MeshRenderer || rend is SkinnedMeshRenderer) && rend.enabled)
                     blinkRenderers.Add(rend);
 
-            blinkRoutine = StartCoroutine(Blink());
+            blinkRoutine = StartCoroutine(Blink(controller.HitStunDuration));
         }
 
-        IEnumerator Blink()
+        // Dura lo mismo que el stun: deja de parpadear justo cuando vuelve a poder moverse.
+        IEnumerator Blink(float duration)
         {
             bool visible = true;
+            float end = Time.time + duration;
             WaitForSeconds wait = new(blinkInterval);
-            while (true)
+            while (Time.time < end)
             {
                 visible = !visible;
                 SetRenderersVisible(visible);
                 yield return wait;
             }
+            StopBlink();
         }
 
         void StopBlink()

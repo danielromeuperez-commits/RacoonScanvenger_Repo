@@ -132,7 +132,7 @@ GameObject:
   - component: {fileID: 4734997286130547212}
   - component: {fileID: 5812787108930251625}
   - component: {fileID: 7722170783381712083}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: PF_PlayerRacoon
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -256,7 +256,7 @@ MonoBehaviour:
   hitValidationTolerance: 1.5
   hitMask:
     serializedVersion: 2
-    m_Bits: 128
+    m_Bits: 384
   hitStunDuration: 0.6
   dashSpeed: 14
   dashDuration: 0.25
