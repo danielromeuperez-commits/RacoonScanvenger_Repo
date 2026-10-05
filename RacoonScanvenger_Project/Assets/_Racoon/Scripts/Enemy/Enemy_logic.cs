@@ -1,9 +1,11 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.AI;
 using Unity.Netcode;
 using Racoon.Player;
 
 [RequireComponent(typeof(Rigidbody))]
+[RequireComponent(typeof(NavMeshAgent))]
 public class Enemy_logic : NetworkBehaviour
 {
     [Header("PATRULLA")]
@@ -26,6 +28,7 @@ public class Enemy_logic : NetworkBehaviour
     [SerializeField] float stunCooldown = 1f;
 
     Rigidbody rb;
+    NavMeshAgent agent;
 
     PlayerController targetPlayer;
     PlayerInputHandler targetInput;
@@ -44,14 +47,21 @@ public class Enemy_logic : NetworkBehaviour
     void Awake()
     {
         rb = GetComponent<Rigidbody>();
+        agent = GetComponent<NavMeshAgent>();
 
-        // El servidor mueve al enemigo.
-        rb.isKinematic = false;
-        rb.useGravity = true;
+        // El NavMeshAgent mueve al enemigo.
+        rb.isKinematic = true;
+        rb.useGravity = false;
 
         rb.constraints =
             RigidbodyConstraints.FreezeRotationX |
             RigidbodyConstraints.FreezeRotationZ;
+
+        agent.updatePosition = true;
+        agent.updateRotation = true;
+
+        agent.speed = patrolSpeed;
+        agent.stoppingDistance = 0.1f;
     }
 
     // =========================================================
@@ -63,15 +73,23 @@ public class Enemy_logic : NetworkBehaviour
         if (!IsServer)
             return;
 
-        Debug.Log(
-            $"[{name}] ENEMY SPAWNED"
-        );
+        Debug.Log($"[{name}] ENEMY SPAWNED");
 
         if (patrolPoints == null ||
             patrolPoints.Length == 0)
         {
             Debug.LogError(
                 $"[{name}] NO TIENE PUNTOS DE PATRULLA",
+                this
+            );
+
+            return;
+        }
+
+        if (!agent.isOnNavMesh)
+        {
+            Debug.LogError(
+                $"[{name}] NO ESTÁ SOBRE EL NAVMESH",
                 this
             );
 
@@ -123,6 +141,9 @@ public class Enemy_logic : NetworkBehaviour
                 waitCoroutine = null;
             }
 
+            agent.isStopped = false;
+            agent.speed = chaseSpeed;
+
             Debug.Log(
                 $"[{name}] PLAYER DETECTADO → PERSIGUIENDO"
             );
@@ -156,7 +177,7 @@ public class Enemy_logic : NetworkBehaviour
     }
 
     // =========================================================
-    // FÍSICA
+    // FIXED UPDATE
     // =========================================================
 
     void FixedUpdate()
@@ -195,25 +216,12 @@ public class Enemy_logic : NetworkBehaviour
             return;
         }
 
-        Vector3 direction =
-            point.position -
-            transform.position;
-
-        direction.y = 0f;
-
-        float distance = direction.magnitude;
-
-        // Llegamos al punto.
-        if (distance <= pointReachDistance)
+        // Comprobar si hemos llegado al punto.
+        if (!agent.pathPending &&
+            agent.remainingDistance <= pointReachDistance)
         {
             OnPointReached();
-
-            return;
         }
-
-        direction.Normalize();
-
-        Move(direction, patrolSpeed);
     }
 
     void GoToCurrentPoint()
@@ -227,6 +235,17 @@ public class Enemy_logic : NetworkBehaviour
 
         waitingAtPoint = false;
 
+        agent.isStopped = false;
+        agent.speed = patrolSpeed;
+
+        // Dejamos que pointReachDistance
+        // controle cuándo hemos llegado.
+        agent.stoppingDistance = 0.1f;
+
+        agent.SetDestination(
+            patrolPoints[currentPoint].position
+        );
+
         Debug.Log(
             $"[{name}] → PUNTO {currentPoint}"
         );
@@ -238,16 +257,18 @@ public class Enemy_logic : NetworkBehaviour
             return;
 
         PatrolPoint patrolPoint =
-            patrolPoints[currentPoint].GetComponent<PatrolPoint>();
+            patrolPoints[currentPoint]
+                .GetComponent<PatrolPoint>();
 
-        // Si no tiene PatrolPoint, es un punto normal.
-        if (patrolPoint == null || !patrolPoint.isKeyPoint)
+        // Punto normal.
+        if (patrolPoint == null ||
+            !patrolPoint.isKeyPoint)
         {
             NextPoint();
             return;
         }
 
-        // Es un punto clave.
+        // Punto clave.
         waitCoroutine =
             StartCoroutine(
                 WaitAtKeyPoint(patrolPoint.waitTime)
@@ -268,8 +289,7 @@ public class Enemy_logic : NetworkBehaviour
 
         while (timer < waitTime)
         {
-            // Si detecta al player mientras espera,
-            // cancela la espera y empieza a perseguir.
+            // Comprobar si detecta al jugador.
             if (targetPlayer != null)
             {
                 float distance = Vector3.Distance(
@@ -281,6 +301,9 @@ public class Enemy_logic : NetworkBehaviour
                 {
                     waitingAtPoint = false;
                     chasing = true;
+
+                    agent.isStopped = false;
+                    agent.speed = chaseSpeed;
 
                     Debug.Log(
                         $"[{name}] PLAYER DETECTADO EN PUNTO CLAVE"
@@ -296,57 +319,9 @@ public class Enemy_logic : NetworkBehaviour
         }
 
         waitingAtPoint = false;
-
         waitCoroutine = null;
 
-        // Continuar al siguiente punto.
         NextPoint();
-    }
-
-    IEnumerator WaitAtKeyPoint()
-    {
-        waitingAtPoint = true;
-
-        Debug.Log(
-            $"[{name}] PUNTO CLAVE → ESPERA {keyPointWaitTime}s"
-        );
-
-        float timer = 0f;
-
-        while (timer < keyPointWaitTime)
-        {
-            // Si aparece un player durante la espera,
-            // se cancela la espera.
-            if (targetPlayer != null)
-            {
-                float distance = Vector3.Distance(
-                    transform.position,
-                    targetPlayer.transform.position
-                );
-
-                if (distance <= detectionRange)
-                {
-                    waitingAtPoint = false;
-                    chasing = true;
-
-                    Debug.Log(
-                        $"[{name}] PLAYER DETECTADO EN PUNTO CLAVE"
-                    );
-
-                    yield break;
-                }
-            }
-
-            timer += Time.deltaTime;
-
-            yield return null;
-        }
-
-        waitingAtPoint = false;
-
-        NextPoint();
-
-        waitCoroutine = null;
     }
 
     void NextPoint()
@@ -368,6 +343,7 @@ public class Enemy_logic : NetworkBehaviour
         if (targetPlayer == null)
             return;
 
+        // Dentro del rango de ataque.
         if (distance <= attackRange)
         {
             StopEnemy();
@@ -377,67 +353,24 @@ public class Enemy_logic : NetworkBehaviour
             return;
         }
 
-        Vector3 direction =
-            targetPlayer.transform.position -
-            transform.position;
+        agent.isStopped = false;
+        agent.speed = chaseSpeed;
 
-        direction.y = 0f;
-
-        if (direction.sqrMagnitude < 0.001f)
-            return;
-
-        direction.Normalize();
-
-        Move(direction, chaseSpeed);
+        // NavMesh calcula automáticamente
+        // cómo llegar hasta el jugador.
+        agent.SetDestination(
+            targetPlayer.transform.position
+        );
     }
 
     // =========================================================
     // MOVIMIENTO
     // =========================================================
 
-    void Move(
-        Vector3 direction,
-        float speed)
-    {
-        if (direction.sqrMagnitude < 0.001f)
-            return;
-
-        Vector3 targetVelocity =
-            direction * speed;
-
-        Vector3 currentVelocity =
-            rb.linearVelocity;
-
-        rb.linearVelocity =
-            new Vector3(
-                targetVelocity.x,
-                currentVelocity.y,
-                targetVelocity.z
-            );
-
-        Quaternion targetRotation =
-            Quaternion.LookRotation(
-                direction,
-                Vector3.up
-            );
-
-        rb.MoveRotation(
-            Quaternion.RotateTowards(
-                rb.rotation,
-                targetRotation,
-                720f * Time.fixedDeltaTime
-            )
-        );
-    }
-
     void StopEnemy()
     {
-        rb.linearVelocity =
-            new Vector3(
-                0f,
-                rb.linearVelocity.y,
-                0f
-            );
+        agent.isStopped = true;
+        agent.velocity = Vector3.zero;
     }
 
     // =========================================================
@@ -457,7 +390,8 @@ public class Enemy_logic : NetworkBehaviour
                 continue;
 
             PlayerController player =
-                client.PlayerObject.GetComponent<PlayerController>();
+                client.PlayerObject
+                    .GetComponent<PlayerController>();
 
             if (player == null)
                 continue;
@@ -580,6 +514,9 @@ public class Enemy_logic : NetworkBehaviour
             if (distance <= detectionRange)
             {
                 chasing = true;
+
+                agent.isStopped = false;
+                agent.speed = chaseSpeed;
 
                 Debug.Log(
                     $"[{name}] STUN TERMINADO → SIGUE PERSIGUIENDO"
