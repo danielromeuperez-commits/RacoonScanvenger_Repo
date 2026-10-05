@@ -6,8 +6,12 @@ namespace Racoon.Items
 {
     public class ItemBox : NetworkBehaviour
     {
+        [Header("Items")]
+        [Tooltip("Objetos que puede entregar esta Item Box.")]
+        [SerializeField] ItemData[] possibleItems;
+
         [Header("Animación")]
-        [Tooltip("Objeto visual que gira y sube/baja. Normalmente será el hijo que contiene el modelo.")]
+        [Tooltip("Objeto visual que gira y sube/baja.")]
         [SerializeField] Transform animatedVisual;
 
         [Tooltip("Velocidad de giro en grados por segundo.")]
@@ -42,7 +46,6 @@ namespace Racoon.Items
 
             renderers = GetComponentsInChildren<Renderer>(true);
 
-            // Si no asignamos un visual, animamos el propio objeto.
             if (animatedVisual == null)
                 animatedVisual = transform;
 
@@ -79,7 +82,7 @@ namespace Racoon.Items
 
         void AnimateBox()
         {
-            if (animatedVisual == null)
+            if (animatedVisual == null || !available.Value)
                 return;
 
             // Giro continuo sobre el eje Y.
@@ -90,7 +93,9 @@ namespace Racoon.Items
             );
 
             // Movimiento suave de subida y bajada.
-            float offset = Mathf.Sin(Time.time * bobSpeed * Mathf.PI * 2f) * bobHeight;
+            float offset =
+                Mathf.Sin(Time.time * bobSpeed * Mathf.PI * 2f)
+                * bobHeight;
 
             Vector3 position = initialLocalPosition;
             position.y += offset;
@@ -100,20 +105,44 @@ namespace Racoon.Items
 
         void OnTriggerEnter(Collider other)
         {
+            // Solo el servidor puede recoger la caja.
             if (!IsServer || !available.Value)
                 return;
 
-            PlayerController player = other.GetComponentInParent<PlayerController>();
+            PlayerController player =
+                other.GetComponentInParent<PlayerController>();
 
             if (player == null)
                 return;
 
+            // Si no hay objetos configurados, no hacemos nada.
+            ItemData item = GetRandomItem();
+
+            if (item == null)
+            {
+                Debug.LogWarning(
+                    "ItemBox: no hay ningún ItemData válido en Possible Items.",
+                    this
+                );
+
+                return;
+            }
+
+            // Si el inventario está lleno, la caja tampoco se recoge.
+            if (player.Inventory == null || player.Inventory.IsFull)
+                return;
+
+            // Intentamos añadir el objeto al inventario.
+            if (!player.Inventory.ServerTryAddItem(item))
+                return;
+
+            // La caja desaparece para todos.
             available.Value = false;
 
             // Ocultar inmediatamente en el host.
             ApplyAvailability(false);
 
-            // Mostrar el mensaje solamente al jugador que la ha recogido.
+            // Mostrar mensaje solamente al jugador que la ha recogido.
             ShowMessageClientRpc(
                 new ClientRpcParams
                 {
@@ -123,6 +152,38 @@ namespace Racoon.Items
                     }
                 }
             );
+        }
+
+        ItemData GetRandomItem()
+        {
+            if (possibleItems == null || possibleItems.Length == 0)
+                return null;
+
+            int validCount = 0;
+
+            foreach (ItemData item in possibleItems)
+            {
+                if (item != null)
+                    validCount++;
+            }
+
+            if (validCount == 0)
+                return null;
+
+            int selectedIndex = Random.Range(0, validCount);
+
+            foreach (ItemData item in possibleItems)
+            {
+                if (item == null)
+                    continue;
+
+                if (selectedIndex == 0)
+                    return item;
+
+                selectedIndex--;
+            }
+
+            return null;
         }
 
         [ClientRpc]
