@@ -1,6 +1,5 @@
 using System;
 using Racoon.Cameras;
-using Racoon.Gameplay;
 using Racoon.Items;
 using Unity.Netcode;
 using Unity.Netcode.Components;
@@ -111,6 +110,7 @@ namespace Racoon.Player
         /// <summary>Solo tiene sentido en el dueño.</summary>
         public bool IsExhausted => exhausted;
         public PlayerInventory Inventory => inventory;
+        public PlayerInputHandler InputHandler => input;
 
         static readonly Collider[] overlapBuffer = new Collider[16];
 
@@ -165,13 +165,6 @@ namespace Racoon.Player
             input.SwitchItemPressed += OnSwitchItemPressed;
             input.UsePressed += OnUsePressed;
             LocalPlayerSpawned?.Invoke(this);
-        }
-
-        protected override void OnNetworkPostSpawn()
-        {
-            // En PostSpawn el NetworkTransform ya está listo para teletransportar.
-            if (IsOwner && PlayerSpawnPoints.TryGetPose(OwnerClientId, out Pose pose))
-                Teleport(pose.position, pose.rotation);
         }
 
         public override void OnNetworkDespawn()
@@ -308,7 +301,8 @@ namespace Racoon.Player
             actionTimer = duration;
         }
 
-        void Teleport(Vector3 position, Quaternion rotation)
+        /// <summary>Solo el dueño. Útil para respawns (el spawn inicial lo hace el servidor en la aprobación).</summary>
+        public void Teleport(Vector3 position, Quaternion rotation)
         {
             // Teleport avisa a los demás de que no interpolen el salto de posición.
             if (networkTransform != null && networkTransform.CanCommitToTransform)
