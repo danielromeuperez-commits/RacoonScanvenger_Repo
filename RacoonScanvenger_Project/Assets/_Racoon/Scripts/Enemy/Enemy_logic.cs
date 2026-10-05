@@ -6,139 +6,438 @@ using Racoon.Player;
 [RequireComponent(typeof(Rigidbody))]
 public class Enemy_logic : NetworkBehaviour
 {
-    [Header("Detección")]
+    [Header("PATRULLA")]
+    [SerializeField] Transform[] patrolPoints;
+    [SerializeField] float patrolSpeed = 2f;
+    [SerializeField] float pointReachDistance = 0.5f;
+
+    [Header("PUNTOS CLAVE")]
+    [SerializeField] float keyPointWaitTime = 3f;
+
+    [Header("DETECCIÓN")]
     [SerializeField] float detectionRange = 10f;
+
+    [Header("PERSECUCIÓN")]
+    [SerializeField] float chaseSpeed = 3f;
     [SerializeField] float attackRange = 1.5f;
 
-    [Header("Movimiento")]
-    [SerializeField] float moveSpeed = 3f;
-    [SerializeField] float rotationSpeed = 720f;
-
-    [Header("Stun")]
+    [Header("STUN")]
     [SerializeField] float stunDuration = 2f;
     [SerializeField] float stunCooldown = 1f;
 
-    [Header("Mirar")]
-    [Tooltip("Empty colocado delante del enemigo.")]
-    [SerializeField] Transform frontPoint;
-
-    Rigidbody body;
+    Rigidbody rb;
 
     PlayerController targetPlayer;
     PlayerInputHandler targetInput;
-    Rigidbody targetBody;
+    Rigidbody targetRigidbody;
 
-    Vector3 moveDirection;
+    int currentPoint;
 
-    bool isStunning;
+    bool chasing;
+    bool waitingAtPoint;
+    bool stunned;
+
     float lastStunTime = -Mathf.Infinity;
+
+    Coroutine waitCoroutine;
 
     void Awake()
     {
-        body = GetComponent<Rigidbody>();
+        rb = GetComponent<Rigidbody>();
 
-        body.interpolation = RigidbodyInterpolation.Interpolate;
+        // El servidor mueve al enemigo.
+        rb.isKinematic = false;
+        rb.useGravity = true;
 
-        body.constraints =
+        rb.constraints =
             RigidbodyConstraints.FreezeRotationX |
             RigidbodyConstraints.FreezeRotationZ;
     }
+
+    // =========================================================
+    // NETWORK
+    // =========================================================
 
     public override void OnNetworkSpawn()
     {
         if (!IsServer)
             return;
 
-        Debug.Log($"[{name}] Enemy iniciado en servidor.");
+        Debug.Log(
+            $"[{name}] ENEMY SPAWNED"
+        );
+
+        if (patrolPoints == null ||
+            patrolPoints.Length == 0)
+        {
+            Debug.LogError(
+                $"[{name}] NO TIENE PUNTOS DE PATRULLA",
+                this
+            );
+
+            return;
+        }
+
+        currentPoint = 0;
+
+        GoToCurrentPoint();
     }
+
+    // =========================================================
+    // UPDATE
+    // =========================================================
 
     void Update()
     {
         if (!IsServer)
             return;
 
-        // Si no tenemos jugador, buscarlo.
+        // Buscar player si todavía no tenemos uno.
         if (targetPlayer == null)
         {
             FindPlayer();
-            moveDirection = Vector3.zero;
-            return;
         }
+
+        if (targetPlayer == null)
+            return;
 
         float distance = Vector3.Distance(
             transform.position,
             targetPlayer.transform.position
         );
 
-        // Fuera del rango de detección.
-        if (distance > detectionRange)
+        // =====================================================
+        // PLAYER DENTRO DEL RANGO
+        // =====================================================
+
+        if (!chasing &&
+            !stunned &&
+            distance <= detectionRange)
         {
-            moveDirection = Vector3.zero;
-            return;
+            chasing = true;
+            waitingAtPoint = false;
+
+            if (waitCoroutine != null)
+            {
+                StopCoroutine(waitCoroutine);
+                waitCoroutine = null;
+            }
+
+            Debug.Log(
+                $"[{name}] PLAYER DETECTADO → PERSIGUIENDO"
+            );
         }
 
-        // Está suficientemente cerca para atacar.
-        if (distance <= attackRange)
+        // =====================================================
+        // PLAYER FUERA DEL RANGO
+        // =====================================================
+
+        if (chasing &&
+            !stunned &&
+            distance > detectionRange)
         {
-            moveDirection = Vector3.zero;
+            chasing = false;
 
-            TryStunPlayer();
+            Debug.Log(
+                $"[{name}] PLAYER FUERA DE RANGO → VUELVE A PATRULLA"
+            );
 
-            return;
+            GoToCurrentPoint();
         }
 
-        // Perseguir.
-        Vector3 direction =
-            targetPlayer.transform.position -
-            transform.position;
+        // =====================================================
+        // PERSECUCIÓN
+        // =====================================================
 
-        direction.y = 0f;
-
-        if (direction.sqrMagnitude <= 0.001f)
+        if (chasing && !stunned)
         {
-            moveDirection = Vector3.zero;
-            return;
+            ChasePlayer(distance);
         }
-
-        moveDirection = direction.normalized;
     }
+
+    // =========================================================
+    // FÍSICA
+    // =========================================================
 
     void FixedUpdate()
     {
         if (!IsServer)
             return;
 
-        if (isStunning)
+        if (stunned)
             return;
 
-        if (moveDirection.sqrMagnitude <= 0.001f)
+        if (chasing)
             return;
 
-        // Movimiento mediante Rigidbody.
-        Vector3 movement =
-            moveDirection *
-            moveSpeed *
-            Time.fixedDeltaTime;
+        PatrolMovement();
+    }
 
-        body.MovePosition(
-            body.position + movement
+    // =========================================================
+    // PATRULLA
+    // =========================================================
+
+    void PatrolMovement()
+    {
+        if (patrolPoints == null ||
+            patrolPoints.Length == 0)
+            return;
+
+        if (waitingAtPoint)
+            return;
+
+        Transform point =
+            patrolPoints[currentPoint];
+
+        if (point == null)
+        {
+            NextPoint();
+            return;
+        }
+
+        Vector3 direction =
+            point.position -
+            transform.position;
+
+        direction.y = 0f;
+
+        float distance = direction.magnitude;
+
+        // Llegamos al punto.
+        if (distance <= pointReachDistance)
+        {
+            OnPointReached();
+
+            return;
+        }
+
+        direction.Normalize();
+
+        Move(direction, patrolSpeed);
+    }
+
+    void GoToCurrentPoint()
+    {
+        if (patrolPoints == null ||
+            patrolPoints.Length == 0)
+            return;
+
+        if (patrolPoints[currentPoint] == null)
+            return;
+
+        waitingAtPoint = false;
+
+        Debug.Log(
+            $"[{name}] → PUNTO {currentPoint}"
+        );
+    }
+
+    void OnPointReached()
+    {
+        if (waitingAtPoint)
+            return;
+
+        PatrolPoint patrolPoint =
+            patrolPoints[currentPoint].GetComponent<PatrolPoint>();
+
+        // Si no tiene PatrolPoint, es un punto normal.
+        if (patrolPoint == null || !patrolPoint.isKeyPoint)
+        {
+            NextPoint();
+            return;
+        }
+
+        // Es un punto clave.
+        waitCoroutine =
+            StartCoroutine(
+                WaitAtKeyPoint(patrolPoint.waitTime)
+            );
+    }
+
+    IEnumerator WaitAtKeyPoint(float waitTime)
+    {
+        waitingAtPoint = true;
+
+        StopEnemy();
+
+        Debug.Log(
+            $"[{name}] PUNTO CLAVE → ESPERANDO {waitTime} SEGUNDOS"
         );
 
-        // Girar hacia el jugador.
+        float timer = 0f;
+
+        while (timer < waitTime)
+        {
+            // Si detecta al player mientras espera,
+            // cancela la espera y empieza a perseguir.
+            if (targetPlayer != null)
+            {
+                float distance = Vector3.Distance(
+                    transform.position,
+                    targetPlayer.transform.position
+                );
+
+                if (distance <= detectionRange)
+                {
+                    waitingAtPoint = false;
+                    chasing = true;
+
+                    Debug.Log(
+                        $"[{name}] PLAYER DETECTADO EN PUNTO CLAVE"
+                    );
+
+                    yield break;
+                }
+            }
+
+            timer += Time.deltaTime;
+
+            yield return null;
+        }
+
+        waitingAtPoint = false;
+
+        waitCoroutine = null;
+
+        // Continuar al siguiente punto.
+        NextPoint();
+    }
+
+    IEnumerator WaitAtKeyPoint()
+    {
+        waitingAtPoint = true;
+
+        Debug.Log(
+            $"[{name}] PUNTO CLAVE → ESPERA {keyPointWaitTime}s"
+        );
+
+        float timer = 0f;
+
+        while (timer < keyPointWaitTime)
+        {
+            // Si aparece un player durante la espera,
+            // se cancela la espera.
+            if (targetPlayer != null)
+            {
+                float distance = Vector3.Distance(
+                    transform.position,
+                    targetPlayer.transform.position
+                );
+
+                if (distance <= detectionRange)
+                {
+                    waitingAtPoint = false;
+                    chasing = true;
+
+                    Debug.Log(
+                        $"[{name}] PLAYER DETECTADO EN PUNTO CLAVE"
+                    );
+
+                    yield break;
+                }
+            }
+
+            timer += Time.deltaTime;
+
+            yield return null;
+        }
+
+        waitingAtPoint = false;
+
+        NextPoint();
+
+        waitCoroutine = null;
+    }
+
+    void NextPoint()
+    {
+        currentPoint++;
+
+        if (currentPoint >= patrolPoints.Length)
+            currentPoint = 0;
+
+        GoToCurrentPoint();
+    }
+
+    // =========================================================
+    // PERSECUCIÓN
+    // =========================================================
+
+    void ChasePlayer(float distance)
+    {
+        if (targetPlayer == null)
+            return;
+
+        if (distance <= attackRange)
+        {
+            StopEnemy();
+
+            TryStun();
+
+            return;
+        }
+
+        Vector3 direction =
+            targetPlayer.transform.position -
+            transform.position;
+
+        direction.y = 0f;
+
+        if (direction.sqrMagnitude < 0.001f)
+            return;
+
+        direction.Normalize();
+
+        Move(direction, chaseSpeed);
+    }
+
+    // =========================================================
+    // MOVIMIENTO
+    // =========================================================
+
+    void Move(
+        Vector3 direction,
+        float speed)
+    {
+        if (direction.sqrMagnitude < 0.001f)
+            return;
+
+        Vector3 targetVelocity =
+            direction * speed;
+
+        Vector3 currentVelocity =
+            rb.linearVelocity;
+
+        rb.linearVelocity =
+            new Vector3(
+                targetVelocity.x,
+                currentVelocity.y,
+                targetVelocity.z
+            );
+
         Quaternion targetRotation =
             Quaternion.LookRotation(
-                moveDirection,
+                direction,
                 Vector3.up
             );
 
-        Quaternion newRotation =
+        rb.MoveRotation(
             Quaternion.RotateTowards(
-                body.rotation,
+                rb.rotation,
                 targetRotation,
-                rotationSpeed * Time.fixedDeltaTime
-            );
+                720f * Time.fixedDeltaTime
+            )
+        );
+    }
 
-        body.MoveRotation(newRotation);
+    void StopEnemy()
+    {
+        rb.linearVelocity =
+            new Vector3(
+                0f,
+                rb.linearVelocity.y,
+                0f
+            );
     }
 
     // =========================================================
@@ -152,42 +451,28 @@ public class Enemy_logic : NetworkBehaviour
 
         foreach (
             var client
-            in NetworkManager.Singleton.ConnectedClientsList
-        )
+            in NetworkManager.Singleton.ConnectedClientsList)
         {
             if (client.PlayerObject == null)
                 continue;
 
-            PlayerController candidate =
+            PlayerController player =
                 client.PlayerObject.GetComponent<PlayerController>();
 
-            if (candidate == null)
+            if (player == null)
                 continue;
 
-            targetPlayer = candidate;
-
-            targetBody =
-                candidate.GetComponent<Rigidbody>();
+            targetPlayer = player;
 
             targetInput =
-                candidate.GetComponent<PlayerInputHandler>();
+                player.GetComponent<PlayerInputHandler>();
+
+            targetRigidbody =
+                player.GetComponent<Rigidbody>();
 
             Debug.Log(
-                $"[{name}] PLAYER DETECTADO: {candidate.name}"
+                $"[{name}] PLAYER ENCONTRADO: {player.name}"
             );
-
-            if (targetInput != null)
-            {
-                Debug.Log(
-                    $"[{name}] PlayerInputHandler encontrado."
-                );
-            }
-            else
-            {
-                Debug.LogWarning(
-                    $"[{name}] El Player no tiene PlayerInputHandler."
-                );
-            }
 
             return;
         }
@@ -197,38 +482,61 @@ public class Enemy_logic : NetworkBehaviour
     // STUN
     // =========================================================
 
-    void TryStunPlayer()
+    void TryStun()
     {
         if (targetPlayer == null)
             return;
 
-        if (isStunning)
+        if (stunned)
             return;
 
-        if (Time.time < lastStunTime + stunCooldown)
+        if (Time.time <
+            lastStunTime + stunCooldown)
             return;
 
         lastStunTime = Time.time;
 
-        StartCoroutine(StunPlayer());
+        StartCoroutine(
+            StunPlayer()
+        );
     }
 
     IEnumerator StunPlayer()
     {
-        isStunning = true;
+        if (targetPlayer == null)
+            yield break;
 
-        // El enemigo deja de moverse.
-        moveDirection = Vector3.zero;
+        stunned = true;
+        chasing = false;
 
-        // Mirar al jugador usando el FrontPoint.
-        LookAtPlayer();
+        StopEnemy();
 
         Debug.Log(
-            $"[{name}] STUN → {targetPlayer.name} durante {stunDuration}s"
+            $"[{name}] STUN → {targetPlayer.name}"
         );
 
         // -----------------------------------------------------
-        // BLOQUEAR INPUT
+        // PARAR PLAYER
+        // -----------------------------------------------------
+
+        if (targetRigidbody != null)
+        {
+            Vector3 velocity =
+                targetRigidbody.linearVelocity;
+
+            targetRigidbody.linearVelocity =
+                new Vector3(
+                    0f,
+                    velocity.y,
+                    0f
+                );
+
+            targetRigidbody.angularVelocity =
+                Vector3.zero;
+        }
+
+        // -----------------------------------------------------
+        // DESACTIVAR INPUT
         // -----------------------------------------------------
 
         if (targetInput != null)
@@ -237,25 +545,12 @@ public class Enemy_logic : NetworkBehaviour
         }
 
         // -----------------------------------------------------
-        // PARAR PLAYER
-        // -----------------------------------------------------
-
-        if (targetBody != null)
-        {
-            targetBody.linearVelocity = new Vector3(
-                0f,
-                targetBody.linearVelocity.y,
-                0f
-            );
-
-            targetBody.angularVelocity = Vector3.zero;
-        }
-
-        // -----------------------------------------------------
         // ESPERAR STUN
         // -----------------------------------------------------
 
-        yield return new WaitForSeconds(stunDuration);
+        yield return new WaitForSeconds(
+            stunDuration
+        );
 
         // -----------------------------------------------------
         // DEVOLVER INPUT
@@ -263,57 +558,50 @@ public class Enemy_logic : NetworkBehaviour
 
         if (targetInput != null)
         {
-            // Solo devolverlo si sigue siendo el jugador local.
             targetInput.SetInputEnabled(
+                targetPlayer != null &&
                 targetPlayer.IsOwner
             );
         }
 
-        Debug.Log(
-            $"[{name}] STUN TERMINADO → {targetPlayer.name}"
-        );
+        stunned = false;
 
-        isStunning = false;
-    }
+        // -----------------------------------------------------
+        // COMPROBAR RANGO
+        // -----------------------------------------------------
 
-    // =========================================================
-    // MIRAR AL PLAYER
-    // =========================================================
-
-    void LookAtPlayer()
-    {
-        if (targetPlayer == null)
-            return;
-
-        Vector3 direction;
-
-        if (frontPoint != null)
+        if (targetPlayer != null)
         {
-            direction =
-                targetPlayer.transform.position -
-                frontPoint.position;
+            float distance = Vector3.Distance(
+                transform.position,
+                targetPlayer.transform.position
+            );
+
+            if (distance <= detectionRange)
+            {
+                chasing = true;
+
+                Debug.Log(
+                    $"[{name}] STUN TERMINADO → SIGUE PERSIGUIENDO"
+                );
+            }
+            else
+            {
+                chasing = false;
+
+                Debug.Log(
+                    $"[{name}] STUN TERMINADO → VUELVE A PATRULLA"
+                );
+
+                GoToCurrentPoint();
+            }
         }
         else
         {
-            direction =
-                targetPlayer.transform.position -
-                transform.position;
+            chasing = false;
+
+            GoToCurrentPoint();
         }
-
-        direction.y = 0f;
-
-        if (direction.sqrMagnitude <= 0.001f)
-            return;
-
-        direction.Normalize();
-
-        Quaternion targetRotation =
-            Quaternion.LookRotation(
-                direction,
-                Vector3.up
-            );
-
-        body.MoveRotation(targetRotation);
     }
 
     // =========================================================
@@ -322,7 +610,6 @@ public class Enemy_logic : NetworkBehaviour
 
     void OnDrawGizmosSelected()
     {
-        // Detección.
         Gizmos.color = Color.yellow;
 
         Gizmos.DrawWireSphere(
@@ -330,28 +617,11 @@ public class Enemy_logic : NetworkBehaviour
             detectionRange
         );
 
-        // Ataque / stun.
         Gizmos.color = Color.red;
 
         Gizmos.DrawWireSphere(
             transform.position,
             attackRange
         );
-
-        // FrontPoint.
-        if (frontPoint != null)
-        {
-            Gizmos.color = Color.blue;
-
-            Gizmos.DrawSphere(
-                frontPoint.position,
-                0.1f
-            );
-
-            Gizmos.DrawLine(
-                transform.position,
-                frontPoint.position
-            );
-        }
     }
 }
