@@ -14,11 +14,11 @@ namespace Racoon.Player
         public const int NoSlot = -1;
 
         [SerializeField] ItemDatabase database;
-        [SerializeField, Min(1)] int maxItems = 3;
+        [SerializeField, Min(1)] int maxItems = 2;
         [Tooltip("Si no llevas nada equipado y coges un objeto, se equipa solo.")]
         [SerializeField] bool autoEquipOnPickup = true;
         [Tooltip("Al gastar el objeto equipado, equipa el siguiente automáticamente.")]
-        [SerializeField] bool autoEquipNextAfterUse = false;
+        [SerializeField] bool autoEquipNextAfterUse = true;
 
         // Ids (índices en ItemDatabase) de los objetos que lleva el jugador.
         NetworkList<int> items;
@@ -29,6 +29,13 @@ namespace Racoon.Player
         public event Action<ItemData> EquippedItemChanged;
         /// <summary>Se lanza en todos los clientes cuando cambia el contenido del inventario.</summary>
         public event Action InventoryChanged;
+
+        /// <summary>
+        /// Se lanza cuando entra un nuevo objeto al inventario.
+        /// Devuelve el slot en el que se ha añadido y el ItemData correspondiente.
+        /// Lo utilizaremos para iniciar la ruleta de la UI en el hueco correcto.
+        /// </summary>
+        public event Action<int, ItemData> ItemAdded;
 
         public ItemDatabase Database => database;
         public int Count => items.Count;
@@ -57,15 +64,55 @@ namespace Racoon.Player
             items.OnListChanged += OnItemsChanged;
             equippedSlot.OnValueChanged += OnEquippedSlotChanged;
             NotifyChanged();
+
+            // Registramos este inventario en el gestor de UI para que
+            // se conecte automáticamente con la interfaz de su jugador.
+            ItemUIManager uiManager = FindFirstObjectByType<ItemUIManager>();
+
+            if (uiManager != null)
+            {
+                uiManager.RegisterPlayer(this);
+            }
+            else
+            {
+                Debug.LogWarning("No se ha encontrado ningún ItemUIManager en la escena.", this);
+            }
         }
 
         public override void OnNetworkDespawn()
         {
             items.OnListChanged -= OnItemsChanged;
             equippedSlot.OnValueChanged -= OnEquippedSlotChanged;
+
+            // Quitamos este inventario del gestor de UI cuando
+            // el jugador abandona o desaparece de la partida.
+            ItemUIManager uiManager = FindFirstObjectByType<ItemUIManager>();
+
+            if (uiManager != null)
+            {
+                uiManager.UnregisterPlayer(this);
+            }
         }
 
-        void OnItemsChanged(NetworkListEvent<int> _) => NotifyChanged();
+        void OnItemsChanged(NetworkListEvent<int> changeEvent)
+        {
+            // Si se ha añadido un objeto, avisamos también de qué objeto es
+            // y del slot en el que ha entrado. Esto permite que la UI sepa
+            // si debe hacer la ruleta en el cuadrado grande o en el pequeño.
+            if (changeEvent.Type == NetworkListEvent<int>.EventType.Add ||
+                changeEvent.Type == NetworkListEvent<int>.EventType.Insert)
+            {
+                ItemData addedItem = database.Get(changeEvent.Value);
+
+                if (addedItem != null)
+                {
+                    ItemAdded?.Invoke(changeEvent.Index, addedItem);
+                }
+            }
+
+            NotifyChanged();
+        }
+
         void OnEquippedSlotChanged(int _, int __) => NotifyChanged();
 
         void NotifyChanged()

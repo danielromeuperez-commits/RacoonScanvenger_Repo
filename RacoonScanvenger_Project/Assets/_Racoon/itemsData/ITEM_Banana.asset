@@ -13,5 +13,5 @@ MonoBehaviour:
   m_Name: ITEM_Banana
   m_EditorClassIdentifier: Assembly-CSharp::Racoon.Items.ItemData
   displayName: Banana
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 8ccdbbdbefe41ae41bf3dc964497185d, type: 3}
   heldVisualPrefab: {fileID: 7539349397903705958, guid: c19c29208d89b11448eb004b27bafca9, type: 3}

@@ -13,5 +13,5 @@ MonoBehaviour:
   m_Name: ITEM_EnergyDrink
   m_EditorClassIdentifier: Assembly-CSharp::Racoon.Items.ItemData
   displayName: Energy Drink
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 78b0984e90c7ff94aaf673c2c01ea4fe, type: 3}
   heldVisualPrefab: {fileID: 382879260635353516, guid: 778937ecfc2e46a429ebd06e6f0b24de, type: 3}

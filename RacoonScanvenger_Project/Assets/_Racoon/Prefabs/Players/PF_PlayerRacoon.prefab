@@ -244,7 +244,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Racoon.Player.PlayerInventory
   ShowTopMostFoldoutHeaderGroup: 1
   database: {fileID: 11400000, guid: d6b1ff4e5c51f6f499883211ca5f2dbd, type: 2}
-  maxItems: 3
+  maxItems: 2
   autoEquipOnPickup: 1
   autoEquipNextAfterUse: 1
 --- !u!114 &6147228204243766040
