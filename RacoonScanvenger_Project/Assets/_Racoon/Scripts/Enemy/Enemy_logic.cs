@@ -23,33 +23,53 @@ public class Enemy_logic : NetworkBehaviour
     [SerializeField] float chaseSpeed = 3f;
     [SerializeField] float attackRange = 1.5f;
 
+    [Header("VUELTA A PATRULLA")]
+    [SerializeField] float returnToPatrolDelay = 1.5f;
+
     [Header("STUN")]
     [SerializeField] float stunDuration = 2f;
     [SerializeField] float stunCooldown = 1f;
 
-    private Rigidbody rb;
-    private NavMeshAgent agent;
+    // =========================================================
+    // COMPONENTES
+    // =========================================================
 
-    private PlayerController targetPlayer;
-    private PlayerInputHandler targetInput;
-    private Rigidbody targetRigidbody;
+    Rigidbody rb;
+    NavMeshAgent agent;
 
-    private int currentPoint;
+    // =========================================================
+    // PLAYER OBJETIVO
+    // =========================================================
 
-    private bool chasing;
-    private bool waitingAtPoint;
-    private bool stunned;
+    PlayerController targetPlayer;
+    PlayerInputHandler targetInput;
+    Rigidbody targetRigidbody;
 
-    private float lastStunTime = -Mathf.Infinity;
+    // =========================================================
+    // ESTADO
+    // =========================================================
 
-    private Coroutine waitCoroutine;
-    private Coroutine stunCoroutine;
+    int currentPoint;
+
+    bool chasing;
+    bool waitingAtPoint;
+    bool stunned;
+
+    float lastStunTime = -Mathf.Infinity;
+
+    // =========================================================
+    // COROUTINES
+    // =========================================================
+
+    Coroutine waitCoroutine;
+    Coroutine stunCoroutine;
+    Coroutine returnPatrolCoroutine;
 
     // =========================================================
     // AWAKE
     // =========================================================
 
-    private void Awake()
+    void Awake()
     {
         rb = GetComponent<Rigidbody>();
         agent = GetComponent<NavMeshAgent>();
@@ -80,15 +100,18 @@ public class Enemy_logic : NetworkBehaviour
         // SOLO EL SERVIDOR CONTROLA LA IA.
         if (!IsServer)
         {
-            // El cliente NO debe intentar mover el NavMeshAgent.
+            // El cliente no mueve el NavMeshAgent.
             agent.isStopped = true;
             agent.enabled = false;
 
             return;
         }
 
-        Debug.Log($"[{name}] ENEMY SPAWNED EN SERVIDOR");
+        Debug.Log(
+            $"[{name}] ENEMY SPAWNED EN SERVIDOR"
+        );
 
+        // Comprobar puntos de patrulla.
         if (patrolPoints == null ||
             patrolPoints.Length == 0)
         {
@@ -100,6 +123,7 @@ public class Enemy_logic : NetworkBehaviour
             return;
         }
 
+        // Comprobar NavMesh.
         if (!agent.isOnNavMesh)
         {
             Debug.LogError(
@@ -119,7 +143,7 @@ public class Enemy_logic : NetworkBehaviour
     // UPDATE
     // =========================================================
 
-    private void Update()
+    void Update()
     {
         if (!IsServer)
             return;
@@ -127,18 +151,63 @@ public class Enemy_logic : NetworkBehaviour
         if (stunned)
             return;
 
-        // Buscar jugador.
-        if (targetPlayer == null)
-        {
-            FindPlayer();
-        }
+        // =====================================================
+        // BUSCAR JUGADOR MÁS CERCANO
+        // =====================================================
 
-        // Todavía no tenemos jugador.
-        if (targetPlayer == null)
+        FindClosestPlayer();
+
+        // =====================================================
+        // SI ESTAMOS ESPERANDO PARA VOLVER A PATRULLA
+        // =====================================================
+
+        if (returnPatrolCoroutine != null)
         {
-            PatrolMovement();
+            // Si un jugador vuelve a entrar en rango
+            // durante la pausa, reanudamos persecución.
+            if (targetPlayer != null)
+            {
+                float distanceToTarget =
+                    Vector3.Distance(
+                        transform.position,
+                        targetPlayer.transform.position
+                    );
+
+                if (distanceToTarget <= detectionRange)
+                {
+                    StopReturnToPatrol();
+
+                    StartChasing();
+
+                    return;
+                }
+            }
+
+            // Mientras esperamos no hacemos nada más.
             return;
         }
+
+        // =====================================================
+        // NO HAY PLAYER CERCA
+        // =====================================================
+
+        if (targetPlayer == null)
+        {
+            if (chasing)
+            {
+                StartReturnToPatrol();
+            }
+            else
+            {
+                PatrolMovement();
+            }
+
+            return;
+        }
+
+        // =====================================================
+        // DISTANCIA AL PLAYER
+        // =====================================================
 
         float distance = Vector3.Distance(
             transform.position,
@@ -146,7 +215,7 @@ public class Enemy_logic : NetworkBehaviour
         );
 
         // =====================================================
-        // DETECTAR PLAYER
+        // PLAYER DENTRO DEL RANGO
         // =====================================================
 
         if (!chasing &&
@@ -156,15 +225,13 @@ public class Enemy_logic : NetworkBehaviour
         }
 
         // =====================================================
-        // PERSECUCIÓN TERMINADA
+        // PLAYER FUERA DEL RANGO
         // =====================================================
 
         if (chasing &&
             distance > detectionRange)
         {
-            StopChasing();
-
-            GoToCurrentPoint();
+            StartReturnToPatrol();
 
             return;
         }
@@ -176,6 +243,7 @@ public class Enemy_logic : NetworkBehaviour
         if (chasing)
         {
             ChasePlayer(distance);
+
             return;
         }
 
@@ -190,12 +258,15 @@ public class Enemy_logic : NetworkBehaviour
     // PATRULLA
     // =========================================================
 
-    private void PatrolMovement()
+    void PatrolMovement()
     {
         if (stunned)
             return;
 
         if (chasing)
+            return;
+
+        if (returnPatrolCoroutine != null)
             return;
 
         if (waitingAtPoint)
@@ -217,9 +288,11 @@ public class Enemy_logic : NetworkBehaviour
         if (point == null)
         {
             NextPoint();
+
             return;
         }
 
+        // Comprobar si hemos llegado.
         if (!agent.pathPending &&
             agent.remainingDistance <= pointReachDistance)
         {
@@ -227,10 +300,22 @@ public class Enemy_logic : NetworkBehaviour
         }
     }
 
-    private void GoToCurrentPoint()
+    // =========================================================
+    // IR AL PUNTO ACTUAL
+    // =========================================================
+
+    void GoToCurrentPoint()
     {
         if (!IsServer)
             return;
+
+        // Cancelar pausa de vuelta a patrulla.
+        if (returnPatrolCoroutine != null)
+        {
+            StopCoroutine(returnPatrolCoroutine);
+
+            returnPatrolCoroutine = null;
+        }
 
         if (patrolPoints == null ||
             patrolPoints.Length == 0)
@@ -258,7 +343,11 @@ public class Enemy_logic : NetworkBehaviour
         );
     }
 
-    private void OnPointReached()
+    // =========================================================
+    // PUNTO ALCANZADO
+    // =========================================================
+
+    void OnPointReached()
     {
         if (waitingAtPoint)
             return;
@@ -267,22 +356,35 @@ public class Enemy_logic : NetworkBehaviour
             patrolPoints[currentPoint]
                 .GetComponent<PatrolPoint>();
 
-        // Punto normal.
+        // -----------------------------------------------------
+        // PUNTO NORMAL
+        // -----------------------------------------------------
+
         if (patrolPoint == null ||
             !patrolPoint.isKeyPoint)
         {
             NextPoint();
+
             return;
         }
 
-        // Punto clave.
+        // -----------------------------------------------------
+        // PUNTO CLAVE
+        // -----------------------------------------------------
+
         waitCoroutine =
             StartCoroutine(
-                WaitAtKeyPoint(patrolPoint.waitTime)
+                WaitAtKeyPoint(
+                    patrolPoint.waitTime
+                )
             );
     }
 
-    private IEnumerator WaitAtKeyPoint(float waitTime)
+    // =========================================================
+    // ESPERAR EN PUNTO CLAVE
+    // =========================================================
+
+    IEnumerator WaitAtKeyPoint(float waitTime)
     {
         waitingAtPoint = true;
 
@@ -296,6 +398,7 @@ public class Enemy_logic : NetworkBehaviour
 
         while (timer < waitTime)
         {
+            // Comprobar si hay un jugador cerca.
             if (targetPlayer != null &&
                 !stunned)
             {
@@ -327,7 +430,11 @@ public class Enemy_logic : NetworkBehaviour
         NextPoint();
     }
 
-    private void NextPoint()
+    // =========================================================
+    // SIGUIENTE PUNTO
+    // =========================================================
+
+    void NextPoint()
     {
         if (!IsServer)
             return;
@@ -341,44 +448,164 @@ public class Enemy_logic : NetworkBehaviour
     }
 
     // =========================================================
-    // PERSECUCIÓN
+    // INICIAR PERSECUCIÓN
     // =========================================================
 
-    private void StartChasing()
+    void StartChasing()
     {
+        if (!IsServer)
+            return;
+
         if (stunned)
             return;
 
         if (targetPlayer == null)
             return;
 
-        chasing = true;
-        waitingAtPoint = false;
-
+        // Cancelar espera en punto clave.
         if (waitCoroutine != null)
         {
             StopCoroutine(waitCoroutine);
+
             waitCoroutine = null;
         }
+
+        // Cancelar pausa de vuelta a patrulla.
+        if (returnPatrolCoroutine != null)
+        {
+            StopCoroutine(returnPatrolCoroutine);
+
+            returnPatrolCoroutine = null;
+        }
+
+        chasing = true;
+        waitingAtPoint = false;
 
         agent.isStopped = false;
         agent.speed = chaseSpeed;
 
         Debug.Log(
-            $"[{name}] PLAYER DETECTADO → PERSIGUIENDO"
+            $"[{name}] PLAYER DETECTADO → PERSIGUIENDO A {targetPlayer.name}"
         );
     }
 
-    private void StopChasing()
+    // =========================================================
+    // INICIAR VUELTA A PATRULLA
+    // =========================================================
+
+    void StartReturnToPatrol()
     {
+        if (!IsServer)
+            return;
+
+        if (stunned)
+            return;
+
+        if (returnPatrolCoroutine != null)
+            return;
+
+        chasing = false;
+
+        returnPatrolCoroutine =
+            StartCoroutine(
+                ReturnToPatrolAfterDelay()
+            );
+    }
+
+    // =========================================================
+    // PAUSA ANTES DE VOLVER A PATRULLA
+    // =========================================================
+
+    IEnumerator ReturnToPatrolAfterDelay()
+    {
+        Debug.Log(
+            $"[{name}] PLAYER FUERA DE RANGO → ESPERANDO {returnToPatrolDelay} SEGUNDOS"
+        );
+
+        // -----------------------------------------------------
+        // PARAR ENEMIGO
+        // -----------------------------------------------------
+
+        StopEnemy();
+
+        float timer = 0f;
+
+        while (timer < returnToPatrolDelay)
+        {
+            if (stunned)
+                yield break;
+
+            // Buscar si algún jugador ha vuelto
+            // a entrar dentro del rango.
+            FindClosestPlayer();
+
+            if (targetPlayer != null)
+            {
+                float distance =
+                    Vector3.Distance(
+                        transform.position,
+                        targetPlayer.transform.position
+                    );
+
+                if (distance <= detectionRange)
+                {
+                    Debug.Log(
+                        $"[{name}] PLAYER VOLVIÓ DURANTE LA PAUSA → PERSIGUIENDO"
+                    );
+
+                    returnPatrolCoroutine = null;
+
+                    StartChasing();
+
+                    yield break;
+                }
+            }
+
+            timer += Time.deltaTime;
+
+            yield return null;
+        }
+
+        // -----------------------------------------------------
+        // FIN DE LA PAUSA
+        // -----------------------------------------------------
+
+        returnPatrolCoroutine = null;
+
         chasing = false;
 
         Debug.Log(
-            $"[{name}] PLAYER FUERA DE RANGO → PATRULLA"
+            $"[{name}] PAUSA TERMINADA → VUELVE A PATRULLAR"
+        );
+
+        GoToCurrentPoint();
+    }
+
+    // =========================================================
+    // CANCELAR PAUSA
+    // =========================================================
+
+    void StopReturnToPatrol()
+    {
+        if (returnPatrolCoroutine == null)
+            return;
+
+        StopCoroutine(
+            returnPatrolCoroutine
+        );
+
+        returnPatrolCoroutine = null;
+
+        Debug.Log(
+            $"[{name}] PAUSA DE VUELTA A PATRULLA CANCELADA"
         );
     }
 
-    private void ChasePlayer(float distance)
+    // =========================================================
+    // PERSECUCIÓN
+    // =========================================================
+
+    void ChasePlayer(float distance)
     {
         if (!IsServer)
             return;
@@ -416,10 +643,10 @@ public class Enemy_logic : NetworkBehaviour
     }
 
     // =========================================================
-    // MOVIMIENTO
+    // PARAR ENEMIGO
     // =========================================================
 
-    private void StopEnemy()
+    void StopEnemy()
     {
         if (!agent.enabled)
             return;
@@ -429,16 +656,20 @@ public class Enemy_logic : NetworkBehaviour
     }
 
     // =========================================================
-    // BUSCAR PLAYER
+    // BUSCAR PLAYER MÁS CERCANO
     // =========================================================
 
-    private void FindPlayer()
+    void FindClosestPlayer()
     {
         if (!IsServer)
             return;
 
         if (NetworkManager.Singleton == null)
             return;
+
+        PlayerController closestPlayer = null;
+
+        float closestDistance = detectionRange;
 
         foreach (
             var client
@@ -454,19 +685,54 @@ public class Enemy_logic : NetworkBehaviour
             if (player == null)
                 continue;
 
-            targetPlayer = player;
+            float distance =
+                Vector3.Distance(
+                    transform.position,
+                    player.transform.position
+                );
 
-            targetInput =
-                player.GetComponent<PlayerInputHandler>();
+            // Solo jugadores dentro del rango.
+            if (distance > detectionRange)
+                continue;
 
-            targetRigidbody =
-                player.GetComponent<Rigidbody>();
+            // Buscar el más cercano.
+            if (distance < closestDistance)
+            {
+                closestDistance = distance;
+                closestPlayer = player;
+            }
+        }
 
-            Debug.Log(
-                $"[{name}] PLAYER ENCONTRADO: {player.name}"
-            );
+        // =====================================================
+        // NO HAY NINGÚN PLAYER CERCA
+        // =====================================================
+
+        if (closestPlayer == null)
+        {
+            targetPlayer = null;
+            targetInput = null;
+            targetRigidbody = null;
 
             return;
+        }
+
+        // =====================================================
+        // CAMBIÓ EL OBJETIVO
+        // =====================================================
+
+        if (targetPlayer != closestPlayer)
+        {
+            targetPlayer = closestPlayer;
+
+            targetInput =
+                closestPlayer.GetComponent<PlayerInputHandler>();
+
+            targetRigidbody =
+                closestPlayer.GetComponent<Rigidbody>();
+
+            Debug.Log(
+                $"[{name}] OBJETIVO → {closestPlayer.name}"
+            );
         }
     }
 
@@ -474,7 +740,7 @@ public class Enemy_logic : NetworkBehaviour
     // STUN
     // =========================================================
 
-    private void TryStun()
+    void TryStun()
     {
         if (!IsServer)
             return;
@@ -502,13 +768,27 @@ public class Enemy_logic : NetworkBehaviour
             );
     }
 
-    private IEnumerator StunPlayer()
+    // =========================================================
+    // STUN PLAYER
+    // =========================================================
+
+    IEnumerator StunPlayer()
     {
         if (targetPlayer == null)
             yield break;
 
         stunned = true;
         chasing = false;
+
+        // Cancelar pausa de vuelta a patrulla.
+        if (returnPatrolCoroutine != null)
+        {
+            StopCoroutine(
+                returnPatrolCoroutine
+            );
+
+            returnPatrolCoroutine = null;
+        }
 
         StopEnemy();
 
@@ -569,8 +849,10 @@ public class Enemy_logic : NetworkBehaviour
         stunCoroutine = null;
 
         // =====================================================
-        // COMPROBAR DISTANCIA
+        // COMPROBAR RANGO
         // =====================================================
+
+        FindClosestPlayer();
 
         if (targetPlayer != null)
         {
@@ -590,20 +872,16 @@ public class Enemy_logic : NetworkBehaviour
             }
             else
             {
-                StopChasing();
+                StartReturnToPatrol();
 
                 Debug.Log(
-                    $"[{name}] STUN TERMINADO → VUELVE A PATRULLA"
+                    $"[{name}] STUN TERMINADO → PAUSA → PATRULLA"
                 );
-
-                GoToCurrentPoint();
             }
         }
         else
         {
-            StopChasing();
-
-            GoToCurrentPoint();
+            StartReturnToPatrol();
         }
     }
 
@@ -611,8 +889,9 @@ public class Enemy_logic : NetworkBehaviour
     // GIZMOS
     // =========================================================
 
-    private void OnDrawGizmosSelected()
+    void OnDrawGizmosSelected()
     {
+        // Rango de detección.
         Gizmos.color = Color.yellow;
 
         Gizmos.DrawWireSphere(
@@ -620,6 +899,7 @@ public class Enemy_logic : NetworkBehaviour
             detectionRange
         );
 
+        // Rango de ataque.
         Gizmos.color = Color.red;
 
         Gizmos.DrawWireSphere(
