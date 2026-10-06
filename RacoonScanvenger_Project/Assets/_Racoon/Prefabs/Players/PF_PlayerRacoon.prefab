@@ -167,7 +167,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 2638742052
+  GlobalObjectIdHash: 974714018
   InScenePlacedSourceGlobalObjectIdHash: 0
   m_InScenePlacedDisabledByDefault: 0
   DeferredDespawnTick: 0
@@ -253,11 +253,25 @@ MonoBehaviour:
   punchRadius: 0.6
   punchKnockback: 8
   knockbackDamping: 6
+  punchCooldown: 0.2
   hitValidationTolerance: 1.5
   hitMask:
     serializedVersion: 2
     m_Bits: 384
-  hitStunDuration: 0.6
+  hitsForHeavy: 3
+  comboResetTime: 1.5
+  lightHit:
+    knockbackMultiplier: 0.6
+    upwardVelocity: 0
+    stunDuration: 0.45
+    invulnerableWhileStunned: 0
+    recoveryInvulnerability: 0
+  heavyHit:
+    knockbackMultiplier: 1.8
+    upwardVelocity: 4
+    stunDuration: 1
+    invulnerableWhileStunned: 1
+    recoveryInvulnerability: 0.8
   dashSpeed: 14
   dashDuration: 0.25
   dashSpeedCurve:
@@ -288,6 +302,8 @@ MonoBehaviour:
   dashStaminaCost: 15
   invincibilityStart: 0
   invincibilityDuration: 0.2
+  drawRuntimeGizmos: 1
+  punchGizmoTime: 0.25
   cameraWeight: 1
   cameraRadius: 1.5
   onInteract:
@@ -297,6 +313,12 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   onHitReceived:
+    m_PersistentCalls:
+      m_Calls: []
+  onLightHit:
+    m_PersistentCalls:
+      m_Calls: []
+  onHeavyHit:
     m_PersistentCalls:
       m_Calls: []
   onDash:
@@ -454,3 +476,4 @@ MonoBehaviour:
   - 0.12
   dashTrailId: DashTrail
   blinkInterval: 0.08
+  recoveryBlinkInterval: 0.16

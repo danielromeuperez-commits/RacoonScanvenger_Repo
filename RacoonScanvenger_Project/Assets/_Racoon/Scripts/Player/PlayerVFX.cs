@@ -12,9 +12,12 @@ namespace Racoon.Player
     /// Ponlo en el MISMO GameObject que el Animator (el modelo): los Animation Events solo llaman
     /// a métodos de componentes de ese GameObject.
     ///
-    /// Conexiones (Inspector del PlayerController, sección Eventos, opción "Dynamic"):
-    ///  - onHitReceived → PlayerVFX.OnHitReceived: parpadeo hasta que vuelve a poder moverse.
-    ///  - onDash        → PlayerVFX.OnDash: polvo (uno por cada valor de dashDustDelays) + trail de viento,
+    /// Se suscribe solo por código a los eventos del PlayerController (NO conectarlos también en el
+    /// Inspector o se ejecutarían dos veces):
+    ///  - onLightHit    → OnLightHit: parpadeo rápido mientras está aturdido (golpes 1º y 2º).
+    ///  - onHeavyHit    → OnHeavyHit: parpadeo rápido en el suelo + lento durante los i-frames al
+    ///                    levantarse (se corta si los gasta atacando o con un dash).
+    ///  - onDash        → OnDash: polvo (uno por cada valor de dashDustDelays) + trail de viento,
     ///                    orientados en la dirección del dash.
     /// Animation Events: función "PlayVFX" con parámetro string = id del efecto (p. ej. "HitDust"
     /// en los keyframes de la animación de recibir golpe).
@@ -47,8 +50,11 @@ namespace Racoon.Player
         [SerializeField] float[] dashDustDelays = { 0f, 0.12f };
         [SerializeField] string dashTrailId = "DashTrail";
 
-        [Header("Parpadeo en HitStun")]
+        [Header("Parpadeo al recibir golpes")]
+        [Tooltip("Mientras está aturdido / derribado (sin control).")]
         [SerializeField] float blinkInterval = 0.08f;
+        [Tooltip("Durante los i-frames al levantarse (ya puede moverse, pero no le pueden golpear).")]
+        [SerializeField] float recoveryBlinkInterval = 0.16f;
 
         readonly Dictionary<string, VfxEntry> lookup = new();
         readonly List<Renderer> blinkRenderers = new();
@@ -63,7 +69,24 @@ namespace Racoon.Player
                 if (!string.IsNullOrEmpty(entry.id)) lookup[entry.id] = entry;
         }
 
-        void OnDisable() => StopBlink();
+        void OnEnable()
+        {
+            if (controller == null) return;
+            controller.onLightHit.AddListener(OnLightHit);
+            controller.onHeavyHit.AddListener(OnHeavyHit);
+            controller.onDash.AddListener(OnDash);
+        }
+
+        void OnDisable()
+        {
+            if (controller != null)
+            {
+                controller.onLightHit.RemoveListener(OnLightHit);
+                controller.onHeavyHit.RemoveListener(OnHeavyHit);
+                controller.onDash.RemoveListener(OnDash);
+            }
+            StopBlink();
+        }
 
         // ---------------- API ----------------
 
@@ -93,15 +116,20 @@ namespace Racoon.Player
 
         // ---------------- Dash ----------------
 
-        /// <summary>Conectar a PlayerController.onDash (Dynamic Vector3).</summary>
+        /// <summary>Suscrito a PlayerController.onDash.</summary>
         public void OnDash(Vector3 direction)
         {
-            foreach (float delay in dashDustDelays)
+            // Sin configurar todavía: no avisar en cada dash.
+            if (lookup.ContainsKey(dashDustId))
             {
-                if (delay <= 0f) Spawn(dashDustId, direction);
-                else StartCoroutine(SpawnDelayed(dashDustId, direction, delay));
+                foreach (float delay in dashDustDelays)
+                {
+                    if (delay <= 0f) Spawn(dashDustId, direction);
+                    else StartCoroutine(SpawnDelayed(dashDustId, direction, delay));
+                }
             }
 
+            if (!lookup.ContainsKey(dashTrailId)) return;
             GameObject trail = Spawn(dashTrailId, direction);
             // Al acabar el dash el trail se suelta y deja de emitir, para que se desvanezca solo.
             if (trail != null && trail.transform.parent != null)
@@ -128,11 +156,14 @@ namespace Racoon.Player
 
         // ---------------- Parpadeo ----------------
 
-        /// <summary>
-        /// Conectar a PlayerController.onHitReceived (Dynamic PlayerController). Parpadea durante el stun;
-        /// un golpe nuevo reinicia el tiempo.
-        /// </summary>
-        public void OnHitReceived(PlayerController attacker)
+        /// <summary>Suscrito a PlayerController.onLightHit (golpes 1º y 2º del combo).</summary>
+        public void OnLightHit(PlayerController attacker, int hitNumber) => StartBlink(controller.LightHit);
+
+        /// <summary>Suscrito a PlayerController.onHeavyHit (golpe 3º: derribo).</summary>
+        public void OnHeavyHit(PlayerController attacker) => StartBlink(controller.HeavyHit);
+
+        // Un golpe nuevo reinicia el parpadeo.
+        void StartBlink(PlayerController.HitReaction reaction)
         {
             StopBlink();
 
@@ -141,14 +172,15 @@ namespace Racoon.Player
                 if ((rend is MeshRenderer || rend is SkinnedMeshRenderer) && rend.enabled)
                     blinkRenderers.Add(rend);
 
-            blinkRoutine = StartCoroutine(Blink(controller.HitStunDuration));
+            blinkRoutine = StartCoroutine(Blink(reaction.stunDuration, reaction.recoveryInvulnerability));
         }
 
-        // Dura lo mismo que el stun: deja de parpadear justo cuando vuelve a poder moverse.
-        IEnumerator Blink(float duration)
+        IEnumerator Blink(float stunDuration, float recoveryDuration)
         {
             bool visible = true;
-            float end = Time.time + duration;
+
+            // Sin control: parpadeo rápido. Dura lo mismo que el stun.
+            float end = Time.time + stunDuration;
             WaitForSeconds wait = new(blinkInterval);
             while (Time.time < end)
             {
@@ -156,6 +188,18 @@ namespace Racoon.Player
                 SetRenderersVisible(visible);
                 yield return wait;
             }
+
+            // I-frames al levantarse: parpadeo lento. IsInvulnerable está replicado, así que se corta
+            // en todos los clientes si el jugador los gasta atacando.
+            end = Time.time + recoveryDuration;
+            wait = new WaitForSeconds(recoveryBlinkInterval);
+            while (Time.time < end && controller.IsInvulnerable)
+            {
+                visible = !visible;
+                SetRenderersVisible(visible);
+                yield return wait;
+            }
+
             StopBlink();
         }
 

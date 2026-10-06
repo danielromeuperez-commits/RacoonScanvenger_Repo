@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
@@ -120,6 +121,7 @@ namespace Racoon.Network
             transport.SetConnectionData("127.0.0.1", port, "0.0.0.0");
             if (networkManager.StartHost())
             {
+                LogNetworkConfig("Host");
                 localAddresses = GetLocalAddresses();
                 status = $"Host local en el puerto {port}";
             }
@@ -140,7 +142,25 @@ namespace Racoon.Network
 
             ApplySelection();
             transport.SetConnectionData(address, port);
-            status = networkManager.StartClient() ? $"Conectando a {address}:{port}..." : "No se pudo iniciar el cliente.";
+            if (networkManager.StartClient())
+            {
+                LogNetworkConfig("Cliente");
+                status = $"Conectando a {address}:{port}...";
+            }
+            else
+            {
+                status = "No se pudo iniciar el cliente.";
+            }
+        }
+
+        // Si el host rechaza al cliente con "NetworkConfig mismatch", compara esta línea en las dos consolas:
+        // el hash incluye los prefabs de red registrados, así que la lista de Prefabs dice cuál falta o sobra.
+        void LogNetworkConfig(string role)
+        {
+            NetworkConfig config = networkManager.NetworkConfig;
+            string prefabs = string.Join(", ", config.Prefabs.NetworkPrefabOverrideLinks.Keys.OrderBy(hash => hash));
+            Debug.Log($"[Red] {role} · Config hash {config.GetConfig(false)} · TickRate {config.TickRate} · " +
+                      $"Approval {config.ConnectionApproval} · SceneMgmt {config.EnableSceneManagement} · Prefabs: {prefabs}");
         }
 
         static string GetLocalAddresses()

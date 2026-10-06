@@ -8,7 +8,7 @@ namespace Racoon.Player
     ///
     /// Parámetros esperados en el Animator Controller:
     ///  - "State" (int): valor de PlayerState (0 Idle, 1 Walk, 2 Run, 10 Interact, 11 SwitchItem, 12 Punch,
-    ///    13 UseItem, 14 HitStun, 15 Dash)
+    ///    13 UseItem, 14 HitStun (golpe ligero), 15 Dash, 16 Knockdown (golpe fuerte, 3º del combo))
     ///  - "ActionStart" (trigger): se dispara al empezar cualquier acción
     ///  - "Speed" (float, opcional): velocidad horizontal normalizada 0-1 para blend trees
     /// Si falta algún parámetro, simplemente se ignora.

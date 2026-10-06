@@ -58,15 +58,58 @@ namespace Racoon.Player
         [SerializeField] float punchRange = 0.9f;
         [SerializeField] float punchHeight = 1f;
         [SerializeField] float punchRadius = 0.6f;
+        [Tooltip("Fuerza base del empujón. Cada tipo de golpe recibido la multiplica (ver Recibir golpe).")]
         [SerializeField] float punchKnockback = 8f;
         [SerializeField] float knockbackDamping = 6f;
+        [Tooltip("Espera tras terminar un puñetazo antes de poder dar otro (anti-spam). " +
+                 "Junto con el stun ligero deja un pequeño hueco para que la víctima escape con un dash.")]
+        [SerializeField] float punchCooldown = 0.2f;
         [Tooltip("Margen extra que acepta el servidor al validar la distancia del golpe (latencia).")]
         [SerializeField] float hitValidationTolerance = 1.5f;
         [SerializeField] LayerMask hitMask = ~0;
 
-        [Header("Recibir golpe")]
-        [Tooltip("Segundos sin control tras recibir un golpe (el knockback se aplica durante este tiempo).")]
-        [SerializeField] float hitStunDuration = 0.6f;
+        /// <summary>Cómo reacciona el jugador a un tipo de golpe.</summary>
+        [Serializable]
+        public struct HitReaction
+        {
+            [Tooltip("Multiplica el knockback que llega (punchKnockback en el puñetazo).")]
+            public float knockbackMultiplier;
+            [Tooltip("Velocidad vertical al recibirlo (pequeño salto). 0 = ninguno.")]
+            public float upwardVelocity;
+            [Tooltip("Segundos sin control.")]
+            public float stunDuration;
+            [Tooltip("No le pueden golpear mientras está aturdido (evita rematar en el suelo).")]
+            public bool invulnerableWhileStunned;
+            [Tooltip("I-frames al recuperar el control (se cancelan si ataca o hace dash).")]
+            public float recoveryInvulnerability;
+
+            /// <summary>Lo que dura el parpadeo: stun + i-frames de recuperación.</summary>
+            public float BlinkDuration => stunDuration + recoveryInvulnerability;
+        }
+
+        [Header("Recibir golpe (combo)")]
+        [Tooltip("Golpe nº X del combo que derriba (golpe fuerte). Los anteriores son ligeros.")]
+        [SerializeField, Min(1)] int hitsForHeavy = 3;
+        [Tooltip("Si pasa este tiempo sin recibir golpes, el combo vuelve a 0.")]
+        [SerializeField] float comboResetTime = 1.5f;
+        [Tooltip("Golpes 1º y 2º: stun corto, se puede encadenar (pero hay hueco para escapar con dash).")]
+        [SerializeField] HitReaction lightHit = new()
+        {
+            knockbackMultiplier = 0.6f,
+            upwardVelocity = 0f,
+            stunDuration = 0.45f,
+            invulnerableWhileStunned = false,
+            recoveryInvulnerability = 0f,
+        };
+        [Tooltip("Golpe 3º: derriba, invulnerable en el suelo y al levantarse. Reinicia el combo.")]
+        [SerializeField] HitReaction heavyHit = new()
+        {
+            knockbackMultiplier = 1.8f,
+            upwardVelocity = 4f,
+            stunDuration = 1f,
+            invulnerableWhileStunned = true,
+            recoveryInvulnerability = 0.8f,
+        };
 
         [Header("Dash")]
         [SerializeField] float dashSpeed = 14f;
@@ -95,13 +138,22 @@ namespace Racoon.Player
         public UnityEvent<PlayerController> onInteract;
         public UnityEvent<ItemData> onItemUsed;
         /// <summary>
-        /// Solo cuando el golpe ENTRA (no en i-frames). Parámetro: quien golpea (puede ser null).
-        /// Conecta aquí la reacción visual: PlayerVFX.OnHitReceived (parpadeo durante el stun).
+        /// Cualquier golpe que ENTRA (no en i-frames), ligero o fuerte. Parámetro: quien golpea (puede ser null).
         /// </summary>
         public UnityEvent<PlayerController> onHitReceived;
         /// <summary>
+        /// Golpes ligeros del combo (1º y 2º). Parámetros: quien golpea (puede ser null) y nº de golpe (1, 2...).
+        /// PlayerVFX se suscribe solo por código (parpadeo).
+        /// </summary>
+        public UnityEvent<PlayerController, int> onLightHit;
+        /// <summary>
+        /// Golpe fuerte (3º del combo): derribo. Parámetro: quien golpea (puede ser null).
+        /// PlayerVFX se suscribe solo por código (parpadeo largo).
+        /// </summary>
+        public UnityEvent<PlayerController> onHeavyHit;
+        /// <summary>
         /// Al empezar un dash. Parámetro: dirección del dash (horizontal, normalizada), la misma en todos
-        /// los clientes. Conecta aquí PlayerVFX.OnDash (polvo + trail orientados) o sonido, cámara...
+        /// los clientes. PlayerVFX se suscribe solo por código; aquí puedes añadir sonido, cámara...
         /// </summary>
         public UnityEvent<Vector3> onDash;
 
@@ -112,7 +164,7 @@ namespace Racoon.Player
             // Se incrementa en cada acción: así se detectan dos golpes seguidos aunque el
             // estado no pase visiblemente por Idle entre ellos.
             public byte ActionSequence;
-            // Invincibility-frames del dash: el servidor lo consulta para descartar golpes.
+            // I-frames (dash, derribo, recuperación): el servidor lo consulta para descartar golpes.
             public bool Invulnerable;
 
             public bool Equals(NetState other) =>
@@ -143,7 +195,9 @@ namespace Racoon.Player
         /// <summary>Está en invincibility-frames. Replicado: válido en todos los clientes y en el servidor.</summary>
         public bool IsInvulnerable => netState.Value.Invulnerable;
         public float DashDuration => dashDuration;
-        public float HitStunDuration => hitStunDuration;
+        public HitReaction LightHit => lightHit;
+        public HitReaction HeavyHit => heavyHit;
+        public int HitsForHeavy => hitsForHeavy;
         public float StaminaNormalized => staminaNormalized.Value;
         /// <summary>Solo tiene sentido en el dueño.</summary>
         public bool IsExhausted => exhausted;
@@ -174,10 +228,25 @@ namespace Racoon.Player
         bool lastPunchConnected;
         Vector3 dashDirection;
         float dashCooldownTimer;
+        float punchCooldownTimer;
+
+        // Combo recibido (lo lleva el dueño de la víctima, que es quien resuelve los golpes).
+        int comboHits;
+        float lastHitTime = float.NegativeInfinity;
+        bool stunInvulnerable;
+        float pendingRecoveryInvulnerability;
+        float recoveryInvulnerabilityTimer;
+
+        // Servidor: anti-spam de RPCs de golpe (cliente modificado o ráfagas por latencia).
+        float lastServerPunchTime = float.NegativeInfinity;
+
+        // Solo para gizmos: último golpe recibido (todos los clientes).
+        int debugComboHits;
+        float debugLastHitTime = float.NegativeInfinity;
 
         bool IsInAction => actionTimer > 0f;
         // Solo en el dueño (el estado lo escribe él, así que su copia siempre está al día).
-        bool IsStunned => IsInAction && State == PlayerState.HitStun;
+        bool IsStunned => IsInAction && State.IsStun();
         bool IsDashing => IsInAction && State == PlayerState.Dash;
 
         void Awake()
@@ -245,6 +314,14 @@ namespace Racoon.Player
             float dt = Time.deltaTime;
             if (actionTimer > 0f) actionTimer -= dt;
             if (dashCooldownTimer > 0f) dashCooldownTimer -= dt;
+            if (punchCooldownTimer > 0f) punchCooldownTimer -= dt;
+            if (recoveryInvulnerabilityTimer > 0f) recoveryInvulnerabilityTimer -= dt;
+            // Al recuperar el control tras un golpe empiezan sus i-frames de recuperación.
+            if (pendingRecoveryInvulnerability > 0f && !IsInAction)
+            {
+                recoveryInvulnerabilityTimer = pendingRecoveryInvulnerability;
+                pendingRecoveryInvulnerability = 0f;
+            }
             if (punchHitTimer >= 0f)
             {
                 punchHitTimer -= dt;
@@ -312,13 +389,22 @@ namespace Racoon.Player
 
         void UpdateInvulnerability()
         {
-            bool invulnerable = false;
-            if (IsDashing && invincibilityDuration > 0f)
+            // Derribado (o stun configurado como invulnerable) y al levantarse.
+            bool invulnerable = (IsStunned && stunInvulnerable) || recoveryInvulnerabilityTimer > 0f;
+            if (!invulnerable && IsDashing && invincibilityDuration > 0f)
             {
                 float elapsed = dashDuration - actionTimer;
                 invulnerable = elapsed >= invincibilityStart && elapsed < invincibilityStart + invincibilityDuration;
             }
             SetInvulnerable(invulnerable);
+        }
+
+        // Atacar o hacer dash al levantarse gasta los i-frames de recuperación: no se puede
+        // aprovechar la invulnerabilidad para pegar sin riesgo.
+        void CancelRecoveryInvulnerability()
+        {
+            recoveryInvulnerabilityTimer = 0f;
+            pendingRecoveryInvulnerability = 0f;
         }
 
         void SetInvulnerable(bool invulnerable)
@@ -408,6 +494,7 @@ namespace Racoon.Player
             body.rotation = rotation;
             if (!body.isKinematic) body.linearVelocity = Vector3.zero;
             moveVelocity = knockbackVelocity = desiredVelocity = Vector3.zero;
+            comboHits = 0;
         }
 
         // ---------------- Input (solo dueño) ----------------
@@ -433,13 +520,17 @@ namespace Racoon.Player
 
             if (inventory.HasEquipped)
             {
+                CancelRecoveryInvulnerability();
                 StartAction(PlayerState.UseItem, useItemDuration);
                 UseItemRpc();
             }
             else
             {
+                if (punchCooldownTimer > 0f) return;
+                CancelRecoveryInvulnerability();
                 StartAction(PlayerState.Punch, punchDuration);
                 punchHitTimer = punchHitDelay;
+                punchCooldownTimer = punchDuration + punchCooldown;
             }
         }
 
@@ -467,6 +558,7 @@ namespace Racoon.Player
                 : Vector3.ProjectOnPlane(transform.forward, Vector3.up).normalized;
             if (direction.sqrMagnitude < 0.0001f) direction = Vector3.forward;
 
+            CancelRecoveryInvulnerability(); // El dash ya trae sus propios i-frames.
             dashDirection = direction;
             dashCooldownTimer = dashDuration + dashCooldown;
             StartAction(PlayerState.Dash, dashDuration);
@@ -566,6 +658,10 @@ namespace Racoon.Player
                 victim == this)
                 return;
 
+            // No acepta golpes más rápidos que la animación (con margen por el jitter de red).
+            if (Time.time - lastServerPunchTime < punchDuration * 0.75f) return;
+            lastServerPunchTime = Time.time;
+
             Vector3 toVictim = victim.transform.position - transform.position;
             toVictim.y = 0f;
             float maxDistance = punchRange + punchRadius + (capsule != null ? capsule.radius * 2f : 1f) + hitValidationTolerance;
@@ -595,26 +691,63 @@ namespace Racoon.Player
 
         // El golpe lo resuelve el dueño de la víctima: tiene la información más reciente de sus
         // i-frames (el valor que ve el servidor llega con latencia), así el dash se siente justo.
+        // También lleva la cuenta del combo, así nunca se desincroniza con lo que ve el jugador.
         [Rpc(SendTo.Owner, InvokePermission = RpcInvokePermission.Server)]
         void ReceiveHitRpc(Vector3 knockback, ulong attackerObjectId)
         {
             if (IsInvulnerable) return;
 
+            // Combo: vuelve a 0 si ha pasado demasiado desde el último golpe.
+            if (Time.time - lastHitTime > comboResetTime) comboHits = 0;
+            lastHitTime = Time.time;
+            comboHits++;
+            int hitNumber = comboHits;
+            bool heavy = comboHits >= hitsForHeavy;
+            if (heavy) comboHits = 0;
+            HitReaction reaction = heavy ? heavyHit : lightHit;
+
             // Solo el dueño mueve su personaje, así que es él quien aplica el empujón.
-            knockbackVelocity += knockback;
+            // Se sustituye (no se suma) para que varios golpes seguidos no lo lancen cada vez más lejos.
+            knockbackVelocity = knockback * reaction.knockbackMultiplier;
             moveVelocity = Vector3.zero;
+            if (reaction.upwardVelocity > 0f && !body.isKinematic)
+            {
+                Vector3 velocity = body.linearVelocity;
+                body.linearVelocity = new Vector3(velocity.x, Mathf.Max(velocity.y, reaction.upwardVelocity), velocity.z);
+            }
+
+            // Mira hacia quien le ha golpeado (las animaciones de golpe asumen impacto frontal).
+            Vector3 facing = -knockback;
+            facing.y = 0f;
+            if (facing.sqrMagnitude > 0.0001f)
+            {
+                Quaternion rotation = Quaternion.LookRotation(facing.normalized, Vector3.up);
+                if (body.isKinematic) transform.rotation = rotation;
+                else body.rotation = rotation;
+            }
+
             punchHitTimer = -1f; // Un golpe recibido cancela el tuyo.
-            StartAction(PlayerState.HitStun, hitStunDuration);
-            HitReactedRpc(attackerObjectId);
+            stunInvulnerable = reaction.invulnerableWhileStunned;
+            recoveryInvulnerabilityTimer = 0f;
+            pendingRecoveryInvulnerability = reaction.recoveryInvulnerability;
+            StartAction(heavy ? PlayerState.Knockdown : PlayerState.HitStun, reaction.stunDuration);
+            UpdateInvulnerability(); // El derribo es invulnerable desde este mismo frame.
+            HitReactedRpc(attackerObjectId, (byte)hitNumber, heavy);
         }
 
         [Rpc(SendTo.Everyone, InvokePermission = RpcInvokePermission.Owner)]
-        void HitReactedRpc(ulong attackerObjectId)
+        void HitReactedRpc(ulong attackerObjectId, byte hitNumber, bool heavy)
         {
             PlayerController attacker = null;
             if (NetworkManager.SpawnManager.SpawnedObjects.TryGetValue(attackerObjectId, out NetworkObject attackerObject))
                 attackerObject.TryGetComponent(out attacker);
+
+            debugComboHits = hitNumber;
+            debugLastHitTime = Time.time;
+
             onHitReceived?.Invoke(attacker);
+            if (heavy) onHeavyHit?.Invoke(attacker);
+            else onLightHit?.Invoke(attacker, hitNumber);
         }
 
         // Rangos configurados (con el objeto seleccionado, también fuera de Play).
@@ -662,6 +795,18 @@ namespace Racoon.Player
                 Gizmos.color = new Color(0.3f, 0.6f, 1f);
                 Gizmos.DrawWireSphere(center, radius);
             }
+
+#if UNITY_EDITOR
+            // Contador del combo recibido sobre la cabeza mientras sigue vivo.
+            if (Time.time - debugLastHitTime < comboResetTime)
+            {
+                bool heavy = debugComboHits >= hitsForHeavy;
+                var style = new GUIStyle(UnityEditor.EditorStyles.boldLabel);
+                style.normal.textColor = heavy ? Color.red : Color.yellow;
+                UnityEditor.Handles.Label(transform.position + Vector3.up * 2f,
+                    heavy ? "¡DERRIBO!" : $"Golpes {debugComboHits}/{hitsForHeavy}", style);
+            }
+#endif
         }
     }
 }
