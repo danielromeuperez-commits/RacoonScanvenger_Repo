@@ -134,6 +134,12 @@ namespace Racoon.Player
         [SerializeField] float cameraWeight = 1f;
         [SerializeField] float cameraRadius = 1.5f;
 
+        [Header("Recuperación tras objetos")]
+        [SerializeField] float itemRecoveryHoldDuration = 1f;
+
+        [Tooltip("Velocidad vertical al terminar de recuperarse.")]
+        [SerializeField] float itemRecoveryJumpVelocity = 3f;
+
         [Header("Eventos (se lanzan en TODOS los clientes)")]
         public UnityEvent<PlayerController> onInteract;
         public UnityEvent<ItemData> onItemUsed;
@@ -195,6 +201,13 @@ namespace Racoon.Player
         /// <summary>Está en invincibility-frames. Replicado: válido en todos los clientes y en el servidor.</summary>
         public bool IsInvulnerable => netState.Value.Invulnerable;
         public float DashDuration => dashDuration;
+
+        public bool IsItemRecoveryActive => itemRecoveryRequired && actionTimer <= 0f;
+
+        public float ItemRecoveryNormalized =>
+            itemRecoveryHoldDuration > 0f
+            ? Mathf.Clamp01(itemRecoveryProgress / itemRecoveryHoldDuration)
+            : 0f;
         public HitReaction LightHit => lightHit;
         public HitReaction HeavyHit => heavyHit;
         public int HitsForHeavy => hitsForHeavy;
@@ -229,6 +242,11 @@ namespace Racoon.Player
         Vector3 dashDirection;
         float dashCooldownTimer;
         float punchCooldownTimer;
+        bool infiniteDashActive;
+        float infiniteDashTimer;
+
+        bool itemRecoveryRequired;
+        float itemRecoveryProgress;
 
         // Combo recibido (lo lleva el dueño de la víctima, que es quien resuelve los golpes).
         int comboHits;
@@ -314,8 +332,19 @@ namespace Racoon.Player
             float dt = Time.deltaTime;
             if (actionTimer > 0f) actionTimer -= dt;
             if (dashCooldownTimer > 0f) dashCooldownTimer -= dt;
+            if (infiniteDashTimer > 0f)
+            {
+                infiniteDashTimer -= dt;
+
+                if (infiniteDashTimer <= 0f)
+                {
+                    infiniteDashTimer = 0f;
+                    infiniteDashActive = false;
+                }
+            }
             if (punchCooldownTimer > 0f) punchCooldownTimer -= dt;
             if (recoveryInvulnerabilityTimer > 0f) recoveryInvulnerabilityTimer -= dt;
+            UpdateItemRecovery(dt);
             // Al recuperar el control tras un golpe empiezan sus i-frames de recuperación.
             if (pendingRecoveryInvulnerability > 0f && !IsInAction)
             {
@@ -337,7 +366,7 @@ namespace Racoon.Player
             UpdateStamina(isRunning, dt);
 
             // Solo se calcula la intención; la física se aplica en FixedUpdate.
-            if (IsStunned)
+            if (IsStunned || itemRecoveryRequired)
             {
                 // Sin control: solo actúa el knockback.
                 desiredDirection = desiredVelocity = Vector3.zero;
@@ -357,7 +386,7 @@ namespace Racoon.Player
                 desiredVelocity = desiredDirection * targetSpeed;
             }
 
-            if (!IsInAction)
+            if (!IsInAction && !itemRecoveryRequired)
                 SetLocomotionState(!hasMoveInput ? PlayerState.Idle : isRunning ? PlayerState.Run : PlayerState.Walk);
         }
 
@@ -385,6 +414,52 @@ namespace Racoon.Player
 
             // La NetworkVariable solo se envía en cada tick de red si cambió, no cada frame.
             staminaNormalized.Value = stamina / maxStamina;
+        }
+
+        void UpdateItemRecovery(float dt)
+        {
+            if (!itemRecoveryRequired)
+                return;
+
+            // Primero tiene que terminar el stun obligatorio.
+            if (actionTimer > 0f)
+            {
+                itemRecoveryProgress = 0f;
+                return;
+            }
+
+            // Después del stun tiene que mantener pulsado el botón de Dash
+            // (Espacio en teclado) para levantarse.
+            if (input.DashHeld)
+            {
+                itemRecoveryProgress += dt;
+
+                if (itemRecoveryProgress >= itemRecoveryHoldDuration)
+                {
+                    itemRecoveryProgress = 0f;
+                    itemRecoveryRequired = false;
+
+                    // Pequeño salto al levantarse.
+                    if (!body.isKinematic)
+                    {
+                        Vector3 velocity = body.linearVelocity;
+
+                        body.linearVelocity = new Vector3(
+                            velocity.x,
+                            itemRecoveryJumpVelocity,
+                            velocity.z
+                        );
+                    }
+
+                    SetLocomotionState(PlayerState.Idle);
+                }
+            }
+            else
+            {
+                // Si suelta Espacio antes de tiempo,
+                // tiene que volver a empezar.
+                itemRecoveryProgress = 0f;
+            }
         }
 
         void UpdateInvulnerability()
@@ -501,7 +576,7 @@ namespace Racoon.Player
 
         void OnInteractPressed()
         {
-            if (IsInAction) return;
+            if (IsInAction || itemRecoveryRequired) return;
             StartAction(PlayerState.Interact, interactDuration);
             InteractRpc();
         }
@@ -509,7 +584,7 @@ namespace Racoon.Player
         void OnSwitchItemPressed()
         {
             // CanSwitch evita desequipar el único objeto que llevas.
-            if (IsInAction || !inventory.CanSwitch) return;
+            if (IsInAction || itemRecoveryRequired || !inventory.CanSwitch) return;
             StartAction(PlayerState.SwitchItem, switchItemDuration);
             SwitchItemRpc();
         }
@@ -537,18 +612,13 @@ namespace Racoon.Player
         void OnDashPressed()
         {
             // Incluye el stun: no se puede salir del aturdimiento con un dash.
-            if (IsInAction || dashCooldownTimer > 0f) return;
-            if (dashStaminaCost > 0f && (exhausted || stamina < dashStaminaCost)) return;
+            if (IsInAction || itemRecoveryRequired) return;
 
-            if (dashStaminaCost > 0f)
+            // Con la bebida energética no hay cooldown ni coste de estamina.
+            if (!infiniteDashActive)
             {
-                stamina -= dashStaminaCost;
-                staminaRegenTimer = staminaRegenDelay;
-                if (stamina <= 0f)
-                {
-                    stamina = 0f;
-                    exhausted = true;
-                }
+                if (dashCooldownTimer > 0f) return;
+                if (dashStaminaCost > 0f && (exhausted || stamina < dashStaminaCost)) return;
             }
 
             // Hacia donde apunta el stick; sin input, hacia delante.
@@ -560,7 +630,9 @@ namespace Racoon.Player
 
             CancelRecoveryInvulnerability(); // El dash ya trae sus propios i-frames.
             dashDirection = direction;
-            dashCooldownTimer = dashDuration + dashCooldown;
+            dashCooldownTimer = infiniteDashActive
+            ? 0f
+            : dashDuration + dashCooldown;
             StartAction(PlayerState.Dash, dashDuration);
             UpdateInvulnerability(); // Si los i-frames empiezan en 0, ya cuentan desde este frame.
             DashRpc(direction);
@@ -669,6 +741,54 @@ namespace Racoon.Player
 
             Vector3 direction = toVictim.sqrMagnitude > 0.0001f ? toVictim.normalized : transform.forward;
             victim.ServerApplyHit(direction * punchKnockback, this);
+        }
+
+        // ---------------- Efectos de objetos ----------------
+
+        /// <summary>
+        /// Solo servidor. Aturde temporalmente al jugador sin contar
+        /// como un golpe del combo.
+        /// </summary>
+        public void ServerApplyItemStun(float duration)
+        {
+            if (!IsServer)
+            {
+                Debug.LogWarning("ServerApplyItemStun solo se puede llamar en el servidor.", this);
+                return;
+            }
+
+            if (duration <= 0f) return;
+
+            ItemStunRpc(duration);
+        }
+
+        [Rpc(SendTo.Owner, InvokePermission = RpcInvokePermission.Server)]
+        void ItemStunRpc(float duration)
+        {
+            // Cancela cualquier golpe que estuviera preparando.
+            punchHitTimer = -1f;
+
+            // Detenemos inmediatamente el movimiento.
+            moveVelocity = Vector3.zero;
+            desiredVelocity = Vector3.zero;
+            desiredDirection = Vector3.zero;
+            knockbackVelocity = Vector3.zero;
+
+            if (!body.isKinematic)
+            {
+                Vector3 velocity = body.linearVelocity;
+                body.linearVelocity = new Vector3(0f, velocity.y, 0f);
+            }
+
+            // No cuenta para el combo de puñetazos.
+            stunInvulnerable = false;
+            recoveryInvulnerabilityTimer = 0f;
+            pendingRecoveryInvulnerability = 0f;
+
+            itemRecoveryProgress = 0f;
+            itemRecoveryRequired = true;
+
+            StartAction(PlayerState.HitStun, duration);
         }
 
         // ---------------- Recibir golpe ----------------
