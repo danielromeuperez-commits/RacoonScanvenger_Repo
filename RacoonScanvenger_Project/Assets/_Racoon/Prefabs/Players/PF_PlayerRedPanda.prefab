@@ -275,6 +275,7 @@ GameObject:
   - component: {fileID: 4734997286130547212}
   - component: {fileID: 5812787108930251625}
   - component: {fileID: 7051271079864425435}
+  - component: {fileID: 3001776071502062672}
   m_Layer: 8
   m_Name: PF_PlayerRedPanda
   m_TagString: Untagged
@@ -619,6 +620,27 @@ MonoBehaviour:
   itemHoldPoint: {fileID: 2343502770751616737}
   throwPoint: {fileID: 4957213430382982291}
   aimArrow: {fileID: 577142314480297662}
+--- !u!114 &3001776071502062672
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6443071073951013002}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d8a51148c2d27b044b2b6e9493049ea6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.Player.PlayerVFX
+  controller: {fileID: 6147228204243766040}
+  effects: []
+  dashDustId: DashDust
+  dashDustDelays:
+  - 0
+  - 0.12
+  dashTrailId: DashTrail
+  blinkInterval: 0.08
+  recoveryBlinkInterval: 0.16
 --- !u!1 &8107090357829930905
 GameObject:
   m_ObjectHideFlags: 0
