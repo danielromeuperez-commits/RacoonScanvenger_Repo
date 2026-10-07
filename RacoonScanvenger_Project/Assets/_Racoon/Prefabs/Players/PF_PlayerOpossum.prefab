@@ -9,7 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 809146151829680577}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: ThrowPoint
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -41,7 +41,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3746231284464520148}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: ItemHoldPoint
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -75,7 +75,7 @@ GameObject:
   - component: {fileID: 799589449292191820}
   - component: {fileID: 6298520876374930429}
   - component: {fileID: 8669791242855832077}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: AimArrow
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -187,7 +187,7 @@ GameObject:
   - component: {fileID: 5735511311895863670}
   - component: {fileID: 328274112209153928}
   - component: {fileID: 6927876798064382780}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: SK_Opussum
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -307,7 +307,7 @@ GameObject:
   - component: {fileID: 4734997286130547212}
   - component: {fileID: 5812787108930251625}
   - component: {fileID: 2062572893429925596}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: PF_PlayerOpossum
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -430,11 +430,25 @@ MonoBehaviour:
   punchRadius: 0.6
   punchKnockback: 8
   knockbackDamping: 6
+  punchCooldown: 0.2
   hitValidationTolerance: 1.5
   hitMask:
     serializedVersion: 2
     m_Bits: 384
-  hitStunDuration: 0.6
+  hitsForHeavy: 3
+  comboResetTime: 1.5
+  lightHit:
+    knockbackMultiplier: 0.6
+    upwardVelocity: 0
+    stunDuration: 0.45
+    invulnerableWhileStunned: 0
+    recoveryInvulnerability: 0
+  heavyHit:
+    knockbackMultiplier: 1.8
+    upwardVelocity: 4
+    stunDuration: 1
+    invulnerableWhileStunned: 1
+    recoveryInvulnerability: 0.8
   dashSpeed: 14
   dashDuration: 0.25
   dashSpeedCurve:
@@ -476,6 +490,12 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   onHitReceived:
+    m_PersistentCalls:
+      m_Calls: []
+  onLightHit:
+    m_PersistentCalls:
+      m_Calls: []
+  onHeavyHit:
     m_PersistentCalls:
       m_Calls: []
   onDash:

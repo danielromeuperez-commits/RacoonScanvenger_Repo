@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 5735511311895863670}
   - component: {fileID: 328274112209153928}
   - component: {fileID: 6927876798064382780}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: SM_Racoon
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -122,7 +122,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7656385880907016937}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: ItemHoldPoint
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -163,7 +163,7 @@ GameObject:
   - component: {fileID: 4734997286130547212}
   - component: {fileID: 5812787108930251625}
   - component: {fileID: 7910946044982797803}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: PF_PlayerRacoon
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -516,7 +516,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8218162048503567313}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: ThrowPoint
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -551,7 +551,7 @@ GameObject:
   - component: {fileID: 3393271215334276790}
   - component: {fileID: 4294873797392150300}
   - component: {fileID: 4405196505833800957}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: AimArrow
   m_TagString: Untagged
   m_Icon: {fileID: 0}

@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 65319082419576297}
   - component: {fileID: 952218582251939183}
   - component: {fileID: 2843271271692895802}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: AimArrow
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -124,7 +124,7 @@ GameObject:
   - component: {fileID: 5735511311895863670}
   - component: {fileID: 328274112209153928}
   - component: {fileID: 6927876798064382780}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: SM_RedTanuki
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -234,7 +234,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2343502770751616737}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: ItemHoldPoint
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -275,7 +275,7 @@ GameObject:
   - component: {fileID: 4734997286130547212}
   - component: {fileID: 5812787108930251625}
   - component: {fileID: 7051271079864425435}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: PF_PlayerRedPanda
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -312,7 +312,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 3183137445
+  GlobalObjectIdHash: 3468908988
   InScenePlacedSourceGlobalObjectIdHash: 0
   m_InScenePlacedDisabledByDefault: 0
   DeferredDespawnTick: 0
@@ -628,7 +628,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4957213430382982291}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: ThrowPoint
   m_TagString: Untagged
   m_Icon: {fileID: 0}
