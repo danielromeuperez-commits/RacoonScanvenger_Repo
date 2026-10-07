@@ -484,6 +484,7 @@ MonoBehaviour:
   punchGizmoTime: 0.25
   cameraWeight: 1
   cameraRadius: 1.5
+  itemRecoveryHoldDuration: 1
   onInteract:
     m_PersistentCalls:
       m_Calls: []

@@ -32,6 +32,8 @@ namespace Racoon.Player
 
         public Vector2 Move { get; private set; }
         public bool RunHeld { get; private set; }
+        public bool DashHeld { get; private set; }
+
         /// <summary>Dispositivo que controla a este jugador (null si aún no se ha elegido).</summary>
         public InputDevice PairedDevice { get; private set; }
         public InputDeviceKind ActiveKind => InputDeviceTracker.GetKind(PairedDevice);
@@ -199,6 +201,7 @@ namespace Racoon.Player
             if (!inputEnabled || !map.enabled) return;
             Move = Vector2.ClampMagnitude(moveAction.ReadValue<Vector2>(), 1f);
             RunHeld = runAction.IsPressed();
+            DashHeld = dashAction.IsPressed();
         }
 
         void ResetValues()
@@ -206,6 +209,7 @@ namespace Racoon.Player
             Move = Vector2.zero;
             UseHeld = false;
             RunHeld = false;
+            DashHeld = false;
         }
 
         void OnInteract(InputAction.CallbackContext _) =>

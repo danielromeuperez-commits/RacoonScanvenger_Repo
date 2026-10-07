@@ -134,7 +134,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Racoon.Items.ItemBox
   ShowTopMostFoldoutHeaderGroup: 1
   possibleItems:
-  - {fileID: 11400000, guid: 5c6a2a49361ea5445a79fe6e7692594a, type: 2}
+  - {fileID: 11400000, guid: e00f922f4f8b9c540864e35d263cf12d, type: 2}
   - {fileID: 11400000, guid: d80f2c3c58a43034ebe5b4e90fb1a11b, type: 2}
   animatedVisual: {fileID: 0}
   rotationSpeed: 50
