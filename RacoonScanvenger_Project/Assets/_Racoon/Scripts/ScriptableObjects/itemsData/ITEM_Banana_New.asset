@@ -10,8 +10,21 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 59b4b7badf13d2d488ed27cb538841f8, type: 3}
-  m_Name: ITEM_Banana
+  m_Name: ITEM_Banana_New
   m_EditorClassIdentifier: Assembly-CSharp::Racoon.Items.ItemData
   displayName: Banana
   icon: {fileID: 21300000, guid: 8ccdbbdbefe41ae41bf3dc964497185d, type: 3}
   heldVisualPrefab: {fileID: 7539349397903705958, guid: c19c29208d89b11448eb004b27bafca9, type: 3}
+  effect:
+    rid: 7253194387461521408
+  references:
+    version: 2
+    RefIds:
+    - rid: 7253194387461521408
+      type: {class: BananaEffect, ns: Racoon.Items, asm: Assembly-CSharp}
+      data:
+        bananaPrefab: {fileID: -7599517210918119477, guid: a28c837f3ac6b604eae73a58dfd1e924, type: 3}
+        spawnForwardDistance: 0.8
+        spawnHeight: 0.8
+        throwSpeed: 6
+        upwardSpeed: 2

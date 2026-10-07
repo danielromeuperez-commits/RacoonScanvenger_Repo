@@ -4,8 +4,8 @@ using UnityEngine;
 namespace Racoon.Items
 {
     /// <summary>
-    /// Definición de un objeto (estilo Mario Kart). Hereda de esta clase para crear objetos
-    /// con efectos propios sobrescribiendo ServerUse.
+    /// Definición de un objeto (estilo Mario Kart). Todos los objetos usan este mismo SO:
+    /// lo que hace cada uno se elige en el desplegable "Effect" (ver ItemEffect).
     /// </summary>
     [CreateAssetMenu(menuName = "Racoon/Items/Item Data", fileName = "ITEM_New")]
     public class ItemData : ScriptableObject
@@ -15,13 +15,23 @@ namespace Racoon.Items
         [Tooltip("Modelo que se ve en la mano cuando está equipado (opcional).")]
         public GameObject heldVisualPrefab;
 
+        [Tooltip("Qué hace el objeto al usarse.")]
+        [SerializeReference, SubclassSelector] ItemEffect effect;
+
+        public ItemEffect Effect => effect;
+
         /// <summary>
         /// Se ejecuta SOLO en el servidor cuando el jugador usa el objeto.
-        /// Aquí va la lógica real del objeto (spawnear un proyectil, aplicar un buff...).
         /// </summary>
-        public virtual void ServerUse(PlayerController user)
+        public void ServerUse(PlayerController user)
         {
-            Debug.Log($"{user.name} ha usado {displayName}");
+            if (effect == null)
+            {
+                Debug.Log($"{user.name} ha usado {displayName} (sin efecto)");
+                return;
+            }
+
+            effect.ServerUse(user, this);
         }
     }
 }

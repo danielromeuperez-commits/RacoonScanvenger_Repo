@@ -1,3 +1,4 @@
+using System;
 using Racoon.Player;
 using Unity.Netcode;
 using UnityEngine;
@@ -5,13 +6,12 @@ using UnityEngine;
 namespace Racoon.Items
 {
     /// <summary>
-    /// C·scara de pl·tano. Al usarla, el servidor crea una banana fÌsica
+    /// C√°scara de pl√°tano. Al usarla, el servidor crea una banana f√≠sica
     /// y la lanza hacia delante del jugador.
     /// </summary>
-    [CreateAssetMenu(menuName = "Racoon/Items/Banana", fileName = "ITEM_Banana")]
-    public class BananaItemData : ItemData
+    [Serializable]
+    public class BananaEffect : ItemEffect
     {
-        [Header("Banana")]
         [SerializeField] NetworkObject bananaPrefab;
 
         [Tooltip("Distancia delante del jugador donde aparece la banana.")]
@@ -26,12 +26,12 @@ namespace Racoon.Items
         [Tooltip("Impulso vertical al lanzar la banana.")]
         [SerializeField] float upwardSpeed = 2f;
 
-        public override void ServerUse(PlayerController user)
+        public override void ServerUse(PlayerController user, ItemData item)
         {
             if (!NetworkManager.Singleton.IsServer) return;
             if (user == null || bananaPrefab == null) return;
 
-            // DirecciÛn horizontal hacia la que mira el jugador.
+            // Direcci√≥n horizontal hacia la que mira el jugador.
             Vector3 forward = Vector3.ProjectOnPlane(
                 user.transform.forward,
                 Vector3.up
@@ -41,13 +41,13 @@ namespace Racoon.Items
                 forward = Vector3.forward;
 
             // La creamos un poco delante y por encima del jugador
-            // para evitar que choque inmediatamente con Èl.
+            // para evitar que choque inmediatamente con √©l.
             Vector3 spawnPosition =
                 user.transform.position +
                 forward * spawnForwardDistance +
                 Vector3.up * spawnHeight;
 
-            NetworkObject banana = Instantiate(
+            NetworkObject banana = UnityEngine.Object.Instantiate(
                 bananaPrefab,
                 spawnPosition,
                 Quaternion.LookRotation(forward)
@@ -55,7 +55,7 @@ namespace Racoon.Items
 
             banana.Spawn();
 
-            // El servidor controla la fÌsica de la banana.
+            // El servidor controla la f√≠sica de la banana.
             if (banana.TryGetComponent(out Rigidbody body))
             {
                 body.linearVelocity =
