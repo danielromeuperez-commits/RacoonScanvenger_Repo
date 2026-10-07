@@ -52,11 +52,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2642906358184693486, guid: d6d93d80fd5093048ad65e5b4e9e612a, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.91
+      value: 0.90999985
       objectReference: {fileID: 0}
     - target: {fileID: 2642906358184693486, guid: d6d93d80fd5093048ad65e5b4e9e612a, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 3.4507
+      value: 3.4507003
       objectReference: {fileID: 0}
     - target: {fileID: 2642906358184693486, guid: d6d93d80fd5093048ad65e5b4e9e612a, type: 3}
       propertyPath: m_LocalRotation.w
@@ -146,7 +146,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1736836809387531702, guid: d17d4611829baff48bd4c244d58b9741, type: 3}
       propertyPath: FramingSize
-      value: 0.65
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 1736836809387531702, guid: d17d4611829baff48bd4c244d58b9741, type: 3}
       propertyPath: DollyRange.x

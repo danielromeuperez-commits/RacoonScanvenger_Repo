@@ -17,10 +17,15 @@ namespace Racoon.Player
         SwitchItem = 11,
         Punch = 12,
         UseItem = 13,
+        HitStun = 14,   // Golpe ligero (1º y 2º del combo): knockback corto + aturdido sin control
+        Dash = 15,
+        Knockdown = 16, // Golpe fuerte (3º del combo): derribado, invulnerable hasta levantarse
     }
 
     public static class PlayerStateExtensions
     {
         public static bool IsAction(this PlayerState state) => state >= PlayerState.Interact;
+        /// <summary>Sin control por haber recibido un golpe (ligero o fuerte).</summary>
+        public static bool IsStun(this PlayerState state) => state == PlayerState.HitStun || state == PlayerState.Knockdown;
     }
 }

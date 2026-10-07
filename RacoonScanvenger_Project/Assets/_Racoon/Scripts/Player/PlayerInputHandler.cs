@@ -52,7 +52,7 @@ namespace Racoon.Player
 
         InputActionAsset runtimeActions;
         InputActionMap map;
-        InputAction moveAction, runAction, interactAction, switchItemAction, useAction;
+        InputAction moveAction, runAction, interactAction, switchItemAction, useAction, dashAction;
         bool listening;
         bool inputEnabled;
 
@@ -114,6 +114,7 @@ namespace Racoon.Player
             interactAction = map.FindAction("Interact", true);
             switchItemAction = map.FindAction("SwitchItem", true);
             useAction = map.FindAction("Use", true);
+            dashAction = map.FindAction("Dash", true);
         }
 
         // ---------------- Dispositivo activo ----------------
