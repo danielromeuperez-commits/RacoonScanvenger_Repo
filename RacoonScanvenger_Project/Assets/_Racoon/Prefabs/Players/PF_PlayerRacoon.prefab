@@ -131,7 +131,8 @@ GameObject:
   - component: {fileID: 2368114784026257326}
   - component: {fileID: 4734997286130547212}
   - component: {fileID: 5812787108930251625}
-  m_Layer: 0
+  - component: {fileID: 7722170783381712083}
+  m_Layer: 8
   m_Name: PF_PlayerRacoon
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -252,10 +253,57 @@ MonoBehaviour:
   punchRadius: 0.6
   punchKnockback: 8
   knockbackDamping: 6
+  punchCooldown: 0.2
   hitValidationTolerance: 1.5
   hitMask:
     serializedVersion: 2
-    m_Bits: 128
+    m_Bits: 384
+  hitsForHeavy: 3
+  comboResetTime: 1.5
+  lightHit:
+    knockbackMultiplier: 0.6
+    upwardVelocity: 0
+    stunDuration: 0.45
+    invulnerableWhileStunned: 0
+    recoveryInvulnerability: 0
+  heavyHit:
+    knockbackMultiplier: 1.8
+    upwardVelocity: 4
+    stunDuration: 1
+    invulnerableWhileStunned: 1
+    recoveryInvulnerability: 0.8
+  dashSpeed: 14
+  dashDuration: 0.25
+  dashSpeedCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 0.4
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  dashCooldown: 0.35
+  dashStaminaCost: 15
+  invincibilityStart: 0
+  invincibilityDuration: 0.2
+  drawRuntimeGizmos: 1
+  punchGizmoTime: 0.25
   cameraWeight: 1
   cameraRadius: 1.5
   onInteract:
@@ -265,6 +313,15 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   onHitReceived:
+    m_PersistentCalls:
+      m_Calls: []
+  onLightHit:
+    m_PersistentCalls:
+      m_Calls: []
+  onHeavyHit:
+    m_PersistentCalls:
+      m_Calls: []
+  onDash:
     m_PersistentCalls:
       m_Calls: []
 --- !u!114 &6877927705847804177
@@ -399,3 +456,24 @@ MonoBehaviour:
   UseRigidBodyForMotion: 1
   AutoUpdateKinematicState: 1
   AutoSetKinematicOnDespawn: 1
+--- !u!114 &7722170783381712083
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6443071073951013002}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d8a51148c2d27b044b2b6e9493049ea6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.Player.PlayerVFX
+  controller: {fileID: 6147228204243766040}
+  effects: []
+  dashDustId: DashDust
+  dashDustDelays:
+  - 0
+  - 0.12
+  dashTrailId: DashTrail
+  blinkInterval: 0.08
+  recoveryBlinkInterval: 0.16

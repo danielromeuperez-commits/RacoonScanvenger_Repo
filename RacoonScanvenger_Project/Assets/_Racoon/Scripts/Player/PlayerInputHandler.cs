@@ -40,6 +40,7 @@ namespace Racoon.Player
         public event Action InteractPressed;   // Botón sur
         public event Action SwitchItemPressed; // Botón norte
         public event Action UsePressed;        // Botón oeste
+        public event Action DashPressed;       // Botón este / Espacio
         /// <summary>Se lanza cada vez que cambia el dispositivo que controla al jugador.</summary>
         public event Action<InputDevice> DevicePaired;
         /// <summary>Solo cuando cambia la familia (teclado ↔ PlayStation ↔ Xbox...). Para iconos.</summary>
@@ -47,7 +48,7 @@ namespace Racoon.Player
 
         InputActionAsset runtimeActions;
         InputActionMap map;
-        InputAction moveAction, runAction, interactAction, switchItemAction, useAction;
+        InputAction moveAction, runAction, interactAction, switchItemAction, useAction, dashAction;
         bool listening;
         bool inputEnabled;
 
@@ -62,6 +63,7 @@ namespace Racoon.Player
                 interactAction.performed += OnInteract;
                 switchItemAction.performed += OnSwitchItem;
                 useAction.performed += OnUse;
+                dashAction.performed += OnDash;
                 InputSystem.onDeviceChange += OnDeviceChange;
 
                 if (deviceAssignment == DeviceAssignment.AllDevices)
@@ -86,6 +88,7 @@ namespace Racoon.Player
                 interactAction.performed -= OnInteract;
                 switchItemAction.performed -= OnSwitchItem;
                 useAction.performed -= OnUse;
+                dashAction.performed -= OnDash;
                 InputSystem.onDeviceChange -= OnDeviceChange;
                 StopListening();
                 map.Disable();
@@ -103,6 +106,7 @@ namespace Racoon.Player
             interactAction = map.FindAction("Interact", true);
             switchItemAction = map.FindAction("SwitchItem", true);
             useAction = map.FindAction("Use", true);
+            dashAction = map.FindAction("Dash", true);
         }
 
         // ---------------- Dispositivo activo ----------------
@@ -195,6 +199,7 @@ namespace Racoon.Player
         void OnInteract(InputAction.CallbackContext _) => InteractPressed?.Invoke();
         void OnSwitchItem(InputAction.CallbackContext _) => SwitchItemPressed?.Invoke();
         void OnUse(InputAction.CallbackContext _) => UsePressed?.Invoke();
+        void OnDash(InputAction.CallbackContext _) => DashPressed?.Invoke();
 
         void OnDestroy()
         {

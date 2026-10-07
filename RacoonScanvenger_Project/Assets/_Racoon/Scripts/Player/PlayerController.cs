@@ -58,11 +58,77 @@ namespace Racoon.Player
         [SerializeField] float punchRange = 0.9f;
         [SerializeField] float punchHeight = 1f;
         [SerializeField] float punchRadius = 0.6f;
+        [Tooltip("Fuerza base del empujón. Cada tipo de golpe recibido la multiplica (ver Recibir golpe).")]
         [SerializeField] float punchKnockback = 8f;
         [SerializeField] float knockbackDamping = 6f;
+        [Tooltip("Espera tras terminar un puñetazo antes de poder dar otro (anti-spam). " +
+                 "Junto con el stun ligero deja un pequeño hueco para que la víctima escape con un dash.")]
+        [SerializeField] float punchCooldown = 0.2f;
         [Tooltip("Margen extra que acepta el servidor al validar la distancia del golpe (latencia).")]
         [SerializeField] float hitValidationTolerance = 1.5f;
         [SerializeField] LayerMask hitMask = ~0;
+
+        /// <summary>Cómo reacciona el jugador a un tipo de golpe.</summary>
+        [Serializable]
+        public struct HitReaction
+        {
+            [Tooltip("Multiplica el knockback que llega (punchKnockback en el puñetazo).")]
+            public float knockbackMultiplier;
+            [Tooltip("Velocidad vertical al recibirlo (pequeño salto). 0 = ninguno.")]
+            public float upwardVelocity;
+            [Tooltip("Segundos sin control.")]
+            public float stunDuration;
+            [Tooltip("No le pueden golpear mientras está aturdido (evita rematar en el suelo).")]
+            public bool invulnerableWhileStunned;
+            [Tooltip("I-frames al recuperar el control (se cancelan si ataca o hace dash).")]
+            public float recoveryInvulnerability;
+
+            /// <summary>Lo que dura el parpadeo: stun + i-frames de recuperación.</summary>
+            public float BlinkDuration => stunDuration + recoveryInvulnerability;
+        }
+
+        [Header("Recibir golpe (combo)")]
+        [Tooltip("Golpe nº X del combo que derriba (golpe fuerte). Los anteriores son ligeros.")]
+        [SerializeField, Min(1)] int hitsForHeavy = 3;
+        [Tooltip("Si pasa este tiempo sin recibir golpes, el combo vuelve a 0.")]
+        [SerializeField] float comboResetTime = 1.5f;
+        [Tooltip("Golpes 1º y 2º: stun corto, se puede encadenar (pero hay hueco para escapar con dash).")]
+        [SerializeField] HitReaction lightHit = new()
+        {
+            knockbackMultiplier = 0.6f,
+            upwardVelocity = 0f,
+            stunDuration = 0.45f,
+            invulnerableWhileStunned = false,
+            recoveryInvulnerability = 0f,
+        };
+        [Tooltip("Golpe 3º: derriba, invulnerable en el suelo y al levantarse. Reinicia el combo.")]
+        [SerializeField] HitReaction heavyHit = new()
+        {
+            knockbackMultiplier = 1.8f,
+            upwardVelocity = 4f,
+            stunDuration = 1f,
+            invulnerableWhileStunned = true,
+            recoveryInvulnerability = 0.8f,
+        };
+
+        [Header("Dash")]
+        [SerializeField] float dashSpeed = 14f;
+        [SerializeField] float dashDuration = 0.25f;
+        [Tooltip("Multiplicador de dashSpeed a lo largo del dash (X: 0-1 tiempo normalizado).")]
+        [SerializeField] AnimationCurve dashSpeedCurve = AnimationCurve.EaseInOut(0f, 1f, 1f, 0.4f);
+        [Tooltip("Segundos de espera tras terminar un dash antes de poder hacer otro.")]
+        [SerializeField] float dashCooldown = 0.35f;
+        [SerializeField] float dashStaminaCost = 15f;
+        [Tooltip("Inicio de los invincibility-frames, en segundos desde que empieza el dash.")]
+        [SerializeField] float invincibilityStart = 0f;
+        [Tooltip("Duración de los invincibility-frames (0 = sin invencibilidad).")]
+        [SerializeField] float invincibilityDuration = 0.2f;
+
+        [Header("Debug")]
+        [Tooltip("Gizmos en Play: rango del puñetazo, i-frames del dash e interacción mientras ocurren.")]
+        [SerializeField] bool drawRuntimeGizmos = true;
+        [Tooltip("Segundos que se queda dibujada la comprobación del golpe (frame activo).")]
+        [SerializeField] float punchGizmoTime = 0.25f;
 
         [Header("Cámara (Target Group)")]
         [SerializeField] float cameraWeight = 1f;
@@ -71,8 +137,25 @@ namespace Racoon.Player
         [Header("Eventos (se lanzan en TODOS los clientes)")]
         public UnityEvent<PlayerController> onInteract;
         public UnityEvent<ItemData> onItemUsed;
-        /// <summary>Parámetro: quien golpea (puede ser null).</summary>
+        /// <summary>
+        /// Cualquier golpe que ENTRA (no en i-frames), ligero o fuerte. Parámetro: quien golpea (puede ser null).
+        /// </summary>
         public UnityEvent<PlayerController> onHitReceived;
+        /// <summary>
+        /// Golpes ligeros del combo (1º y 2º). Parámetros: quien golpea (puede ser null) y nº de golpe (1, 2...).
+        /// PlayerVFX se suscribe solo por código (parpadeo).
+        /// </summary>
+        public UnityEvent<PlayerController, int> onLightHit;
+        /// <summary>
+        /// Golpe fuerte (3º del combo): derribo. Parámetro: quien golpea (puede ser null).
+        /// PlayerVFX se suscribe solo por código (parpadeo largo).
+        /// </summary>
+        public UnityEvent<PlayerController> onHeavyHit;
+        /// <summary>
+        /// Al empezar un dash. Parámetro: dirección del dash (horizontal, normalizada), la misma en todos
+        /// los clientes. PlayerVFX se suscribe solo por código; aquí puedes añadir sonido, cámara...
+        /// </summary>
+        public UnityEvent<Vector3> onDash;
 
         /// <summary>Estado + contador de acciones en una sola variable, para que lleguen juntos.</summary>
         public struct NetState : INetworkSerializeByMemcpy, IEquatable<NetState>
@@ -81,8 +164,11 @@ namespace Racoon.Player
             // Se incrementa en cada acción: así se detectan dos golpes seguidos aunque el
             // estado no pase visiblemente por Idle entre ellos.
             public byte ActionSequence;
+            // I-frames (dash, derribo, recuperación): el servidor lo consulta para descartar golpes.
+            public bool Invulnerable;
 
-            public bool Equals(NetState other) => State == other.State && ActionSequence == other.ActionSequence;
+            public bool Equals(NetState other) =>
+                State == other.State && ActionSequence == other.ActionSequence && Invulnerable == other.Invulnerable;
         }
 
         // El dueño escribe, todos leen.
@@ -106,6 +192,12 @@ namespace Racoon.Player
         public event Action<PlayerState> ActionStarted;
 
         public PlayerState State => netState.Value.State;
+        /// <summary>Está en invincibility-frames. Replicado: válido en todos los clientes y en el servidor.</summary>
+        public bool IsInvulnerable => netState.Value.Invulnerable;
+        public float DashDuration => dashDuration;
+        public HitReaction LightHit => lightHit;
+        public HitReaction HeavyHit => heavyHit;
+        public int HitsForHeavy => hitsForHeavy;
         public float StaminaNormalized => staminaNormalized.Value;
         /// <summary>Solo tiene sentido en el dueño.</summary>
         public bool IsExhausted => exhausted;
@@ -131,8 +223,31 @@ namespace Racoon.Player
         bool exhausted;
         float actionTimer;
         float punchHitTimer = -1f;
+        // Solo para gizmos: última comprobación del golpe (dueño).
+        float lastPunchCheckTime = float.NegativeInfinity;
+        bool lastPunchConnected;
+        Vector3 dashDirection;
+        float dashCooldownTimer;
+        float punchCooldownTimer;
+
+        // Combo recibido (lo lleva el dueño de la víctima, que es quien resuelve los golpes).
+        int comboHits;
+        float lastHitTime = float.NegativeInfinity;
+        bool stunInvulnerable;
+        float pendingRecoveryInvulnerability;
+        float recoveryInvulnerabilityTimer;
+
+        // Servidor: anti-spam de RPCs de golpe (cliente modificado o ráfagas por latencia).
+        float lastServerPunchTime = float.NegativeInfinity;
+
+        // Solo para gizmos: último golpe recibido (todos los clientes).
+        int debugComboHits;
+        float debugLastHitTime = float.NegativeInfinity;
 
         bool IsInAction => actionTimer > 0f;
+        // Solo en el dueño (el estado lo escribe él, así que su copia siempre está al día).
+        bool IsStunned => IsInAction && State.IsStun();
+        bool IsDashing => IsInAction && State == PlayerState.Dash;
 
         void Awake()
         {
@@ -164,6 +279,7 @@ namespace Racoon.Player
             input.InteractPressed += OnInteractPressed;
             input.SwitchItemPressed += OnSwitchItemPressed;
             input.UsePressed += OnUsePressed;
+            input.DashPressed += OnDashPressed;
             LocalPlayerSpawned?.Invoke(this);
         }
 
@@ -177,6 +293,7 @@ namespace Racoon.Player
             input.InteractPressed -= OnInteractPressed;
             input.SwitchItemPressed -= OnSwitchItemPressed;
             input.UsePressed -= OnUsePressed;
+            input.DashPressed -= OnDashPressed;
             if (Local == this) Local = null;
         }
 
@@ -196,11 +313,22 @@ namespace Racoon.Player
 
             float dt = Time.deltaTime;
             if (actionTimer > 0f) actionTimer -= dt;
+            if (dashCooldownTimer > 0f) dashCooldownTimer -= dt;
+            if (punchCooldownTimer > 0f) punchCooldownTimer -= dt;
+            if (recoveryInvulnerabilityTimer > 0f) recoveryInvulnerabilityTimer -= dt;
+            // Al recuperar el control tras un golpe empiezan sus i-frames de recuperación.
+            if (pendingRecoveryInvulnerability > 0f && !IsInAction)
+            {
+                recoveryInvulnerabilityTimer = pendingRecoveryInvulnerability;
+                pendingRecoveryInvulnerability = 0f;
+            }
             if (punchHitTimer >= 0f)
             {
                 punchHitTimer -= dt;
                 if (punchHitTimer < 0f) OwnerCheckPunchHit();
             }
+
+            UpdateInvulnerability();
 
             Vector2 move = input.Move;
             bool hasMoveInput = move.sqrMagnitude > moveDeadzone * moveDeadzone;
@@ -209,11 +337,25 @@ namespace Racoon.Player
             UpdateStamina(isRunning, dt);
 
             // Solo se calcula la intención; la física se aplica en FixedUpdate.
-            if (!hasMoveInput) move = Vector2.zero;
-            desiredDirection = GetCameraRelativeDirection(move);
-            float targetSpeed = (isRunning ? runSpeed : walkSpeed) * move.magnitude;
-            if (IsInAction) targetSpeed *= actionMoveMultiplier;
-            desiredVelocity = desiredDirection * targetSpeed;
+            if (IsStunned)
+            {
+                // Sin control: solo actúa el knockback.
+                desiredDirection = desiredVelocity = Vector3.zero;
+            }
+            else if (IsDashing)
+            {
+                // La velocidad del dash la pone FixedUpdate.
+                desiredDirection = dashDirection;
+                desiredVelocity = Vector3.zero;
+            }
+            else
+            {
+                if (!hasMoveInput) move = Vector2.zero;
+                desiredDirection = GetCameraRelativeDirection(move);
+                float targetSpeed = (isRunning ? runSpeed : walkSpeed) * move.magnitude;
+                if (IsInAction) targetSpeed *= actionMoveMultiplier;
+                desiredVelocity = desiredDirection * targetSpeed;
+            }
 
             if (!IsInAction)
                 SetLocomotionState(!hasMoveInput ? PlayerState.Idle : isRunning ? PlayerState.Run : PlayerState.Walk);
@@ -245,13 +387,50 @@ namespace Racoon.Player
             staminaNormalized.Value = stamina / maxStamina;
         }
 
+        void UpdateInvulnerability()
+        {
+            // Derribado (o stun configurado como invulnerable) y al levantarse.
+            bool invulnerable = (IsStunned && stunInvulnerable) || recoveryInvulnerabilityTimer > 0f;
+            if (!invulnerable && IsDashing && invincibilityDuration > 0f)
+            {
+                float elapsed = dashDuration - actionTimer;
+                invulnerable = elapsed >= invincibilityStart && elapsed < invincibilityStart + invincibilityDuration;
+            }
+            SetInvulnerable(invulnerable);
+        }
+
+        // Atacar o hacer dash al levantarse gasta los i-frames de recuperación: no se puede
+        // aprovechar la invulnerabilidad para pegar sin riesgo.
+        void CancelRecoveryInvulnerability()
+        {
+            recoveryInvulnerabilityTimer = 0f;
+            pendingRecoveryInvulnerability = 0f;
+        }
+
+        void SetInvulnerable(bool invulnerable)
+        {
+            NetState value = netState.Value;
+            if (value.Invulnerable == invulnerable) return;
+            value.Invulnerable = invulnerable;
+            netState.Value = value;
+        }
+
         void FixedUpdate()
         {
             // En el rival el Rigidbody es kinematic y lo mueve NetworkRigidbody: no tocar.
             if (!IsSpawned || !IsOwner || body.isKinematic) return;
 
             float dt = Time.fixedDeltaTime;
-            moveVelocity = Vector3.MoveTowards(moveVelocity, desiredVelocity, acceleration * dt);
+            if (IsDashing)
+            {
+                // Se mueve con velocidad (no atraviesa nada): choca con el entorno y con el otro jugador.
+                float t = dashDuration > 0f ? 1f - actionTimer / dashDuration : 1f;
+                moveVelocity = dashDirection * (dashSpeed * dashSpeedCurve.Evaluate(t));
+            }
+            else
+            {
+                moveVelocity = Vector3.MoveTowards(moveVelocity, desiredVelocity, acceleration * dt);
+            }
             knockbackVelocity = Vector3.Lerp(knockbackVelocity, Vector3.zero, 1f - Mathf.Exp(-knockbackDamping * dt));
 
             // Controlamos la velocidad horizontal; la vertical la sigue llevando la física (gravedad, rampas).
@@ -264,7 +443,8 @@ namespace Racoon.Player
             if (desiredDirection.sqrMagnitude > 0.0001f)
             {
                 Quaternion targetRotation = Quaternion.LookRotation(desiredDirection, Vector3.up);
-                body.MoveRotation(Quaternion.RotateTowards(body.rotation, targetRotation, rotationSpeed * dt));
+                // En el dash mira directamente hacia donde sale.
+                body.MoveRotation(IsDashing ? targetRotation : Quaternion.RotateTowards(body.rotation, targetRotation, rotationSpeed * dt));
             }
         }
 
@@ -314,6 +494,7 @@ namespace Racoon.Player
             body.rotation = rotation;
             if (!body.isKinematic) body.linearVelocity = Vector3.zero;
             moveVelocity = knockbackVelocity = desiredVelocity = Vector3.zero;
+            comboHits = 0;
         }
 
         // ---------------- Input (solo dueño) ----------------
@@ -339,14 +520,59 @@ namespace Racoon.Player
 
             if (inventory.HasEquipped)
             {
+                CancelRecoveryInvulnerability();
                 StartAction(PlayerState.UseItem, useItemDuration);
                 UseItemRpc();
             }
             else
             {
+                if (punchCooldownTimer > 0f) return;
+                CancelRecoveryInvulnerability();
                 StartAction(PlayerState.Punch, punchDuration);
                 punchHitTimer = punchHitDelay;
+                punchCooldownTimer = punchDuration + punchCooldown;
             }
+        }
+
+        void OnDashPressed()
+        {
+            // Incluye el stun: no se puede salir del aturdimiento con un dash.
+            if (IsInAction || dashCooldownTimer > 0f) return;
+            if (dashStaminaCost > 0f && (exhausted || stamina < dashStaminaCost)) return;
+
+            if (dashStaminaCost > 0f)
+            {
+                stamina -= dashStaminaCost;
+                staminaRegenTimer = staminaRegenDelay;
+                if (stamina <= 0f)
+                {
+                    stamina = 0f;
+                    exhausted = true;
+                }
+            }
+
+            // Hacia donde apunta el stick; sin input, hacia delante.
+            Vector2 move = input.Move;
+            Vector3 direction = move.sqrMagnitude > moveDeadzone * moveDeadzone
+                ? GetCameraRelativeDirection(move)
+                : Vector3.ProjectOnPlane(transform.forward, Vector3.up).normalized;
+            if (direction.sqrMagnitude < 0.0001f) direction = Vector3.forward;
+
+            CancelRecoveryInvulnerability(); // El dash ya trae sus propios i-frames.
+            dashDirection = direction;
+            dashCooldownTimer = dashDuration + dashCooldown;
+            StartAction(PlayerState.Dash, dashDuration);
+            UpdateInvulnerability(); // Si los i-frames empiezan en 0, ya cuentan desde este frame.
+            DashRpc(direction);
+        }
+
+        // ---------------- Dash ----------------
+
+        // SendTo.Everyone: los VFX salen al instante en el dueño y con la dirección exacta en el resto.
+        [Rpc(SendTo.Everyone, InvokePermission = RpcInvokePermission.Owner)]
+        void DashRpc(Vector3 direction)
+        {
+            onDash?.Invoke(direction);
         }
 
         // ---------------- Interactuar ----------------
@@ -403,16 +629,22 @@ namespace Racoon.Player
         // ---------------- Golpe ----------------
 
         // El dueño detecta el impacto (se siente instantáneo) y el servidor lo valida.
+        Vector3 PunchCenter => transform.position + Vector3.up * punchHeight + transform.forward * punchRange;
+
         void OwnerCheckPunchHit()
         {
-            Vector3 center = transform.position + Vector3.up * punchHeight + transform.forward * punchRange;
-            int count = Physics.OverlapSphereNonAlloc(center, punchRadius, overlapBuffer, hitMask, QueryTriggerInteraction.Ignore);
+            lastPunchCheckTime = Time.time;
+            lastPunchConnected = false;
+            int count = Physics.OverlapSphereNonAlloc(PunchCenter, punchRadius, overlapBuffer, hitMask, QueryTriggerInteraction.Ignore);
 
             for (int i = 0; i < count; i++)
             {
                 PlayerController victim = overlapBuffer[i].GetComponentInParent<PlayerController>();
                 if (victim == null || victim == this) continue;
 
+                // Lo esquivó con un dash: no gastamos un RPC.
+                if (victim.IsInvulnerable) return;
+                lastPunchConnected = true;
                 PunchHitRpc(victim.NetworkObject);
                 return;
             }
@@ -426,33 +658,155 @@ namespace Racoon.Player
                 victim == this)
                 return;
 
+            // No acepta golpes más rápidos que la animación (con margen por el jitter de red).
+            if (Time.time - lastServerPunchTime < punchDuration * 0.75f) return;
+            lastServerPunchTime = Time.time;
+
             Vector3 toVictim = victim.transform.position - transform.position;
             toVictim.y = 0f;
             float maxDistance = punchRange + punchRadius + (capsule != null ? capsule.radius * 2f : 1f) + hitValidationTolerance;
             if (toVictim.magnitude > maxDistance) return;
 
             Vector3 direction = toVictim.sqrMagnitude > 0.0001f ? toVictim.normalized : transform.forward;
-            victim.ReceiveHitRpc(direction * punchKnockback, NetworkObjectId);
+            victim.ServerApplyHit(direction * punchKnockback, this);
         }
 
-        [Rpc(SendTo.Everyone, InvokePermission = RpcInvokePermission.Server)]
+        // ---------------- Recibir golpe ----------------
+
+        /// <summary>
+        /// Solo servidor. Punto de entrada para CUALQUIER cosa que golpee al jugador (puñetazo,
+        /// objetos lanzados...). Se ignora si está en invincibility-frames.
+        /// </summary>
+        public void ServerApplyHit(Vector3 knockback, PlayerController attacker = null)
+        {
+            if (!IsServer)
+            {
+                Debug.LogWarning("ServerApplyHit solo se puede llamar en el servidor.", this);
+                return;
+            }
+            if (IsInvulnerable) return;
+
+            ReceiveHitRpc(knockback, attacker != null ? attacker.NetworkObjectId : ulong.MaxValue);
+        }
+
+        // El golpe lo resuelve el dueño de la víctima: tiene la información más reciente de sus
+        // i-frames (el valor que ve el servidor llega con latencia), así el dash se siente justo.
+        // También lleva la cuenta del combo, así nunca se desincroniza con lo que ve el jugador.
+        [Rpc(SendTo.Owner, InvokePermission = RpcInvokePermission.Server)]
         void ReceiveHitRpc(Vector3 knockback, ulong attackerObjectId)
         {
-            // Solo el dueño mueve su personaje, así que es él quien aplica el empujón.
-            if (IsOwner) knockbackVelocity += knockback;
+            if (IsInvulnerable) return;
 
+            // Combo: vuelve a 0 si ha pasado demasiado desde el último golpe.
+            if (Time.time - lastHitTime > comboResetTime) comboHits = 0;
+            lastHitTime = Time.time;
+            comboHits++;
+            int hitNumber = comboHits;
+            bool heavy = comboHits >= hitsForHeavy;
+            if (heavy) comboHits = 0;
+            HitReaction reaction = heavy ? heavyHit : lightHit;
+
+            // Solo el dueño mueve su personaje, así que es él quien aplica el empujón.
+            // Se sustituye (no se suma) para que varios golpes seguidos no lo lancen cada vez más lejos.
+            knockbackVelocity = knockback * reaction.knockbackMultiplier;
+            moveVelocity = Vector3.zero;
+            if (reaction.upwardVelocity > 0f && !body.isKinematic)
+            {
+                Vector3 velocity = body.linearVelocity;
+                body.linearVelocity = new Vector3(velocity.x, Mathf.Max(velocity.y, reaction.upwardVelocity), velocity.z);
+            }
+
+            // Mira hacia quien le ha golpeado (las animaciones de golpe asumen impacto frontal).
+            Vector3 facing = -knockback;
+            facing.y = 0f;
+            if (facing.sqrMagnitude > 0.0001f)
+            {
+                Quaternion rotation = Quaternion.LookRotation(facing.normalized, Vector3.up);
+                if (body.isKinematic) transform.rotation = rotation;
+                else body.rotation = rotation;
+            }
+
+            punchHitTimer = -1f; // Un golpe recibido cancela el tuyo.
+            stunInvulnerable = reaction.invulnerableWhileStunned;
+            recoveryInvulnerabilityTimer = 0f;
+            pendingRecoveryInvulnerability = reaction.recoveryInvulnerability;
+            StartAction(heavy ? PlayerState.Knockdown : PlayerState.HitStun, reaction.stunDuration);
+            UpdateInvulnerability(); // El derribo es invulnerable desde este mismo frame.
+            HitReactedRpc(attackerObjectId, (byte)hitNumber, heavy);
+        }
+
+        [Rpc(SendTo.Everyone, InvokePermission = RpcInvokePermission.Owner)]
+        void HitReactedRpc(ulong attackerObjectId, byte hitNumber, bool heavy)
+        {
             PlayerController attacker = null;
             if (NetworkManager.SpawnManager.SpawnedObjects.TryGetValue(attackerObjectId, out NetworkObject attackerObject))
                 attackerObject.TryGetComponent(out attacker);
+
+            debugComboHits = hitNumber;
+            debugLastHitTime = Time.time;
+
             onHitReceived?.Invoke(attacker);
+            if (heavy) onHeavyHit?.Invoke(attacker);
+            else onLightHit?.Invoke(attacker, hitNumber);
         }
 
+        // Rangos configurados (con el objeto seleccionado, también fuera de Play).
         void OnDrawGizmosSelected()
         {
-            Gizmos.color = Color.cyan;
+            Gizmos.color = new Color(0f, 1f, 1f, 0.35f);
             Gizmos.DrawWireSphere(transform.position, interactRadius);
-            Gizmos.color = Color.red;
-            Gizmos.DrawWireSphere(transform.position + Vector3.up * punchHeight + transform.forward * punchRange, punchRadius);
+            Gizmos.color = new Color(1f, 0f, 0f, 0.35f);
+            Gizmos.DrawWireSphere(PunchCenter, punchRadius);
+        }
+
+        // En Play, lo que está pasando ahora mismo. Funciona en todos los clientes porque usa el
+        // estado replicado (la comprobación real del golpe solo se ve en el dueño del que golpea).
+        // En la Game view hay que activar el botón "Gizmos".
+        void OnDrawGizmos()
+        {
+            if (!drawRuntimeGizmos || !Application.isPlaying || !IsSpawned) return;
+
+            if (State == PlayerState.Interact)
+            {
+                Gizmos.color = Color.cyan;
+                Gizmos.DrawWireSphere(transform.position, interactRadius);
+            }
+
+            if (State == PlayerState.Punch)
+            {
+                Gizmos.color = new Color(1f, 0.5f, 0f);
+                Gizmos.DrawWireSphere(PunchCenter, punchRadius);
+            }
+
+            // Frame activo: rojo si ha encontrado a alguien, amarillo si ha fallado.
+            if (Time.time - lastPunchCheckTime < punchGizmoTime)
+            {
+                Gizmos.color = lastPunchConnected ? new Color(1f, 0f, 0f, 0.5f) : new Color(1f, 1f, 0f, 0.35f);
+                Gizmos.DrawSphere(PunchCenter, punchRadius);
+            }
+
+            if (IsInvulnerable)
+            {
+                // Burbuja azul que envuelve la cápsula mientras duran los i-frames.
+                Vector3 center = capsule != null ? transform.TransformPoint(capsule.center) : transform.position;
+                float radius = capsule != null ? Mathf.Max(capsule.radius, capsule.height * 0.5f) + 0.1f : 0.8f;
+                Gizmos.color = new Color(0.3f, 0.6f, 1f, 0.3f);
+                Gizmos.DrawSphere(center, radius);
+                Gizmos.color = new Color(0.3f, 0.6f, 1f);
+                Gizmos.DrawWireSphere(center, radius);
+            }
+
+#if UNITY_EDITOR
+            // Contador del combo recibido sobre la cabeza mientras sigue vivo.
+            if (Time.time - debugLastHitTime < comboResetTime)
+            {
+                bool heavy = debugComboHits >= hitsForHeavy;
+                var style = new GUIStyle(UnityEditor.EditorStyles.boldLabel);
+                style.normal.textColor = heavy ? Color.red : Color.yellow;
+                UnityEditor.Handles.Label(transform.position + Vector3.up * 2f,
+                    heavy ? "¡DERRIBO!" : $"Golpes {debugComboHits}/{hitsForHeavy}", style);
+            }
+#endif
         }
     }
 }
