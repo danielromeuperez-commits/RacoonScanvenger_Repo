@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Racoon.VFX;
 using UnityEngine;
 
 namespace Racoon.Player
@@ -49,6 +50,8 @@ namespace Racoon.Player
         [Tooltip("Un polvo por cada valor: segundos desde el inicio del dash.")]
         [SerializeField] float[] dashDustDelays = { 0f, 0.12f };
         [SerializeField] string dashTrailId = "DashTrail";
+        [Tooltip("Tinte de las estelas de viento (blanco = el color del prefab). Aquí irá el color del jugador.")]
+        [SerializeField] Color dashTrailTint = Color.white;
 
         [Header("Parpadeo al recibir golpes")]
         [Tooltip("Mientras está aturdido / derribado (sin control).")]
@@ -131,6 +134,7 @@ namespace Racoon.Player
 
             if (!lookup.ContainsKey(dashTrailId)) return;
             GameObject trail = Spawn(dashTrailId, direction);
+            if (trail != null && trail.TryGetComponent(out WindTrailVFX wind)) wind.SetTint(dashTrailTint);
             // Al acabar el dash el trail se suelta y deja de emitir, para que se desvanezca solo.
             if (trail != null && trail.transform.parent != null)
                 StartCoroutine(ReleaseTrail(trail, controller.DashDuration));

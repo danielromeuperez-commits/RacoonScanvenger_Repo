@@ -1,0 +1,191 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e692233c06870c0478f194b295989c13, type: 3}
+  m_Name: FolderStyleSettings
+  m_EditorClassIdentifier: Assembly-CSharp-Editor::Racoon.EditorTools.FolderStyleSettings
+  entries:
+  - folder: {fileID: 102900000, guid: 76f481dcff8f6f5418a771f6c75579a8, type: 3}
+    color: {r: 0.45, g: 0.9, b: 0.4, a: 1}
+    icon: {fileID: 0}
+    applyToSubfolders: 0
+  - folder: {fileID: 102900000, guid: 1c51938c9a2cd8a4fbde47a7d393939b, type: 3}
+    color: {r: 0.3, g: 0.9, b: 0.85, a: 1}
+    icon: {fileID: 0}
+    applyToSubfolders: 0
+  - folder: {fileID: 102900000, guid: eb7557e9c6541bd4f9c431e26cb6c73a, type: 3}
+    color: {r: 1, g: 0.35, b: 0.35, a: 1}
+    icon: {fileID: 0}
+    applyToSubfolders: 0
+  - folder: {fileID: 102900000, guid: cf51e49e6f5024446a9852e3c117c58c, type: 3}
+    color: {r: 1, g: 0.6, b: 0.25, a: 1}
+    icon: {fileID: 0}
+    applyToSubfolders: 0
+  - folder: {fileID: 102900000, guid: 73d45ff892f198d47bfc6666587d368d, type: 3}
+    color: {r: 0.45, g: 0.9, b: 0.4, a: 1}
+    icon: {fileID: 0}
+    applyToSubfolders: 0
+  - folder: {fileID: 102900000, guid: a464af1413e893744837ff46628b3114, type: 3}
+    color: {r: 1, g: 0.35, b: 0.35, a: 1}
+    icon: {fileID: 0}
+    applyToSubfolders: 0
+  - folder: {fileID: 102900000, guid: fadc0d9db013eb647b3e83ab036a57ed, type: 3}
+    color: {r: 0.4, g: 0.65, b: 1, a: 1}
+    icon: {fileID: 0}
+    applyToSubfolders: 0
+  - folder: {fileID: 102900000, guid: 5d6ea4a60d3d02947833218c46ae8b23, type: 3}
+    color: {r: 0.4, g: 0.65, b: 1, a: 1}
+    icon: {fileID: 0}
+    applyToSubfolders: 0
+  - folder: {fileID: 102900000, guid: e7496291bdbf2394eb6d01c8a439c5cf, type: 3}
+    color: {r: 1, g: 0.88, b: 0.3, a: 1}
+    icon: {fileID: 0}
+    applyToSubfolders: 0
+  - folder: {fileID: 102900000, guid: ad035f460fc4db14bae1278bb00be09c, type: 3}
+    color: {r: 0.45, g: 0.9, b: 0.4, a: 1}
+    icon: {fileID: 0}
+    applyToSubfolders: 0
+  - folder: {fileID: 102900000, guid: 273f87a2106f94441a5c88ef26754bca, type: 3}
+    color: {r: 1, g: 0.88, b: 0.3, a: 1}
+    icon: {fileID: 0}
+    applyToSubfolders: 0
+  - folder: {fileID: 102900000, guid: 5b116137f86d2214e8893528f89aafb0, type: 3}
+    color: {r: 1, g: 0.35, b: 0.35, a: 1}
+    icon: {fileID: 0}
+    applyToSubfolders: 0
+  - folder: {fileID: 102900000, guid: bcac519f7c1355b4daea18d5c0d4df8c, type: 3}
+    color: {r: 0.45, g: 0.9, b: 0.4, a: 1}
+    icon: {fileID: 0}
+    applyToSubfolders: 0
+  - folder: {fileID: 102900000, guid: d0e51026c3eef194ebb2d97883072228, type: 3}
+    color: {r: 0.45, g: 0.9, b: 0.4, a: 1}
+    icon: {fileID: 0}
+    applyToSubfolders: 0
+  - folder: {fileID: 102900000, guid: 575b5884836336d4b815e8f06312a5b0, type: 3}
+    color: {r: 0.45, g: 0.9, b: 0.4, a: 1}
+    icon: {fileID: 0}
+    applyToSubfolders: 0
+  - folder: {fileID: 102900000, guid: 75f53b3be74621c428f4894c057a06a5, type: 3}
+    color: {r: 0.45, g: 0.9, b: 0.4, a: 1}
+    icon: {fileID: 0}
+    applyToSubfolders: 0
+  - folder: {fileID: 102900000, guid: df8488ce53b8f3f42b77fb6f135efec1, type: 3}
+    color: {r: 1, g: 0.5, b: 0.8, a: 1}
+    icon: {fileID: 0}
+    applyToSubfolders: 0
+  - folder: {fileID: 102900000, guid: 39a463b2fd20ee348b94013b9a7820a7, type: 3}
+    color: {r: 1, g: 0.5, b: 0.8, a: 1}
+    icon: {fileID: 0}
+    applyToSubfolders: 0
+  - folder: {fileID: 102900000, guid: 5a545e177b1013946a9e190e51eafd7c, type: 3}
+    color: {r: 0.3, g: 0.9, b: 0.85, a: 1}
+    icon: {fileID: 0}
+    applyToSubfolders: 0
+  - folder: {fileID: 102900000, guid: a9b9fd7a8aad91b499c305961f31503e, type: 3}
+    color: {r: 0.7, g: 0.5, b: 1, a: 1}
+    icon: {fileID: 0}
+    applyToSubfolders: 0
+  - folder: {fileID: 102900000, guid: f54d1bd14bd3ca042bd867b519fee8cc, type: 3}
+    color: {r: 0.55, g: 0.55, b: 0.55, a: 1}
+    icon: {fileID: 0}
+    applyToSubfolders: 0
+  - folder: {fileID: 102900000, guid: 845492b49a414e147a9a1d1821105f63, type: 3}
+    color: {r: 0.55, g: 0.55, b: 0.55, a: 1}
+    icon: {fileID: 0}
+    applyToSubfolders: 0
+  - folder: {fileID: 102900000, guid: 09478e3af0ece0349a2458eaf16f1bad, type: 3}
+    color: {r: 0.55, g: 0.55, b: 0.55, a: 1}
+    icon: {fileID: 0}
+    applyToSubfolders: 0
+  - folder: {fileID: 102900000, guid: 40693c1a7ccd24c28845f62fd434f474, type: 3}
+    color: {r: 0.55, g: 0.55, b: 0.55, a: 1}
+    icon: {fileID: 0}
+    applyToSubfolders: 0
+  - folder: {fileID: 102900000, guid: 1050ef8bebd3589489966f63f34a2901, type: 3}
+    color: {r: 0.55, g: 0.55, b: 0.55, a: 1}
+    icon: {fileID: 0}
+    applyToSubfolders: 0
+  - folder: {fileID: 102900000, guid: 709f11a7f3c4041caa4ef136ea32d874, type: 3}
+    color: {r: 0.55, g: 0.55, b: 0.55, a: 1}
+    icon: {fileID: 0}
+    applyToSubfolders: 0
+  - folder: {fileID: 102900000, guid: 25be29a05dff5e8439b1bb93dc688a4b, type: 3}
+    color: {r: 1, g: 1, b: 1, a: 1}
+    icon: {fileID: 0}
+    applyToSubfolders: 0
+  - folder: {fileID: 102900000, guid: 3325b36b650da9b458dafdeddb3dde63, type: 3}
+    color: {r: 0.4, g: 0.65, b: 1, a: 1}
+    icon: {fileID: 0}
+    applyToSubfolders: 0
+  - folder: {fileID: 102900000, guid: 8bab5705b985eea43b7a5363a844f439, type: 3}
+    color: {r: 0.3, g: 0.9, b: 0.85, a: 1}
+    icon: {fileID: 0}
+    applyToSubfolders: 0
+  - folder: {fileID: 102900000, guid: 7fe8db168eb82fc469fd36a9d58549c7, type: 3}
+    color: {r: 0.3, g: 0.9, b: 0.85, a: 1}
+    icon: {fileID: 0}
+    applyToSubfolders: 0
+  - folder: {fileID: 102900000, guid: d01654fbce34f4e459cc9d75434a33fd, type: 3}
+    color: {r: 0.4, g: 0.65, b: 1, a: 1}
+    icon: {fileID: 0}
+    applyToSubfolders: 0
+  - folder: {fileID: 102900000, guid: 2a3bf52fdd6ab9f4c9a2797746717050, type: 3}
+    color: {r: 0.3, g: 0.9, b: 0.85, a: 1}
+    icon: {fileID: 0}
+    applyToSubfolders: 0
+  - folder: {fileID: 102900000, guid: 9716290717a4dca4087650be5ba2db28, type: 3}
+    color: {r: 0.4, g: 0.65, b: 1, a: 1}
+    icon: {fileID: 0}
+    applyToSubfolders: 0
+  - folder: {fileID: 102900000, guid: 4dfcd2a422a2ed041878120cfa459d5b, type: 3}
+    color: {r: 0.3, g: 0.9, b: 0.85, a: 1}
+    icon: {fileID: 0}
+    applyToSubfolders: 0
+  - folder: {fileID: 102900000, guid: b4b2de1521caf454796030d0c4567dd4, type: 3}
+    color: {r: 0.4, g: 0.65, b: 1, a: 1}
+    icon: {fileID: 0}
+    applyToSubfolders: 0
+  - folder: {fileID: 102900000, guid: 32526745446dee54394ed9c9e2009693, type: 3}
+    color: {r: 0.4, g: 0.65, b: 1, a: 1}
+    icon: {fileID: 0}
+    applyToSubfolders: 0
+  - folder: {fileID: 102900000, guid: 50b093ebefc023642852ef45cf2775f5, type: 3}
+    color: {r: 0.3, g: 0.9, b: 0.85, a: 1}
+    icon: {fileID: 0}
+    applyToSubfolders: 0
+  - folder: {fileID: 102900000, guid: 49a319c693096644cac55e25ce27cbf4, type: 3}
+    color: {r: 1, g: 0.88, b: 0.3, a: 1}
+    icon: {fileID: 0}
+    applyToSubfolders: 0
+  - folder: {fileID: 102900000, guid: de434b0e70114f74f96b4a7ecc7069fa, type: 3}
+    color: {r: 0.3, g: 0.9, b: 0.85, a: 1}
+    icon: {fileID: 0}
+    applyToSubfolders: 0
+  - folder: {fileID: 102900000, guid: 5481d5d20facdb44cb345df8cdba9f70, type: 3}
+    color: {r: 1, g: 0.5, b: 0.8, a: 1}
+    icon: {fileID: 0}
+    applyToSubfolders: 0
+  - folder: {fileID: 102900000, guid: 616ca10b6876774449f0c7a668ee88fb, type: 3}
+    color: {r: 1, g: 0.6, b: 0.25, a: 1}
+    icon: {fileID: 0}
+    applyToSubfolders: 0
+  - folder: {fileID: 102900000, guid: e01f9b831dfdda949850708a9e07bf6a, type: 3}
+    color: {r: 1, g: 0.35, b: 0.35, a: 1}
+    icon: {fileID: 0}
+    applyToSubfolders: 0
+  - folder: {fileID: 102900000, guid: 217c0515b896e1c469a4008e58404563, type: 3}
+    color: {r: 1, g: 0.5, b: 0.8, a: 1}
+    icon: {fileID: 0}
+    applyToSubfolders: 0
+  - folder: {fileID: 102900000, guid: 6d6f2c8778e27814297f224e7583c8b7, type: 3}
+    color: {r: 1, g: 0.35, b: 0.35, a: 1}
+    icon: {fileID: 0}
+    applyToSubfolders: 0

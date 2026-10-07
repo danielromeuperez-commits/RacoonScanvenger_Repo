@@ -665,11 +665,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Racoon.Player.PlayerVFX
   controller: {fileID: 6147228204243766040}
-  effects: []
+  effects:
+  - id: 
+    prefab: {fileID: 0}
+    anchor: {fileID: 0}
+    offset: {x: 0, y: 0, z: 0}
+    attachToAnchor: 0
+    faceOpposite: 0
+    lifetime: 0
   dashDustId: DashDust
   dashDustDelays:
   - 0
   - 0.12
   dashTrailId: DashTrail
+  dashTrailTint: {r: 1, g: 1, b: 1, a: 1}
   blinkInterval: 0.08
   recoveryBlinkInterval: 0.16
