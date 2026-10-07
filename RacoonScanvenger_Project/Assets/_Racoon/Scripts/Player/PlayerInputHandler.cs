@@ -37,10 +37,14 @@ namespace Racoon.Player
         public InputDeviceKind ActiveKind => InputDeviceTracker.GetKind(PairedDevice);
         public bool IsWaitingForDevice => inputEnabled && deviceAssignment != DeviceAssignment.AllDevices && PairedDevice == null;
 
-        public event Action InteractPressed;   // Botón sur
-        public event Action SwitchItemPressed; // Botón norte
-        public event Action UsePressed;        // Botón oeste
-        public event Action DashPressed;       // Botón este / Espacio
+        public event Action InteractPressed;
+        public event Action SwitchItemPressed;
+
+        public event Action UsePressed;
+        public event Action UseStarted;
+        public event Action UseReleased;
+
+        public bool UseHeld { get; private set; }      // Botón oeste
         /// <summary>Se lanza cada vez que cambia el dispositivo que controla al jugador.</summary>
         public event Action<InputDevice> DevicePaired;
         /// <summary>Solo cuando cambia la familia (teclado ↔ PlayStation ↔ Xbox...). Para iconos.</summary>
@@ -62,8 +66,10 @@ namespace Racoon.Player
                 if (runtimeActions == null) CreateActions();
                 interactAction.performed += OnInteract;
                 switchItemAction.performed += OnSwitchItem;
+
+                useAction.started += OnUseStarted;
                 useAction.performed += OnUse;
-                dashAction.performed += OnDash;
+                useAction.canceled += OnUseReleased;
                 InputSystem.onDeviceChange += OnDeviceChange;
 
                 if (deviceAssignment == DeviceAssignment.AllDevices)
@@ -87,8 +93,10 @@ namespace Racoon.Player
             {
                 interactAction.performed -= OnInteract;
                 switchItemAction.performed -= OnSwitchItem;
+
+                useAction.started -= OnUseStarted;
                 useAction.performed -= OnUse;
-                dashAction.performed -= OnDash;
+                useAction.canceled -= OnUseReleased;
                 InputSystem.onDeviceChange -= OnDeviceChange;
                 StopListening();
                 map.Disable();
@@ -193,13 +201,32 @@ namespace Racoon.Player
         void ResetValues()
         {
             Move = Vector2.zero;
+            UseHeld = false;
             RunHeld = false;
         }
 
-        void OnInteract(InputAction.CallbackContext _) => InteractPressed?.Invoke();
-        void OnSwitchItem(InputAction.CallbackContext _) => SwitchItemPressed?.Invoke();
-        void OnUse(InputAction.CallbackContext _) => UsePressed?.Invoke();
-        void OnDash(InputAction.CallbackContext _) => DashPressed?.Invoke();
+        void OnInteract(InputAction.CallbackContext _) =>
+    InteractPressed?.Invoke();
+
+        void OnSwitchItem(InputAction.CallbackContext _) =>
+            SwitchItemPressed?.Invoke();
+
+        void OnUseStarted(InputAction.CallbackContext _)
+        {
+            UseHeld = true;
+            UseStarted?.Invoke();
+        }
+
+        void OnUse(InputAction.CallbackContext _)
+        {
+            UsePressed?.Invoke();
+        }
+
+        void OnUseReleased(InputAction.CallbackContext _)
+        {
+            UseHeld = false;
+            UseReleased?.Invoke();
+        }
 
         void OnDestroy()
         {
