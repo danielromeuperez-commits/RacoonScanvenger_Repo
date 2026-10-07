@@ -45,6 +45,7 @@ namespace Racoon.Player
         public event Action UseReleased;
 
         public bool UseHeld { get; private set; }      // Botón oeste
+        public event Action DashPressed;               // Botón este / Espacio
         /// <summary>Se lanza cada vez que cambia el dispositivo que controla al jugador.</summary>
         public event Action<InputDevice> DevicePaired;
         /// <summary>Solo cuando cambia la familia (teclado ↔ PlayStation ↔ Xbox...). Para iconos.</summary>
@@ -70,6 +71,7 @@ namespace Racoon.Player
                 useAction.started += OnUseStarted;
                 useAction.performed += OnUse;
                 useAction.canceled += OnUseReleased;
+                dashAction.performed += OnDash;
                 InputSystem.onDeviceChange += OnDeviceChange;
 
                 if (deviceAssignment == DeviceAssignment.AllDevices)
@@ -97,6 +99,7 @@ namespace Racoon.Player
                 useAction.started -= OnUseStarted;
                 useAction.performed -= OnUse;
                 useAction.canceled -= OnUseReleased;
+                dashAction.performed -= OnDash;
                 InputSystem.onDeviceChange -= OnDeviceChange;
                 StopListening();
                 map.Disable();
@@ -227,6 +230,8 @@ namespace Racoon.Player
             UseHeld = false;
             UseReleased?.Invoke();
         }
+
+        void OnDash(InputAction.CallbackContext _) => DashPressed?.Invoke();
 
         void OnDestroy()
         {
