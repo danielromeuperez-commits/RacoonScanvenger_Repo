@@ -18,8 +18,9 @@ namespace Racoon.Player
     ///  - onLightHit    → OnLightHit: parpadeo rápido mientras está aturdido (golpes 1º y 2º).
     ///  - onHeavyHit    → OnHeavyHit: parpadeo rápido en el suelo + lento durante los i-frames al
     ///                    levantarse (se corta si los gasta atacando o con un dash).
-    ///  - onDash        → OnDash: polvo (uno por cada valor de dashDustDelays) + trail de viento,
-    ///                    orientados en la dirección del dash.
+    ///  - onDash        → OnDash: polvo (uno por cada valor de dashDustDelays) orientado en la dirección del dash.
+    ///  - StateChanged  → estelas de viento (WindTrailVFX hijo del jugador): fuertes en Dash, flojas en Run,
+    ///                    apagadas en el resto (y al volver a encenderse salen en otras posiciones).
     /// Animation Events: función "PlayVFX" con parámetro string = id del efecto (p. ej. "HitDust"
     /// en los keyframes de la animación de recibir golpe).
     /// </summary>
@@ -49,9 +50,12 @@ namespace Racoon.Player
         [SerializeField] string dashDustId = "DashDust";
         [Tooltip("Un polvo por cada valor: segundos desde el inicio del dash.")]
         [SerializeField] float[] dashDustDelays = { 0f, 0.12f };
-        [SerializeField] string dashTrailId = "DashTrail";
-        [Tooltip("Tinte de las estelas de viento (blanco = el color del prefab). Aquí irá el color del jugador.")]
-        [SerializeField] Color dashTrailTint = Color.white;
+
+        [Header("Viento (correr / dash)")]
+        [Tooltip("Vacío = el primero que haya en los hijos del jugador.")]
+        [SerializeField] WindTrailVFX windTrails;
+        [Tooltip("Color del jugador para las estelas: se multiplica por el color/tint del WindTrailVFX (blanco = sin cambios).")]
+        [SerializeField] Color windTint = Color.white;
 
         [Header("Parpadeo al recibir golpes")]
         [Tooltip("Mientras está aturdido / derribado (sin control).")]
@@ -68,8 +72,16 @@ namespace Racoon.Player
         void Awake()
         {
             if (controller == null) controller = GetComponentInParent<PlayerController>();
+            if (windTrails == null && controller != null) windTrails = controller.GetComponentInChildren<WindTrailVFX>(true);
+            if (windTrails != null) windTrails.SetPlayerTint(windTint);
             foreach (VfxEntry entry in effects)
                 if (!string.IsNullOrEmpty(entry.id)) lookup[entry.id] = entry;
+        }
+
+        // Cambiar windTint en el Inspector durante Play se ve al momento.
+        void OnValidate()
+        {
+            if (Application.isPlaying && windTrails != null) windTrails.SetPlayerTint(windTint);
         }
 
         void OnEnable()
@@ -78,6 +90,8 @@ namespace Racoon.Player
             controller.onLightHit.AddListener(OnLightHit);
             controller.onHeavyHit.AddListener(OnHeavyHit);
             controller.onDash.AddListener(OnDash);
+            controller.StateChanged += OnStateChanged;
+            UpdateWind(controller.State);
         }
 
         void OnDisable()
@@ -87,6 +101,7 @@ namespace Racoon.Player
                 controller.onLightHit.RemoveListener(OnLightHit);
                 controller.onHeavyHit.RemoveListener(OnHeavyHit);
                 controller.onDash.RemoveListener(OnDash);
+                controller.StateChanged -= OnStateChanged;
             }
             StopBlink();
         }
@@ -132,12 +147,6 @@ namespace Racoon.Player
                 }
             }
 
-            if (!lookup.ContainsKey(dashTrailId)) return;
-            GameObject trail = Spawn(dashTrailId, direction);
-            if (trail != null && trail.TryGetComponent(out WindTrailVFX wind)) wind.SetTint(dashTrailTint);
-            // Al acabar el dash el trail se suelta y deja de emitir, para que se desvanezca solo.
-            if (trail != null && trail.transform.parent != null)
-                StartCoroutine(ReleaseTrail(trail, controller.DashDuration));
         }
 
         IEnumerator SpawnDelayed(string id, Vector3 direction, float delay)
@@ -146,16 +155,19 @@ namespace Racoon.Player
             Spawn(id, direction);
         }
 
-        static IEnumerator ReleaseTrail(GameObject trail, float delay)
-        {
-            yield return new WaitForSeconds(delay);
-            if (trail == null) yield break;
+        // ---------------- Viento ----------------
 
-            trail.transform.SetParent(null, true);
-            foreach (ParticleSystem particles in trail.GetComponentsInChildren<ParticleSystem>())
-                particles.Stop(false, ParticleSystemStopBehavior.StopEmitting);
-            foreach (TrailRenderer trailRenderer in trail.GetComponentsInChildren<TrailRenderer>())
-                trailRenderer.emitting = false;
+        void OnStateChanged(PlayerState previous, PlayerState current) => UpdateWind(current);
+
+        void UpdateWind(PlayerState state)
+        {
+            if (windTrails == null) return;
+            windTrails.SetMode(state switch
+            {
+                PlayerState.Dash => WindTrailVFX.WindMode.Dash,
+                PlayerState.Run => WindTrailVFX.WindMode.Run,
+                _ => WindTrailVFX.WindMode.Off,
+            });
         }
 
         // ---------------- Parpadeo ----------------
