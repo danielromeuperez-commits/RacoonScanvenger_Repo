@@ -141,7 +141,7 @@ MonoBehaviour:
   bobHeight: 0.25
   bobSpeed: 0.75
   pickupCollider: {fileID: 0}
-  messageDuration: 2
+  messageDuration: 0
 --- !u!65 &8089548820868798428
 BoxCollider:
   m_ObjectHideFlags: 0

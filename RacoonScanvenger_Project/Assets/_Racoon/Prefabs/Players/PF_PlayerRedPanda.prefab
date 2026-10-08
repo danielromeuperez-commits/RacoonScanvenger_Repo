@@ -276,6 +276,7 @@ GameObject:
   - component: {fileID: 5812787108930251625}
   - component: {fileID: 7051271079864425435}
   - component: {fileID: 3001776071502062672}
+  - component: {fileID: 285396400107484525}
   m_Layer: 8
   m_Name: PF_PlayerRedPanda
   m_TagString: Untagged
@@ -313,7 +314,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 3183137445
+  GlobalObjectIdHash: 3468908988
   InScenePlacedSourceGlobalObjectIdHash: 0
   m_InScenePlacedDisabledByDefault: 0
   DeferredDespawnTick: 0
@@ -644,6 +645,20 @@ MonoBehaviour:
   dashTrailId: DashTrail
   blinkInterval: 0.08
   recoveryBlinkInterval: 0.16
+--- !u!114 &285396400107484525
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6443071073951013002}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 26367f449c79ca045ab7ba0e21ac0508, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.Player.PlayerLoot
+  ShowTopMostFoldoutHeaderGroup: 1
+  bagFullWeight: 20
 --- !u!1 &8107090357829930905
 GameObject:
   m_ObjectHideFlags: 0

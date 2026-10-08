@@ -1,6 +1,7 @@
-using System;
 using Racoon.Cameras;
 using Racoon.Items;
+using System;
+using System.Security.Cryptography;
 using Unity.Netcode;
 using Unity.Netcode.Components;
 using UnityEngine;
@@ -49,7 +50,9 @@ namespace Racoon.Player
         [SerializeField] float useItemDuration = 0.5f;
 
         [Header("Interacción")]
-        [SerializeField] float interactRadius = 1.5f;
+        [SerializeField] float interactDistance = 2f;
+        [SerializeField] float interactRadius = 0.5f;
+        [SerializeField] float interactHeight = 1f;
         [SerializeField] LayerMask interactMask = ~0;
 
         [Header("Golpe")]
@@ -926,22 +929,59 @@ namespace Racoon.Player
         void InteractRpc()
         {
             onInteract?.Invoke(this);
-            if (IsServer) ServerInteractWithNearest();
+
+            if (IsServer)
+                ServerInteractWithNearest();
         }
 
         void ServerInteractWithNearest()
         {
-            Vector3 origin = transform.position;
-            int count = Physics.OverlapSphereNonAlloc(origin, interactRadius, overlapBuffer, interactMask, QueryTriggerInteraction.Collide);
+            Vector3 origin =
+                transform.position +
+                Vector3.up * interactHeight;
+
+            Vector3 direction =
+                Vector3.ProjectOnPlane(
+                    transform.forward,
+                    Vector3.up
+                ).normalized;
+
+            if (direction.sqrMagnitude < 0.0001f)
+                direction = Vector3.forward;
+
+            Vector3 end =
+                origin +
+                direction * interactDistance;
+
+            int count = Physics.OverlapCapsuleNonAlloc(
+                origin,
+                end,
+                interactRadius,
+                overlapBuffer,
+                interactMask,
+                QueryTriggerInteraction.Collide
+            );
 
             IInteractable best = null;
             float bestDistance = float.MaxValue;
+
             for (int i = 0; i < count; i++)
             {
-                IInteractable interactable = overlapBuffer[i].GetComponentInParent<IInteractable>();
-                if (interactable == null || !interactable.CanInteract(this)) continue;
+                Collider hit = overlapBuffer[i];
 
-                float distance = (overlapBuffer[i].transform.position - origin).sqrMagnitude;
+                IInteractable interactable =
+                    hit.GetComponentInParent<IInteractable>();
+
+                if (interactable == null ||
+                    !interactable.CanInteract(this))
+                    continue;
+
+                Vector3 closestPoint =
+                    hit.ClosestPoint(origin);
+
+                float distance =
+                    (closestPoint - origin).sqrMagnitude;
+
                 if (distance < bestDistance)
                 {
                     bestDistance = distance;
@@ -1146,7 +1186,30 @@ namespace Racoon.Player
         void OnDrawGizmosSelected()
         {
             Gizmos.color = new Color(0f, 1f, 1f, 0.35f);
-            Gizmos.DrawWireSphere(transform.position, interactRadius);
+
+            Vector3 origin =
+                transform.position +
+                Vector3.up * interactHeight;
+
+            Vector3 direction =
+                Vector3.ProjectOnPlane(
+                    transform.forward,
+                    Vector3.up
+                ).normalized;
+
+            if (direction.sqrMagnitude < 0.0001f)
+                direction = Vector3.forward;
+
+            Gizmos.DrawWireSphere(origin, interactRadius);
+            Gizmos.DrawLine(
+                origin,
+                origin + direction * interactDistance
+            );
+
+            Gizmos.DrawWireSphere(
+                origin + direction * interactDistance,
+                interactRadius
+            );
             Gizmos.color = new Color(1f, 0f, 0f, 0.35f);
             Gizmos.DrawWireSphere(PunchCenter, punchRadius);
         }

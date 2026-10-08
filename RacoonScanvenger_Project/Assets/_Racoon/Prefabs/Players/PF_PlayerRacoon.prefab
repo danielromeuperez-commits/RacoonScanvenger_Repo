@@ -164,6 +164,7 @@ GameObject:
   - component: {fileID: 5812787108930251625}
   - component: {fileID: 7910946044982797803}
   - component: {fileID: 4691211560147461367}
+  - component: {fileID: 3190472360854094177}
   m_Layer: 8
   m_Name: PF_PlayerRacoon
   m_TagString: Untagged
@@ -532,6 +533,20 @@ MonoBehaviour:
   dashTrailId: DashTrail
   blinkInterval: 0.08
   recoveryBlinkInterval: 0.16
+--- !u!114 &3190472360854094177
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6443071073951013002}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 26367f449c79ca045ab7ba0e21ac0508, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.Player.PlayerLoot
+  ShowTopMostFoldoutHeaderGroup: 1
+  bagFullWeight: 20
 --- !u!1 &6483509581117828954
 GameObject:
   m_ObjectHideFlags: 0

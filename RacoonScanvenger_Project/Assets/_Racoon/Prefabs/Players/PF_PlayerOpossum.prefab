@@ -308,6 +308,7 @@ GameObject:
   - component: {fileID: 5812787108930251625}
   - component: {fileID: 2062572893429925596}
   - component: {fileID: 8662951835625390090}
+  - component: {fileID: 3055327258494851128}
   m_Layer: 8
   m_Name: PF_PlayerOpossum
   m_TagString: Untagged
@@ -676,3 +677,17 @@ MonoBehaviour:
   dashTrailId: DashTrail
   blinkInterval: 0.08
   recoveryBlinkInterval: 0.16
+--- !u!114 &3055327258494851128
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6443071073951013002}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 26367f449c79ca045ab7ba0e21ac0508, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.Player.PlayerLoot
+  ShowTopMostFoldoutHeaderGroup: 1
+  bagFullWeight: 20
