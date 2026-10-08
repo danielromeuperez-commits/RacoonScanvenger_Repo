@@ -485,6 +485,7 @@ MonoBehaviour:
   cameraWeight: 1
   cameraRadius: 1.5
   itemRecoveryHoldDuration: 1
+  itemRecoveryJumpVelocity: 3
   onInteract:
     m_PersistentCalls:
       m_Calls: []
@@ -503,6 +504,7 @@ MonoBehaviour:
   onDash:
     m_PersistentCalls:
       m_Calls: []
+  extintorTurnSpeed: 360
 --- !u!114 &6877927705847804177
 MonoBehaviour:
   m_ObjectHideFlags: 0

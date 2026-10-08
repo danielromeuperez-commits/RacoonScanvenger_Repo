@@ -248,6 +248,13 @@ namespace Racoon.Player
         bool itemRecoveryRequired;
         float itemRecoveryProgress;
 
+        [Header("Extintor")]
+        private bool extintorActive;
+        private float extintorTimer;
+        private float extintorBounceSpeed = 10f;
+        private Vector3 extintorDirection;
+        [SerializeField] float extintorTurnSpeed = 120f;
+
         // Combo recibido (lo lleva el dueño de la víctima, que es quien resuelve los golpes).
         int comboHits;
         float lastHitTime = float.NegativeInfinity;
@@ -328,7 +335,46 @@ namespace Racoon.Player
         void Update()
         {
             if (!IsSpawned || !IsOwner) return;
+            if (extintorActive)
+            {
+                extintorTimer -= Time.deltaTime;
 
+                desiredVelocity = Vector3.zero;
+                if (extintorActive)
+                {
+                    extintorTimer -= Time.deltaTime;
+
+                    desiredVelocity = Vector3.zero;
+                    moveVelocity = Vector3.zero;
+                    knockbackVelocity = Vector3.zero;
+
+                    if (extintorTimer <= 0f)
+                    {
+                        extintorTimer = 0f;
+                        extintorActive = false;
+
+                        body.linearVelocity = new Vector3(
+                            0f,
+                            body.linearVelocity.y,
+                            0f
+                        );
+                    }
+                }
+                moveVelocity = Vector3.zero;
+                knockbackVelocity = Vector3.zero;
+
+                if (extintorTimer <= 0f)
+                {
+                    extintorTimer = 0f;
+                    extintorActive = false;
+
+                    body.linearVelocity = new Vector3(
+                        0f,
+                        body.linearVelocity.y,
+                        0f
+                    );
+                }
+            }
             float dt = Time.deltaTime;
             if (actionTimer > 0f) actionTimer -= dt;
             if (dashCooldownTimer > 0f) dashCooldownTimer -= dt;
@@ -493,33 +539,155 @@ namespace Racoon.Player
         void FixedUpdate()
         {
             // En el rival el Rigidbody es kinematic y lo mueve NetworkRigidbody: no tocar.
-            if (!IsSpawned || !IsOwner || body.isKinematic) return;
+            if (!IsSpawned || !IsOwner || body.isKinematic)
+                return;
 
+            if (extintorActive)
+            {
+                // Usamos la dirección que ya calcula tu movimiento normal
+                Vector3 inputDirection = desiredDirection;
+
+                if (inputDirection.sqrMagnitude > 0.01f)
+                {
+                    inputDirection.y = 0f;
+                    inputDirection.Normalize();
+
+                    // Girar poco a poco hacia donde está pulsando el jugador
+                    extintorDirection = Vector3.RotateTowards(
+                        extintorDirection,
+                        inputDirection,
+                        extintorTurnSpeed * Mathf.Deg2Rad * Time.fixedDeltaTime,
+                        0f
+                    );
+
+                    extintorDirection.y = 0f;
+                    extintorDirection.Normalize();
+                }
+
+                // Mantener velocidad constante
+                body.linearVelocity = new Vector3(
+                    extintorDirection.x * extintorBounceSpeed,
+                    body.linearVelocity.y,
+                    extintorDirection.z * extintorBounceSpeed
+                );
+
+                body.angularVelocity = Vector3.zero;
+
+                return;
+            }
             float dt = Time.fixedDeltaTime;
+
+            // =========================================================
+            // EXTINTOR
+            // =========================================================
+            if (extintorActive)
+            {
+                Vector3 velocity = body.linearVelocity;
+
+                Vector3 horizontal = new Vector3(
+                    velocity.x,
+                    0f,
+                    velocity.z
+                );
+
+                if (horizontal.sqrMagnitude > 0.01f)
+                {
+                    horizontal = horizontal.normalized * extintorBounceSpeed;
+                }
+                else
+                {
+                    horizontal = transform.forward * extintorBounceSpeed;
+                }
+
+                body.linearVelocity = new Vector3(
+                    horizontal.x,
+                    velocity.y,
+                    horizontal.z
+                );
+
+                // Mira hacia la dirección en la que se mueve.
+                if (horizontal.sqrMagnitude > 0.01f)
+                {
+                    Quaternion targetRotation =
+                        Quaternion.LookRotation(horizontal.normalized, Vector3.up);
+
+                    body.MoveRotation(targetRotation);
+                }
+
+                // Gravedad normal.
+                if (extraGravity > 0f)
+                    body.AddForce(Vector3.down * extraGravity, ForceMode.Acceleration);
+
+                body.angularVelocity = Vector3.zero;
+
+                return;
+            }
+
+            // =========================================================
+            // MOVIMIENTO NORMAL
+            // =========================================================
+
+            Vector3 velocityNormal = body.linearVelocity;
+
             if (IsDashing)
             {
-                // Se mueve con velocidad (no atraviesa nada): choca con el entorno y con el otro jugador.
-                float t = dashDuration > 0f ? 1f - actionTimer / dashDuration : 1f;
-                moveVelocity = dashDirection * (dashSpeed * dashSpeedCurve.Evaluate(t));
+                float t = dashDuration > 0f
+                    ? 1f - actionTimer / dashDuration
+                    : 1f;
+
+                moveVelocity =
+                    dashDirection *
+                    (dashSpeed * dashSpeedCurve.Evaluate(t));
             }
             else
             {
-                moveVelocity = Vector3.MoveTowards(moveVelocity, desiredVelocity, acceleration * dt);
+                moveVelocity = Vector3.MoveTowards(
+                    moveVelocity,
+                    desiredVelocity,
+                    acceleration * dt
+                );
             }
-            knockbackVelocity = Vector3.Lerp(knockbackVelocity, Vector3.zero, 1f - Mathf.Exp(-knockbackDamping * dt));
 
-            // Controlamos la velocidad horizontal; la vertical la sigue llevando la física (gravedad, rampas).
-            Vector3 horizontal = moveVelocity + knockbackVelocity;
-            body.linearVelocity = new Vector3(horizontal.x, body.linearVelocity.y, horizontal.z);
-            if (extraGravity > 0f) body.AddForce(Vector3.down * extraGravity, ForceMode.Acceleration);
-            // Los choques no deben hacer girar al personaje; la rotación la decidimos nosotros.
+            knockbackVelocity = Vector3.Lerp(
+                knockbackVelocity,
+                Vector3.zero,
+                1f - Mathf.Exp(-knockbackDamping * dt)
+            );
+
+            Vector3 horizontalNormal =
+                moveVelocity + knockbackVelocity;
+
+            body.linearVelocity = new Vector3(
+                horizontalNormal.x,
+                velocityNormal.y,
+                horizontalNormal.z
+            );
+
+            if (extraGravity > 0f)
+                body.AddForce(
+                    Vector3.down * extraGravity,
+                    ForceMode.Acceleration
+                );
+
             body.angularVelocity = Vector3.zero;
 
             if (desiredDirection.sqrMagnitude > 0.0001f)
             {
-                Quaternion targetRotation = Quaternion.LookRotation(desiredDirection, Vector3.up);
-                // En el dash mira directamente hacia donde sale.
-                body.MoveRotation(IsDashing ? targetRotation : Quaternion.RotateTowards(body.rotation, targetRotation, rotationSpeed * dt));
+                Quaternion targetRotation =
+                    Quaternion.LookRotation(
+                        desiredDirection,
+                        Vector3.up
+                    );
+
+                body.MoveRotation(
+                    IsDashing
+                        ? targetRotation
+                        : Quaternion.RotateTowards(
+                            body.rotation,
+                            targetRotation,
+                            rotationSpeed * dt
+                        )
+                );
             }
         }
 
@@ -570,6 +738,110 @@ namespace Racoon.Player
             if (!body.isKinematic) body.linearVelocity = Vector3.zero;
             moveVelocity = knockbackVelocity = desiredVelocity = Vector3.zero;
             comboHits = 0;
+        }
+
+        public void RequestExtintorPickup(ExtintorPickup pickup)
+        {
+            if (!IsSpawned || !IsOwner || pickup == null)
+                return;
+
+            RequestExtintorPickupRpc(
+                new NetworkObjectReference(pickup.NetworkObject)
+            );
+        }
+
+        [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Owner)]
+        private void RequestExtintorPickupRpc(
+            NetworkObjectReference pickupReference)
+        {
+            if (!IsServer)
+                return;
+
+            if (!pickupReference.TryGet(out NetworkObject pickupObject))
+                return;
+
+            ExtintorPickup pickup =
+                pickupObject.GetComponent<ExtintorPickup>();
+
+            if (pickup == null)
+                return;
+
+            pickup.ConsumeOnServer(this);
+        }
+
+        [Rpc(SendTo.Owner, InvokePermission = RpcInvokePermission.Server)]
+        public void ActivateExtintorOnOwnerRpc(
+            float duration,
+            float bounceSpeed)
+        {
+            if (!IsOwner || body == null || body.isKinematic)
+                return;
+
+            extintorActive = true;
+            extintorTimer = duration;
+            extintorBounceSpeed = bounceSpeed;
+
+            actionTimer = 0f;
+            punchHitTimer = -1f;
+
+            moveVelocity = Vector3.zero;
+            knockbackVelocity = Vector3.zero;
+            desiredVelocity = Vector3.zero;
+            desiredDirection = Vector3.zero;
+
+            // Dirección aleatoria inicial
+            Vector3 direction = UnityEngine.Random.insideUnitSphere;
+            direction.y = 0f;
+
+            if (direction.sqrMagnitude < 0.01f)
+                direction = Vector3.forward;
+
+            direction.Normalize();
+
+            // Guardamos la dirección para poder reflejarla al chocar
+            extintorDirection = direction;
+
+            // Aplicamos la velocidad inicial
+            body.linearVelocity = new Vector3(
+                direction.x * extintorBounceSpeed,
+                body.linearVelocity.y,
+                direction.z * extintorBounceSpeed
+            );
+
+            Debug.Log(
+                $"[EXTINTOR] ACTIVADO | velocidad: {extintorBounceSpeed} | dirección: {direction}",
+                this
+            );
+        }
+
+        private void OnCollisionEnter(Collision collision)
+        {
+            if (!IsOwner || !extintorActive)
+                return;
+
+            if (collision.contactCount == 0)
+                return;
+
+            ContactPoint contact = collision.GetContact(0);
+
+            // Refleja la dirección respecto a la superficie golpeada
+            Vector3 reflected = Vector3.Reflect(
+                extintorDirection,
+                contact.normal
+            );
+
+            // Solo queremos movimiento horizontal
+            reflected.y = 0f;
+
+            if (reflected.sqrMagnitude < 0.01f)
+                return;
+
+            extintorDirection = reflected.normalized;
+
+            Debug.Log(
+                $"[EXTINTOR] REBOTE | dirección nueva: {extintorDirection}",
+                this
+            );
         }
 
         // ---------------- Input (solo dueño) ----------------
