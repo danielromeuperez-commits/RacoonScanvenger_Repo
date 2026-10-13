@@ -1,46 +1,81 @@
-using Racoon.Items;
-using Racoon.Player;
 using System.Collections;
+using Racoon.Player;
 using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.Serialization;
 
-public class LootPoint : MonoBehaviour, IInteractable
+public class LootPoint : MonoBehaviour, IRepeatableInteractable
 {
-    [Header("Loot")]
-    [Tooltip("Puntos que recibe el jugador al saquear este punto.")]
-    [SerializeField, Min(0)] int points = 10;
+    [Header("Loot por objeto")]
+    [Tooltip("Puntos que da cada objeto recogido.")]
+    [FormerlySerializedAs("points")]
+    [SerializeField, Min(0)] int pointsPerItem = 10;
 
-    [Tooltip("Peso que añade este loot a la bolsa del jugador.")]
-    [SerializeField, Min(0f)] float weight = 1f;
+    [Tooltip("Peso que añade cada objeto recogido.")]
+    [FormerlySerializedAs("weight")]
+    [SerializeField, Min(0f)] float weightPerItem = 1f;
 
-    [Header("Disponibilidad")]
-    [Tooltip("Número de veces que se puede saquear antes de quedarse vacío.")]
-    [SerializeField, Min(1)] int usesBeforeEmpty = 1;
+    [Header("Cantidad de objetos")]
+    [Tooltip("Número mínimo de objetos que puede contener esta estantería.")]
+    [SerializeField, Min(1)] int minItems = 4;
 
-    [Tooltip("Segundos que tarda en volver a estar disponible. 0 = no reaparece.")]
-    [SerializeField, Min(0f)] float respawnTime = 10f;
+    [Tooltip("Número máximo de objetos que puede contener esta estantería.")]
+    [SerializeField, Min(1)] int maxItems = 7;
 
-    int usesRemaining;
-    bool available = true;
+    [Header("Respawn")]
+    [Tooltip("Segundos hasta rellenarse. 0 = una vez vacía, no reaparece.")]
+    [SerializeField, Min(0f)] float respawnTime = 0f;
 
-    void Awake()
+    int itemsRemaining;
+    bool available;
+    bool initialized;
+
+    void OnValidate()
     {
-        usesRemaining = usesBeforeEmpty;
+        if (maxItems < minItems)
+            maxItems = minItems;
+    }
+
+    void EnsureInitialized()
+    {
+        if (initialized)
+            return;
+
+        if (NetworkManager.Singleton == null ||
+            !NetworkManager.Singleton.IsServer)
+            return;
+
+        Refill();
+        initialized = true;
+    }
+
+    void Refill()
+    {
+        // Random.Range con int no incluye el valor máximo,
+        // por eso usamos maxItems + 1.
+        itemsRemaining =
+            Random.Range(minItems, maxItems + 1);
+
+        available = true;
     }
 
     /// <summary>
-    /// Devuelve true si este punto puede ser saqueado por el jugador.
+    /// Puede seguir saqueándose mientras queden objetos.
     /// </summary>
     public bool CanInteract(PlayerController player)
     {
-        if (!available || player == null)
+        EnsureInitialized();
+
+        if (!available ||
+            itemsRemaining <= 0 ||
+            player == null)
             return false;
 
         return player.TryGetComponent(out PlayerLoot _);
     }
 
     /// <summary>
-    /// El servidor entrega los puntos y el peso al jugador.
+    /// Cada interacción recoge UN objeto de la estantería.
     /// </summary>
     public void Interact(PlayerController player)
     {
@@ -49,27 +84,27 @@ public class LootPoint : MonoBehaviour, IInteractable
             !CanInteract(player))
             return;
 
-        PlayerLoot playerLoot = player.GetComponent<PlayerLoot>();
+        PlayerLoot playerLoot =
+            player.GetComponent<PlayerLoot>();
 
-        if (!playerLoot.ServerAddLoot(points, weight))
+        if (!playerLoot.ServerAddLoot(pointsPerItem, weightPerItem))
             return;
 
-        usesRemaining--;
+        itemsRemaining--;
 
-        if (usesRemaining <= 0)
-        {
-            available = false;
+        if (itemsRemaining > 0)
+            return;
 
-            if (respawnTime > 0f)
-                StartCoroutine(Respawn());
-        }
+        available = false;
+
+        if (respawnTime > 0f)
+            StartCoroutine(Respawn());
     }
 
     IEnumerator Respawn()
     {
         yield return new WaitForSeconds(respawnTime);
 
-        usesRemaining = usesBeforeEmpty;
-        available = true;
+        Refill();
     }
-}
+} 

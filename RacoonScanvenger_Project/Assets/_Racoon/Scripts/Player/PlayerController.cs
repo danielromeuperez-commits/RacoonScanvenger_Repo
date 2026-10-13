@@ -43,6 +43,10 @@ namespace Racoon.Player
         [Tooltip("Si llegas a 0, no puedes volver a correr hasta recuperar este porcentaje.")]
         [SerializeField, Range(0f, 1f)] float exhaustedRecoverThreshold = 0.3f;
 
+        [Header("Peso del loot")]
+        [Tooltip("Multiplicador de velocidad cuando la bolsa ha alcanzado Bag Full Weight.")]
+        [SerializeField, Range(0.1f, 1f)] float fullBagSpeedMultiplier = 0.75f;
+
         [Header("Duración de acciones (s)")]
         [SerializeField] float interactDuration = 0.4f;
         [SerializeField] float switchItemDuration = 0.25f;
@@ -54,6 +58,9 @@ namespace Racoon.Player
         [SerializeField] float interactRadius = 0.5f;
         [SerializeField] float interactHeight = 1f;
         [SerializeField] LayerMask interactMask = ~0;
+        [Tooltip("Tiempo mínimo entre cada objeto recogido al mantener Interact.")]
+        [SerializeField] float interactRepeatInterval = 0.25f;
+        float interactRepeatTimer;
 
         [Header("Golpe")]
         [Tooltip("Momento del golpe en el que se comprueba el impacto (frame activo).")]
@@ -226,6 +233,7 @@ namespace Racoon.Player
         CapsuleCollider capsule;
         PlayerInputHandler input;
         PlayerInventory inventory;
+        PlayerLoot playerLoot;
         NetworkTransform networkTransform;
         Transform cameraTransform;
 
@@ -283,6 +291,7 @@ namespace Racoon.Player
             capsule = GetComponent<CapsuleCollider>();
             input = GetComponent<PlayerInputHandler>();
             inventory = GetComponent<PlayerInventory>();
+            playerLoot = GetComponent<PlayerLoot>();
             networkTransform = GetComponent<NetworkTransform>();
         }
 
@@ -379,6 +388,20 @@ namespace Racoon.Player
                 }
             }
             float dt = Time.deltaTime;
+            if (interactRepeatTimer > 0f)
+                interactRepeatTimer -= dt;
+
+            // Si mantiene Interact, sigue saqueando automáticamente
+            // cuando termina la interacción anterior.
+            if (input.InteractHeld &&
+                !IsInAction &&
+                !itemRecoveryRequired &&
+                interactRepeatTimer <= 0f)
+            {
+                StartAction(PlayerState.Interact, interactDuration);
+                interactRepeatTimer = interactRepeatInterval;
+                RepeatInteractRpc();
+            }
             if (actionTimer > 0f) actionTimer -= dt;
             if (dashCooldownTimer > 0f) dashCooldownTimer -= dt;
             if (infiniteDashTimer > 0f)
@@ -430,7 +453,21 @@ namespace Racoon.Player
             {
                 if (!hasMoveInput) move = Vector2.zero;
                 desiredDirection = GetCameraRelativeDirection(move);
-                float targetSpeed = (isRunning ? runSpeed : walkSpeed) * move.magnitude;
+                float weightSpeedMultiplier = 1f;
+
+                if (playerLoot != null)
+                {
+                    weightSpeedMultiplier = Mathf.Lerp(
+                        1f,
+                        fullBagSpeedMultiplier,
+                        playerLoot.WeightNormalized
+                    );
+                }
+
+                float targetSpeed =
+                    (isRunning ? runSpeed : walkSpeed) *
+                    move.magnitude *
+                    weightSpeedMultiplier;
                 if (IsInAction) targetSpeed *= actionMoveMultiplier;
                 desiredVelocity = desiredDirection * targetSpeed;
             }
@@ -852,7 +889,9 @@ namespace Racoon.Player
         void OnInteractPressed()
         {
             if (IsInAction || itemRecoveryRequired) return;
+
             StartAction(PlayerState.Interact, interactDuration);
+            interactRepeatTimer = interactRepeatInterval;
             InteractRpc();
         }
 
@@ -931,10 +970,20 @@ namespace Racoon.Player
             onInteract?.Invoke(this);
 
             if (IsServer)
-                ServerInteractWithNearest();
+                ServerInteractWithNearest(false);
         }
 
-        void ServerInteractWithNearest()
+        /// <summary>
+        /// Repite la interacción mientras el jugador mantiene pulsado Interact.
+        /// Solo funciona con interactuables marcados como IRepeatableInteractable.
+        /// </summary>
+        [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Owner)]
+        void RepeatInteractRpc()
+        {
+            ServerInteractWithNearest(true);
+        }
+
+        void ServerInteractWithNearest(bool repeatOnly)
         {
             Vector3 origin =
                 transform.position +
@@ -971,6 +1020,11 @@ namespace Racoon.Player
 
                 IInteractable interactable =
                     hit.GetComponentInParent<IInteractable>();
+
+                // Al mantener E solo repetimos interactuables que
+                // explícitamente permitan interacción continua.
+                if (repeatOnly && interactable is not IRepeatableInteractable)
+                    continue;
 
                 if (interactable == null ||
                     !interactable.CanInteract(this))

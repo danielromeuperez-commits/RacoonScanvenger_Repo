@@ -10,6 +10,10 @@ namespace Racoon.Player
     /// </summary>
     public class PlayerLoot : NetworkBehaviour
     {
+        [Header("Debug")]
+        [SerializeField] float debugCurrentWeight;
+        [SerializeField] int debugCurrentPoints;
+
         [Header("Peso")]
         [Tooltip("Peso que consideraremos una bolsa completamente llena visualmente.")]
         [SerializeField, Min(0.1f)] float bagFullWeight = 20f;
@@ -22,6 +26,8 @@ namespace Racoon.Player
         public int LootPoints => lootPoints.Value;
         public float CarriedWeight => carriedWeight.Value;
         public float BagFullWeight => bagFullWeight;
+        public float CurrentWeight => carriedWeight.Value;
+        public int CurrentPoints => lootPoints.Value;
 
         /// <summary>
         /// 0 = bolsa vacía.
@@ -60,6 +66,15 @@ namespace Racoon.Player
         void OnLootPointsChanged(int _, int __)
         {
             LootChanged?.Invoke();
+        }
+
+        void Update()
+        {
+            if (!Application.isPlaying)
+                return;
+
+            debugCurrentWeight = carriedWeight.Value;
+            debugCurrentPoints = lootPoints.Value;
         }
 
         void OnWeightChanged(float _, float __)
