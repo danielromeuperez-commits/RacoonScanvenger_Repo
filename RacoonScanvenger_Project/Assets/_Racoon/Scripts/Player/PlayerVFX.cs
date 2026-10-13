@@ -21,6 +21,8 @@ namespace Racoon.Player
     ///  - onDash        → OnDash: polvo (uno por cada valor de dashDustDelays) orientado en la dirección del dash.
     ///  - StateChanged  → estelas de viento (WindTrailVFX hijo del jugador): fuertes en Dash, flojas en Run,
     ///                    apagadas en el resto (y al volver a encenderse salen en otras posiciones).
+    ///                  → pasos (FootstepVFX hijo del jugador): polvo + huellas al andar/correr; apagados
+    ///                    en Dash, HitStun y Knockdown (no son pasos).
     /// Animation Events: función "PlayVFX" con parámetro string = id del efecto (p. ej. "HitDust"
     /// en los keyframes de la animación de recibir golpe).
     /// </summary>
@@ -57,6 +59,10 @@ namespace Racoon.Player
         [Tooltip("Color del jugador para las estelas: se multiplica por el color/tint del WindTrailVFX (blanco = sin cambios).")]
         [SerializeField] Color windTint = Color.white;
 
+        [Header("Pasos (polvo + huellas)")]
+        [Tooltip("Vacío = el primero que haya en los hijos del jugador.")]
+        [SerializeField] FootstepVFX footsteps;
+
         [Header("Parpadeo al recibir golpes")]
         [Tooltip("Mientras está aturdido / derribado (sin control).")]
         [SerializeField] float blinkInterval = 0.08f;
@@ -74,6 +80,7 @@ namespace Racoon.Player
             if (controller == null) controller = GetComponentInParent<PlayerController>();
             if (windTrails == null && controller != null) windTrails = controller.GetComponentInChildren<WindTrailVFX>(true);
             if (windTrails != null) windTrails.SetPlayerTint(windTint);
+            if (footsteps == null && controller != null) footsteps = controller.GetComponentInChildren<FootstepVFX>(true);
             foreach (VfxEntry entry in effects)
                 if (!string.IsNullOrEmpty(entry.id)) lookup[entry.id] = entry;
         }
@@ -91,7 +98,7 @@ namespace Racoon.Player
             controller.onHeavyHit.AddListener(OnHeavyHit);
             controller.onDash.AddListener(OnDash);
             controller.StateChanged += OnStateChanged;
-            UpdateWind(controller.State);
+            UpdateStateVFX(controller.State);
         }
 
         void OnDisable()
@@ -155,19 +162,25 @@ namespace Racoon.Player
             Spawn(id, direction);
         }
 
-        // ---------------- Viento ----------------
+        // ---------------- Según el estado (viento, pasos) ----------------
 
-        void OnStateChanged(PlayerState previous, PlayerState current) => UpdateWind(current);
+        void OnStateChanged(PlayerState previous, PlayerState current) => UpdateStateVFX(current);
 
-        void UpdateWind(PlayerState state)
+        void UpdateStateVFX(PlayerState state)
         {
-            if (windTrails == null) return;
-            windTrails.SetMode(state switch
+            if (windTrails != null)
             {
-                PlayerState.Dash => WindTrailVFX.WindMode.Dash,
-                PlayerState.Run => WindTrailVFX.WindMode.Run,
-                _ => WindTrailVFX.WindMode.Off,
-            });
+                windTrails.SetMode(state switch
+                {
+                    PlayerState.Dash => WindTrailVFX.WindMode.Dash,
+                    PlayerState.Run => WindTrailVFX.WindMode.Run,
+                    _ => WindTrailVFX.WindMode.Off,
+                });
+            }
+
+            // En el dash y al recibir golpes se desliza, no camina.
+            if (footsteps != null)
+                footsteps.StepsEnabled = state != PlayerState.Dash && !state.IsStun();
         }
 
         // ---------------- Parpadeo ----------------

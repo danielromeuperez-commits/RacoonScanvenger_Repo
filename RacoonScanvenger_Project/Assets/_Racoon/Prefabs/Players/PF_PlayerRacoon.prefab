@@ -1,5 +1,79 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &4228399334233424728
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7303817628534803651}
+  - component: {fileID: 1055660273500123375}
+  m_Layer: 8
+  m_Name: VFX_Footsteps
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7303817628534803651
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4228399334233424728}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: -0.5, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4461479425360024682}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1055660273500123375
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4228399334233424728}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f66f31f584fff3143b0a3a5f8b18c88c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.VFX.FootstepVFX
+  walkRunSpeed: {x: 3.5, y: 6.5}
+  strideLength: {x: 0.45, y: 0.8}
+  minStepSpeed: 0.6
+  footSpacing: 0.15
+  footForward: 0.05
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 8
+  rayStartHeight: 0
+  rayDepth: 1.2
+  dustParticles: {fileID: 0}
+  dustMaterial: {fileID: 2100000, guid: 49b7918bfd7751c4b80626d98aa75231, type: 2}
+  dustColor: {r: 0.86, g: 0.8, b: 0.7, a: 1}
+  dustCount: {x: 1, y: 4}
+  dustSize: {x: 0.18, y: 0.32}
+  dustSpeed: {x: 0.4, y: 1.2}
+  dustLifetime: {x: 0.35, y: 0.6}
+  skidDust: 1
+  skidCount: 6
+  skidAngle: 100
+  skidBrake: 4
+  skidCooldown: 0.3
+  pawPrints: 1
+  pawMaterial: {fileID: 2100000, guid: c14a00abacb0f1c42a2a67257bf0eb12, type: 2}
+  pawColor: {r: 0.18867922, g: 0.13479398, b: 0.08988963, a: 1}
+  pawOpacity: 0.3
+  pawSize: 0.16
+  pawLifetime: {x: 2.5, y: 1.5}
+  pawPoolSize: 24
+  pawToeOut: 8
 --- !u!1 &4439787728245799242
 GameObject:
   m_ObjectHideFlags: 0
@@ -188,6 +262,7 @@ Transform:
   - {fileID: 7656385880907016937}
   - {fileID: 8218162048503567313}
   - {fileID: 5874813241284606397}
+  - {fileID: 7303817628534803651}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &2426525930917660955
@@ -531,6 +606,7 @@ MonoBehaviour:
   - 0.12
   windTrails: {fileID: 1775887957859038814}
   windTint: {r: 0.22241013, g: 0.3609913, b: 0.9622642, a: 1}
+  footsteps: {fileID: 1055660273500123375}
   blinkInterval: 0.08
   recoveryBlinkInterval: 0.16
 --- !u!1 &6483509581117828954
