@@ -357,7 +357,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Racoon.Player.PlayerInventory
   ShowTopMostFoldoutHeaderGroup: 1
-  database: {fileID: 11400000, guid: d6b1ff4e5c51f6f499883211ca5f2dbd, type: 2}
+  database: {fileID: 11400000, guid: 366f5ce6386323543b3fb0c43dabf98b, type: 2}
   maxItems: 2
   autoEquipOnPickup: 1
   autoEquipNextAfterUse: 1
@@ -386,14 +386,18 @@ MonoBehaviour:
   staminaRegenPerSecond: 20
   staminaRegenDelay: 0.75
   exhaustedRecoverThreshold: 0.3
+  fullBagSpeedMultiplier: 0.75
   interactDuration: 0.4
   switchItemDuration: 0.25
   punchDuration: 0.45
   useItemDuration: 0.5
+  interactDistance: 2
   interactRadius: 1.2
+  interactHeight: 1
   interactMask:
     serializedVersion: 2
     m_Bits: 64
+  interactRepeatInterval: 0.25
   punchHitDelay: 0.15
   punchRange: 0.9
   punchHeight: 0
@@ -659,6 +663,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Racoon.Player.PlayerLoot
   ShowTopMostFoldoutHeaderGroup: 1
   bagFullWeight: 20
+  debugBankedPoints: 0
+  debugPendingPoints: 0
+  debugCurrentWeight: 0
 --- !u!1 &8107090357829930905
 GameObject:
   m_ObjectHideFlags: 0
