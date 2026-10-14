@@ -17,6 +17,9 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/_Racoon/Scenes/SCN_PruebasFabre_Items.unity
     guid: 007ef8e4eef1e7a40b148fa353ae04ef
+  - enabled: 1
+    path: Assets/_Racoon/Scenes/SCN_test_Danienemy.unity
+    guid: 9a4db11f9d2a2614ab7aea9438b940ad
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   m_UseUCBPForAssetBundles: 0
