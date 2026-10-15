@@ -644,6 +644,7 @@ GameObject:
   - component: {fileID: 2062572893429925596}
   - component: {fileID: 8662951835625390090}
   - component: {fileID: 3055327258494851128}
+  - component: {fileID: 8132368764445112893}
   m_Layer: 8
   m_Name: PF_PlayerOpossum
   m_TagString: Untagged
@@ -1163,3 +1164,16 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 8835554606918836382, guid: 9bfd4a36357185747b090669e7438151, type: 3}
   m_PrefabInstance: {fileID: 3909782017475956112}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &8132368764445112893
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6443071073951013002}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: be2f3a4b5c6d47e8f9a0b1c2d3e4f5a6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.Player.PlayerCameraShake
+  controller: {fileID: 6147228204243766040}

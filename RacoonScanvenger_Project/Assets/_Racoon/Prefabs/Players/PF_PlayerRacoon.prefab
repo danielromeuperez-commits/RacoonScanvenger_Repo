@@ -255,6 +255,7 @@ GameObject:
   - component: {fileID: 7910946044982797803}
   - component: {fileID: 4691211560147461367}
   - component: {fileID: 3190472360854094177}
+  - component: {fileID: 111450340824447271}
   m_Layer: 8
   m_Name: PF_PlayerRacoon
   m_TagString: Untagged
@@ -1085,3 +1086,16 @@ MonoBehaviour:
   groundMask: 
     serializedVersion: 2
     m_Bits: 9
+--- !u!114 &111450340824447271
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6443071073951013002}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: be2f3a4b5c6d47e8f9a0b1c2d3e4f5a6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.Player.PlayerCameraShake
+  controller: {fileID: 6147228204243766040}

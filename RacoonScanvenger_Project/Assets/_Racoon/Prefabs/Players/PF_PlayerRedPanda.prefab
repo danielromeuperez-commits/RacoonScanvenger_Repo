@@ -277,6 +277,7 @@ GameObject:
   - component: {fileID: 7051271079864425435}
   - component: {fileID: 3001776071502062672}
   - component: {fileID: 285396400107484525}
+  - component: {fileID: 8034299879549578129}
   m_Layer: 8
   m_Name: PF_PlayerRedPanda
   m_TagString: Untagged
@@ -1069,3 +1070,16 @@ MonoBehaviour:
   groundMask: 
     serializedVersion: 2
     m_Bits: 9
+--- !u!114 &8034299879549578129
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6443071073951013002}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: be2f3a4b5c6d47e8f9a0b1c2d3e4f5a6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.Player.PlayerCameraShake
+  controller: {fileID: 6147228204243766040}
