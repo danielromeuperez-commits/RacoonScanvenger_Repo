@@ -144,5 +144,59 @@ namespace Racoon.Player
 
             return true;
         }
+
+        // ---------------- Resultado de partida ----------------
+
+        /// <summary>
+        /// Solo servidor. Envía al dueño de este jugador
+        /// si ha ganado o perdido la partida.
+        /// </summary>
+        public void ServerSendMatchResult(bool won)
+        {
+            if (!IsServer)
+            {
+                Debug.LogWarning("ServerSendMatchResult solo se puede llamar en el servidor.", this);
+                return;
+            }
+
+            MatchResultRpc(won);
+        }
+
+        /// <summary>
+        /// Se ejecuta únicamente en el cliente dueño de este jugador.
+        /// Por ahora solo muestra el resultado en la consola.
+        /// </summary>
+        [Rpc(SendTo.Owner, InvokePermission = RpcInvokePermission.Server)]
+        void MatchResultRpc(bool won)
+        {
+            if (won)
+                Debug.Log("HAS GANADO");
+            else
+                Debug.Log("HAS PERDIDO");
+        }
+
+        /// <summary>
+        /// Solo servidor. Envía al dueño de este jugador
+        /// el resultado de empate.
+        /// </summary>
+        public void ServerSendDrawResult()
+        {
+            if (!IsServer)
+            {
+                Debug.LogWarning("ServerSendDrawResult solo se puede llamar en el servidor.", this);
+                return;
+            }
+
+            DrawResultRpc();
+        }
+
+        /// <summary>
+        /// Se ejecuta únicamente en el cliente dueño de este jugador.
+        /// </summary>
+        [Rpc(SendTo.Owner, InvokePermission = RpcInvokePermission.Server)]
+        void DrawResultRpc()
+        {
+            Debug.Log("EMPATE");
+        }
     }
 }
