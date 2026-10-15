@@ -15,10 +15,15 @@ namespace Racoon.Player
     ///
     /// Se suscribe solo por código a los eventos del PlayerController (NO conectarlos también en el
     /// Inspector o se ejecutarían dos veces):
-    ///  - onLightHit    → OnLightHit: parpadeo rápido mientras está aturdido (golpes 1º y 2º).
+    ///  - onLightHit    → OnLightHit: parpadeo rápido mientras está aturdido (golpes 1º y 2º), impacto
+    ///                    (ImpactVFX) y polvo del empujón (KnockbackDustVFX).
     ///  - onHeavyHit    → OnHeavyHit: parpadeo rápido en el suelo + lento durante los i-frames al
-    ///                    levantarse (se corta si los gasta atacando o con un dash).
-    ///  - onDash        → OnDash: polvo (uno por cada valor de dashDustDelays) orientado en la dirección del dash.
+    ///                    levantarse (se corta si los gasta atacando o con un dash), impacto fuerte, polvo
+    ///                    del derribo y estrellas de mareo (DizzyStarsVFX) hasta que se levanta.
+    ///  - ActionStarted → Punch: golpe al aire (SwingVFX), conecte o no.
+    ///  - Estamina      → cansancio (TiredVFX: aliento y saliva) mientras está agotado.
+    ///  - onDash        → OnDash: humo del dash (FootstepVFX.PlayDash: explosión hacia atrás + rastro + colas) y, si hay
+    ///                    un efecto "DashDust" en la lista, también ese (uno por cada valor de dashDustDelays).
     ///  - StateChanged  → estelas de viento (WindTrailVFX hijo del jugador): fuertes en Dash, flojas en Run,
     ///                    apagadas en el resto (y al volver a encenderse salen en otras posiciones).
     ///                  → pasos (FootstepVFX hijo del jugador): polvo + huellas al andar/correr; apagados
@@ -63,6 +68,20 @@ namespace Racoon.Player
         [Tooltip("Vacío = el primero que haya en los hijos del jugador.")]
         [SerializeField] FootstepVFX footsteps;
 
+        [Header("Golpes (vacíos = los primeros que haya en los hijos del jugador)")]
+        [SerializeField] ImpactVFX impact;
+        [SerializeField] SwingVFX swing;
+        [SerializeField] DizzyStarsVFX dizzyStars;
+        [SerializeField] KnockbackDustVFX knockbackDust;
+
+        [Header("Cansancio")]
+        [Tooltip("Vacío = el primero que haya en los hijos del jugador.")]
+        [SerializeField] TiredVFX tired;
+        [Tooltip("En los demás clientes (no saben si está agotado): se cansa con la estamina por debajo de esto...")]
+        [SerializeField, Range(0f, 1f)] float tiredBelow = 0.02f;
+        [Tooltip("...y se recupera al volver a esto (igual que Exhausted Recover Threshold del PlayerController).")]
+        [SerializeField, Range(0f, 1f)] float tiredRecoverAt = 0.3f;
+
         [Header("Parpadeo al recibir golpes")]
         [Tooltip("Mientras está aturdido / derribado (sin control).")]
         [SerializeField] float blinkInterval = 0.08f;
@@ -72,17 +91,34 @@ namespace Racoon.Player
         readonly Dictionary<string, VfxEntry> lookup = new();
         readonly List<Renderer> blinkRenderers = new();
         Coroutine blinkRoutine;
+        bool remoteTired;
 
         void Reset() => controller = GetComponentInParent<PlayerController>();
 
         void Awake()
         {
             if (controller == null) controller = GetComponentInParent<PlayerController>();
-            if (windTrails == null && controller != null) windTrails = controller.GetComponentInChildren<WindTrailVFX>(true);
+            // Solo valen los de ESTE jugador: una referencia a otro prefab (p. ej. arrastrada desde el
+            // mapache al duplicarlo) apuntaría al asset, no a la instancia.
+            if (controller != null)
+            {
+                FindOwn(ref windTrails);
+                FindOwn(ref footsteps);
+                FindOwn(ref impact);
+                FindOwn(ref swing);
+                FindOwn(ref dizzyStars);
+                FindOwn(ref knockbackDust);
+                FindOwn(ref tired);
+            }
             if (windTrails != null) windTrails.SetPlayerTint(windTint);
-            if (footsteps == null && controller != null) footsteps = controller.GetComponentInChildren<FootstepVFX>(true);
             foreach (VfxEntry entry in effects)
                 if (!string.IsNullOrEmpty(entry.id)) lookup[entry.id] = entry;
+        }
+
+        void FindOwn<T>(ref T component) where T : Component
+        {
+            if (component == null || !component.transform.IsChildOf(controller.transform))
+                component = controller.GetComponentInChildren<T>(true);
         }
 
         // Cambiar windTint en el Inspector durante Play se ve al momento.
@@ -98,6 +134,7 @@ namespace Racoon.Player
             controller.onHeavyHit.AddListener(OnHeavyHit);
             controller.onDash.AddListener(OnDash);
             controller.StateChanged += OnStateChanged;
+            controller.ActionStarted += OnActionStarted;
             UpdateStateVFX(controller.State);
         }
 
@@ -109,8 +146,27 @@ namespace Racoon.Player
                 controller.onHeavyHit.RemoveListener(OnHeavyHit);
                 controller.onDash.RemoveListener(OnDash);
                 controller.StateChanged -= OnStateChanged;
+                controller.ActionStarted -= OnActionStarted;
             }
             StopBlink();
+            if (tired != null) tired.Tired = false;
+        }
+
+        void Update()
+        {
+            if (tired != null && controller != null) tired.Tired = IsTired();
+        }
+
+        // Agotado (estamina a 0 hasta recuperar un poco). Solo el dueño lo sabe seguro; en los demás
+        // clientes se deduce de la estamina replicada con la misma histéresis.
+        bool IsTired()
+        {
+            if (!controller.IsSpawned) return false;
+            if (controller.IsOwner) return controller.IsExhausted;
+            float stamina = controller.StaminaNormalized;
+            if (stamina <= tiredBelow) remoteTired = true;
+            else if (stamina >= tiredRecoverAt) remoteTired = false;
+            return remoteTired;
         }
 
         // ---------------- API ----------------
@@ -144,7 +200,9 @@ namespace Racoon.Player
         /// <summary>Suscrito a PlayerController.onDash.</summary>
         public void OnDash(Vector3 direction)
         {
-            // Sin configurar todavía: no avisar en cada dash.
+            if (footsteps != null) footsteps.PlayDash(direction, controller.DashDuration);
+
+            // Prefab extra opcional. Sin configurar: no avisar en cada dash.
             if (lookup.ContainsKey(dashDustId))
             {
                 foreach (float delay in dashDustDelays)
@@ -153,7 +211,6 @@ namespace Racoon.Player
                     else StartCoroutine(SpawnDelayed(dashDustId, direction, delay));
                 }
             }
-
         }
 
         IEnumerator SpawnDelayed(string id, Vector3 direction, float delay)
@@ -164,7 +221,17 @@ namespace Racoon.Player
 
         // ---------------- Según el estado (viento, pasos) ----------------
 
-        void OnStateChanged(PlayerState previous, PlayerState current) => UpdateStateVFX(current);
+        void OnStateChanged(PlayerState previous, PlayerState current)
+        {
+            UpdateStateVFX(current);
+            // Las estrellas de mareo se van al levantarse.
+            if (previous == PlayerState.Knockdown && current != PlayerState.Knockdown && dizzyStars != null) dizzyStars.Stop();
+        }
+
+        void OnActionStarted(PlayerState action)
+        {
+            if (action == PlayerState.Punch && swing != null) swing.Play();
+        }
 
         void UpdateStateVFX(PlayerState state)
         {
@@ -183,13 +250,37 @@ namespace Racoon.Player
                 footsteps.StepsEnabled = state != PlayerState.Dash && !state.IsStun();
         }
 
-        // ---------------- Parpadeo ----------------
+        // ---------------- Golpes recibidos ----------------
 
         /// <summary>Suscrito a PlayerController.onLightHit (golpes 1º y 2º del combo).</summary>
-        public void OnLightHit(PlayerController attacker, int hitNumber) => StartBlink(controller.LightHit);
+        public void OnLightHit(PlayerController attacker, int hitNumber)
+        {
+            StartBlink(controller.LightHit);
+            PlayHitVFX(attacker, false, controller.LightHit.stunDuration);
+        }
 
         /// <summary>Suscrito a PlayerController.onHeavyHit (golpe 3º: derribo).</summary>
-        public void OnHeavyHit(PlayerController attacker) => StartBlink(controller.HeavyHit);
+        public void OnHeavyHit(PlayerController attacker)
+        {
+            StartBlink(controller.HeavyHit);
+            PlayHitVFX(attacker, true, controller.HeavyHit.stunDuration);
+            if (dizzyStars != null) dizzyStars.Play();
+        }
+
+        void PlayHitVFX(PlayerController attacker, bool heavy, float stunDuration)
+        {
+            // Hacia donde sale despedido: lejos de quien golpea (sin atacante, hacia atrás: tras el golpe mira
+            // hacia quien le ha dado).
+            Vector3 away = attacker != null ? controller.transform.position - attacker.transform.position : -controller.transform.forward;
+            away.y = 0f;
+            if (away.sqrMagnitude < 0.0001f) away = -controller.transform.forward;
+            away.Normalize();
+
+            if (impact != null) impact.PlayTowards(-away, heavy);
+            if (knockbackDust != null) knockbackDust.Play(away, heavy, stunDuration);
+        }
+
+        // ---------------- Parpadeo ----------------
 
         // Un golpe nuevo reinicia el parpadeo.
         void StartBlink(PlayerController.HitReaction reaction)
@@ -197,8 +288,9 @@ namespace Racoon.Player
             StopBlink();
 
             // Se recogen al empezar: así entran también los objetos equipados que se hayan añadido.
+            // Los efectos (estrellas, impactos...) no: se encienden y apagan solos.
             foreach (Renderer rend in controller.GetComponentsInChildren<Renderer>())
-                if ((rend is MeshRenderer || rend is SkinnedMeshRenderer) && rend.enabled)
+                if ((rend is MeshRenderer || rend is SkinnedMeshRenderer) && rend.enabled && rend.GetComponentInParent<VfxBehaviour>() == null)
                     blinkRenderers.Add(rend);
 
             blinkRoutine = StartCoroutine(Blink(reaction.stunDuration, reaction.recoveryInvulnerability));

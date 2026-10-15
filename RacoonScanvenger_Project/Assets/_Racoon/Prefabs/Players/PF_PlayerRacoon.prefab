@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7303817628534803651}
   - component: {fileID: 1055660273500123375}
+  - component: {fileID: 4841924835749199425}
   m_Layer: 8
   m_Name: VFX_Footsteps
   m_TagString: Untagged
@@ -51,27 +52,42 @@ MonoBehaviour:
   footForward: 0.05
   groundMask:
     serializedVersion: 2
-    m_Bits: 8
-  rayStartHeight: 0
+    m_Bits: 9
+  rayStartHeight: 0.5
   rayDepth: 1.2
   dustParticles: {fileID: 0}
-  dustMaterial: {fileID: 2100000, guid: 49b7918bfd7751c4b80626d98aa75231, type: 2}
-  dustColor: {r: 0.86, g: 0.8, b: 0.7, a: 1}
+  dustMaterial: {fileID: 2100000, guid: e2f4a6b8c0d24f6e8a1b3c5d7e9f0a56, type: 2}
+  dustMesh: {fileID: 0}
+  smokeColor: {r: 0.13333334, g: 0.16862746, b: 0.4784314, a: 1}
   dustCount: {x: 1, y: 4}
   dustSize: {x: 0.18, y: 0.32}
   dustSpeed: {x: 0.4, y: 1.2}
-  dustLifetime: {x: 0.35, y: 0.6}
+  dustLifetime: {x: 0.5, y: 0.85}
   skidDust: 1
   skidCount: 6
   skidAngle: 100
   skidBrake: 4
   skidCooldown: 0.3
+  dashBurstCount: 9
+  dashBurstSize: 1.5
+  dashBurstSpeed: 2
+  dashTrailInterval: 0.04
+  dashTrailSize: 0.9
+  wisps: 1
+  wispMaterial: {fileID: 0}
+  wispColor: {r: 0.43467426, g: 0.47467, b: 0.8301887, a: 1}
+  dashWispCount: 3
+  skidWispCount: 2
+  wispSpeed: {x: 3, y: 5}
+  wispWidth: 0.1
+  wispLifetime: 0.45
+  wispLift: 0.4
   pawPrints: 1
   pawMaterial: {fileID: 2100000, guid: c14a00abacb0f1c42a2a67257bf0eb12, type: 2}
   pawColor: {r: 0.18867922, g: 0.13479398, b: 0.08988963, a: 1}
   pawOpacity: 0.3
-  pawSize: 0.16
-  pawLifetime: {x: 2.5, y: 1.5}
+  pawSize: 0.28
+  pawLifetime: {x: 1.2, y: 0.8}
   pawPoolSize: 24
   pawToeOut: 8
 --- !u!1 &4439787728245799242
@@ -264,6 +280,9 @@ Transform:
   - {fileID: 8218162048503567313}
   - {fileID: 5874813241284606397}
   - {fileID: 7303817628534803651}
+  - {fileID: 7053509061150698564}
+  - {fileID: 4832652324376523259}
+  - {fileID: 444817130851840992}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &2426525930917660955
@@ -350,14 +369,18 @@ MonoBehaviour:
   staminaRegenPerSecond: 20
   staminaRegenDelay: 0.75
   exhaustedRecoverThreshold: 0.3
+  fullBagSpeedMultiplier: 0.75
   interactDuration: 0.4
   switchItemDuration: 0.25
   punchDuration: 0.45
   useItemDuration: 0.5
+  interactDistance: 2
   interactRadius: 1.2
+  interactHeight: 1
   interactMask:
     serializedVersion: 2
     m_Bits: 64
+  interactRepeatInterval: 0.25
   punchHitDelay: 0.15
   punchRange: 0.9
   punchHeight: 0
@@ -624,6 +647,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Racoon.Player.PlayerLoot
   ShowTopMostFoldoutHeaderGroup: 1
+  debugCurrentWeight: 0
+  debugCurrentPoints: 0
   bagFullWeight: 20
 --- !u!1 &6483509581117828954
 GameObject:
@@ -890,3 +915,173 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 8835554606918836382, guid: 9bfd4a36357185747b090669e7438151, type: 3}
   m_PrefabInstance: {fileID: 3105713110312360227}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &5434399878066750498
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7053509061150698564}
+  - component: {fileID: 1888025249070064215}
+  - component: {fileID: 6171748403311185369}
+  m_Layer: 8
+  m_Name: VFX_Hit
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7053509061150698564
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5434399878066750498}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0.1, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4461479425360024682}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1888025249070064215
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5434399878066750498}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4d5e6f7a8b9c4ad1e2f3a4b5c6d7e8f9, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.VFX.ImpactVFX
+  overlayMaterial: {fileID: 2100000, guid: b06c8e0f2b4d45e7f9a1b3c5d7e9f1a3, type: 2}
+  flatMaterial: {fileID: 2100000, guid: 9e4a6c8d0f2b43c5d7e9f1a3b5c7d9e1, type: 2}
+--- !u!114 &6171748403311185369
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5434399878066750498}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5e6f7a8b9c0d4be2f3a4b5c6d7e8f9a0, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.VFX.SwingVFX
+  flatMaterial: {fileID: 2100000, guid: 9e4a6c8d0f2b43c5d7e9f1a3b5c7d9e1, type: 2}
+--- !u!1 &3531163072523986167
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4832652324376523259}
+  - component: {fileID: 748853546981431710}
+  m_Layer: 8
+  m_Name: VFX_Dizzy
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4832652324376523259
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3531163072523986167}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0.85, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4461479425360024682}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &748853546981431710
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3531163072523986167}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6f7a8b9c0d1e4cf3a4b5c6d7e8f9a0b1, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.VFX.DizzyStarsVFX
+  flatMaterial: {fileID: 2100000, guid: 9e4a6c8d0f2b43c5d7e9f1a3b5c7d9e1, type: 2}
+--- !u!1 &2018251849792585226
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 444817130851840992}
+  - component: {fileID: 710645567852123602}
+  m_Layer: 8
+  m_Name: VFX_Tired
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &444817130851840992
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2018251849792585226}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0.32, z: 0.36}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4461479425360024682}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &710645567852123602
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2018251849792585226}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8b9c0d1e2f3a4eb5c6d7e8f9a0b1c2d3, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.VFX.TiredVFX
+  smokeMaterial: {fileID: 2100000, guid: e2f4a6b8c0d24f6e8a1b3c5d7e9f0a56, type: 2}
+  flatMaterial: {fileID: 2100000, guid: 9e4a6c8d0f2b43c5d7e9f1a3b5c7d9e1, type: 2}
+  groundMask: 
+    serializedVersion: 2
+    m_Bits: 9
+--- !u!114 &4841924835749199425
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4228399334233424728}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7a8b9c0d1e2f4da4b5c6d7e8f9a0b1c2, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.VFX.KnockbackDustVFX
+  smokeMaterial: {fileID: 2100000, guid: e2f4a6b8c0d24f6e8a1b3c5d7e9f0a56, type: 2}
+  groundMask: 
+    serializedVersion: 2
+    m_Bits: 9

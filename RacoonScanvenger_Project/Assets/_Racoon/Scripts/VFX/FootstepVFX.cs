@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace Racoon.VFX
 {
@@ -8,9 +10,19 @@ namespace Racoon.VFX
     /// Los pasos se generan por DISTANCIA recorrida (no hay Animation Events): cada zancada, pie izquierdo
     /// y derecho alternos. Como solo usa el movimiento del transform, funciona igual en todos los clientes
     /// (también en los remotos) y sirve para jugadores y NPCs.
-    ///  - Polvo: pequeño al andar, más grande al correr, y una nube extra al frenar en seco o girar
-    ///    bruscamente. Si no asignas un ParticleSystem, se crea uno solo con el material de polvo.
-    ///  - Huellas: quads planos pegados al suelo (se adaptan a la inclinación), sutiles, que se desvanecen.
+    ///  - Polvo: puffs cartoon VOLUMÉTRICOS, como el humo dibujado: cada partícula es una nube 3D de
+    ///    burbujas solapadas (una grande y varias pequeñas alrededor). Pequeño al andar, más grande al
+    ///    correr, y una nube extra al frenar en seco o girar bruscamente. Si no asignas un ParticleSystem,
+    ///    se crea uno solo con el material de polvo.
+    ///  - Dash: explosión de puffs hacia atrás al arrancar y un rastro mientras dura (<see cref="PlayDash"/>).
+    ///  - Colas en punta: estelas finas que salen disparadas al hacer dash o frenar (Trails de partículas).
+    ///  - Con el material M_VFX_ToonSmoke (Shader Graph SG_VFX_ToonSmoke) los puffs tienen tonos planos
+    ///    (claro hacia la luz, oscuro detrás) y al final se rompen en bolitas; los datos por partícula que
+    ///    necesita se configuran solos (vertex streams).
+    ///  - Colores por jugador, independientes: humo (<see cref="SmokeColor"/>) y colas (<see cref="WispColor"/>), en el
+    ///    Inspector o por código.
+    ///  - Huellas: malla con FORMA de pata (almohadilla + 5 dedos, no un quad: nunca se ve el cuadrado),
+    ///    pegada al suelo y adaptada a su inclinación, sutil, que se desvanece.
     ///
     /// Montaje: hijo del personaje (Z = hacia delante). Quien lo controla puede apagar los pasos con
     /// <see cref="StepsEnabled"/> (p. ej. durante un dash o un golpe).
@@ -39,8 +51,15 @@ namespace Racoon.VFX
         [Header("Polvo")]
         [Tooltip("Vacío = se crea uno automáticamente con dustMaterial.")]
         [SerializeField] ParticleSystem dustParticles;
+        [Tooltip("Mejor opaco e iluminado (p. ej. FlatKit StylizedSurface): los puffs no se vuelven transparentes, se encogen.")]
         [SerializeField] Material dustMaterial;
-        [SerializeField] Color dustColor = new(0.86f, 0.8f, 0.7f, 1f);
+        [Tooltip("Malla de cada puff. Vacío = nubes de burbujas generadas (3 variantes). Con SG_VFX_ToonSmoke, una malla " +
+                 "propia necesita UV0 = (orden de la burbuja 0-1, radio de la burbuja) en cada vértice.")]
+        [SerializeField] Mesh dustMesh;
+        [Tooltip("Color del humo (los puffs) de este jugador: el tono iluminado. Las sombras salen solas a partir de él " +
+                 "con los tintes del material, así que mejor colores claros (uno oscuro deja la sombra casi negra).")]
+        [FormerlySerializedAs("dustColor")]
+        [SerializeField] Color smokeColor = new(0.83f, 0.85f, 0.9f, 1f);
         [Tooltip("Puffs por paso al andar / al correr.")]
         [SerializeField] Vector2Int dustCount = new(1, 4);
         [Tooltip("Tamaño de cada puff al andar / al correr (metros).")]
@@ -48,7 +67,7 @@ namespace Racoon.VFX
         [Tooltip("Velocidad con la que salen al andar / al correr.")]
         [SerializeField] Vector2 dustSpeed = new(0.4f, 1.2f);
         [Tooltip("Duración de cada puff (mín, máx).")]
-        [SerializeField] Vector2 dustLifetime = new(0.35f, 0.6f);
+        [SerializeField] Vector2 dustLifetime = new(0.5f, 0.85f);
 
         [Header("Frenazo / giro brusco")]
         [SerializeField] bool skidDust = true;
@@ -60,6 +79,35 @@ namespace Racoon.VFX
         [SerializeField] float skidBrake = 4f;
         [SerializeField] float skidCooldown = 0.3f;
 
+        [Header("Dash")]
+        [Tooltip("Puffs de la explosión al arrancar el dash.")]
+        [SerializeField] int dashBurstCount = 9;
+        [Tooltip("Tamaño de esos puffs respecto a los de correr.")]
+        [SerializeField] float dashBurstSize = 1.5f;
+        [Tooltip("Velocidad de esos puffs respecto a los de correr.")]
+        [SerializeField] float dashBurstSpeed = 2f;
+        [Tooltip("Cada cuántos segundos deja un puff mientras dura el dash (0 = ninguno).")]
+        [SerializeField] float dashTrailInterval = 0.04f;
+        [Tooltip("Tamaño de los puffs del recorrido respecto a los de correr.")]
+        [SerializeField] float dashTrailSize = 0.9f;
+
+        [Header("Colas en punta (dash / frenazo)")]
+        [SerializeField] bool wisps = true;
+        [Tooltip("Vacío = una copia del material de polvo en modo Wisp (SG_VFX_ToonSmoke con Wisp = 1).")]
+        [SerializeField] Material wispMaterial;
+        [Tooltip("Color de las colas, independiente del humo (color plano, sin sombra).")]
+        [SerializeField] Color wispColor = new(0.83f, 0.85f, 0.9f, 1f);
+        [SerializeField] int dashWispCount = 3;
+        [SerializeField] int skidWispCount = 2;
+        [Tooltip("Velocidad de salida (mín, máx). Frenan solas.")]
+        [SerializeField] Vector2 wispSpeed = new(3f, 5f);
+        [Tooltip("Grosor máximo de la cola (metros).")]
+        [SerializeField] float wispWidth = 0.1f;
+        [Tooltip("Segundos que dura cada cola.")]
+        [SerializeField] float wispLifetime = 0.45f;
+        [Tooltip("Cuánto se curvan hacia arriba.")]
+        [SerializeField] float wispLift = 0.4f;
+
         [Header("Huellas")]
         [SerializeField] bool pawPrints = true;
         [SerializeField] Material pawMaterial;
@@ -67,9 +115,9 @@ namespace Racoon.VFX
         [Tooltip("Opacidad de las huellas (sutiles).")]
         [SerializeField, Range(0f, 1f)] float pawOpacity = 0.3f;
         [Tooltip("Tamaño de la huella (metros).")]
-        [SerializeField] float pawSize = 0.16f;
+        [SerializeField] float pawSize = 0.28f;
         [Tooltip("Segundos visibles a opacidad completa + segundos desvaneciéndose.")]
-        [SerializeField] Vector2 pawLifetime = new(2.5f, 1.5f);
+        [SerializeField] Vector2 pawLifetime = new(1.2f, 0.8f);
         [Tooltip("Huellas a la vez como máximo (las más viejas se reutilizan).")]
         [SerializeField] int pawPoolSize = 24;
         [Tooltip("Gira la huella hacia fuera un poco (grados), como los pies de verdad.")]
@@ -78,10 +126,33 @@ namespace Racoon.VFX
         /// <summary>Apaga/enciende los pasos (polvo y huellas). El frenazo también se apaga.</summary>
         public bool StepsEnabled { get; set; } = true;
 
+        /// <summary>Color del humo (tono iluminado). Cambia también el de los puffs que ya están en el aire.</summary>
+        public Color SmokeColor
+        {
+            get => smokeColor;
+            set
+            {
+                smokeColor = value;
+                ApplyColors();
+            }
+        }
+
+        /// <summary>Color de las colas en punta, independiente del humo.</summary>
+        public Color WispColor
+        {
+            get => wispColor;
+            set
+            {
+                wispColor = value;
+                ApplyColors();
+            }
+        }
+
         static readonly RaycastHit[] hits = new RaycastHit[8];
         static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
         static readonly int ColorId = Shader.PropertyToID("_Color");
-        static Mesh quadMesh;
+        static readonly int WispId = Shader.PropertyToID("_Wisp");
+        static Mesh pawMesh;
 
         Transform root;
         Vector3 lastPosition;
@@ -92,6 +163,13 @@ namespace Racoon.VFX
         float distanceSinceStep;
         bool rightFoot;
         float skidTimer;
+        float dashTimer;
+        float dashTrailTimer;
+        Vector3 dashDirection;
+        ParticleSystem wispParticles;
+        Material runtimeWispMaterial;
+        MaterialPropertyBlock smokeBlock;
+        MaterialPropertyBlock wispBlock;
 
         // Huellas
         Transform pawContainer;
@@ -107,13 +185,33 @@ namespace Racoon.VFX
             Rigidbody body = GetComponentInParent<Rigidbody>();
             root = body != null ? body.transform : transform.root;
             lastPosition = transform.position;
-            if (dustParticles == null && dustMaterial != null) dustParticles = CreateDustSystem();
+            if (dustParticles == null && dustMaterial != null)
+                dustParticles = ToonSmoke.CreateSystem("DustParticles", transform, dustMaterial,
+                    dustMesh != null ? new[] { dustMesh } : ToonSmoke.CloudMeshes);
+            else if (dustParticles != null)
+                ToonSmoke.ConfigureStreams(dustParticles);
+            if (wisps) CreateWisps();
+            ApplyColors();
             if (pawPrints && pawMaterial != null) CreatePawPool();
+        }
+
+        // Cambios de color en el Inspector durante Play se ven al momento.
+        void OnValidate()
+        {
+            if (Application.isPlaying) ApplyColors();
+        }
+
+        // Los colores van al renderer de este jugador (sin tocar el asset). Cambian también las partículas que ya existen.
+        void ApplyColors()
+        {
+            ToonSmoke.ApplyColor(dustParticles, ref smokeBlock, smokeColor);
+            ToonSmoke.ApplyColor(wispParticles, ref wispBlock, wispColor);
         }
 
         void OnDestroy()
         {
             if (pawContainer != null) Destroy(pawContainer.gameObject);
+            if (runtimeWispMaterial != null) Destroy(runtimeWispMaterial);
         }
 
         void OnDisable()
@@ -146,6 +244,7 @@ namespace Racoon.VFX
             }
 
             UpdatePaws();
+            UpdateDashTrail(dt);
 
             if (!StepsEnabled)
             {
@@ -209,6 +308,38 @@ namespace Racoon.VFX
             if (!FindGround(transform.position, out Vector3 point, out _)) return;
             // Sale hacia donde iba (la inercia), más fuerte que un paso.
             EmitDust(point, -forward, skidCount, 1f, 1.3f);
+            EmitWisps(point, forward, skidWispCount, 0.7f);
+        }
+
+        // ---------------- Dash ----------------
+
+        /// <summary>
+        /// Humo del dash: explosión de puffs hacia atrás al arrancar y un rastro mientras dura.
+        /// Funciona aunque los pasos estén apagados (durante el dash lo están).
+        /// </summary>
+        public void PlayDash(Vector3 direction, float duration)
+        {
+            direction.y = 0f;
+            dashDirection = direction.sqrMagnitude > 0.0001f ? direction.normalized : FlatForward();
+            dashTimer = duration;
+            dashTrailTimer = dashTrailInterval;
+
+            if (!FindGround(transform.position, out Vector3 point, out _)) return;
+            EmitDust(point, dashDirection, dashBurstCount, 1f, dashBurstSize, dashBurstSpeed, 1.2f);
+            EmitWisps(point, -dashDirection, dashWispCount);
+        }
+
+        void UpdateDashTrail(float dt)
+        {
+            if (dashTimer <= 0f) return;
+            dashTimer -= dt;
+            if (dashTrailInterval <= 0f || dustParticles == null) return;
+
+            dashTrailTimer -= dt;
+            if (dashTrailTimer > 0f) return;
+            dashTrailTimer += dashTrailInterval;
+            if (FindGround(transform.position, out Vector3 point, out _))
+                EmitDust(point, dashDirection, 1, 1f, dashTrailSize * Random.Range(0.8f, 1.1f), 0.5f, 0.6f);
         }
 
         Vector3 FlatForward()
@@ -241,33 +372,64 @@ namespace Racoon.VFX
 
         // ---------------- Polvo ----------------
 
-        void EmitDust(Vector3 point, Vector3 forward, int count, float intensity, float sizeMultiplier)
+        // spread: cuánto se abren hacia los lados (1 = normal).
+        void EmitDust(Vector3 point, Vector3 forward, int count, float intensity, float sizeMultiplier,
+            float speedMultiplier = 1f, float spread = 1f)
         {
             if (dustParticles == null || count <= 0) return;
 
             Vector3 side = Vector3.Cross(Vector3.up, forward);
             float size = Mathf.Lerp(dustSize.x, dustSize.y, intensity) * sizeMultiplier;
-            float velocity = Mathf.Lerp(dustSpeed.x, dustSpeed.y, intensity);
+            float velocity = Mathf.Lerp(dustSpeed.x, dustSpeed.y, intensity) * speedMultiplier;
             ParticleSystem.EmitParams emit = new() { applyShapeToPosition = false };
             for (int i = 0; i < count; i++)
             {
                 // Hacia atrás y a los lados (lo que levanta el pie), y un poco hacia arriba.
-                Vector3 direction = (-forward * 0.7f + side * Random.Range(-0.8f, 0.8f) + Vector3.up * Random.Range(0.2f, 0.6f)).normalized;
-                emit.position = point + side * Random.Range(-0.05f, 0.05f) + Vector3.up * (size * 0.3f);
+                Vector3 direction = (-forward * 0.7f + side * (Random.Range(-0.8f, 0.8f) * spread) + Vector3.up * Random.Range(0.2f, 0.6f)).normalized;
+                emit.position = point + side * Random.Range(-0.05f, 0.05f) + Vector3.up * (size * 0.4f); // Apoyados en el suelo.
                 emit.velocity = direction * (velocity * Random.Range(0.6f, 1.2f));
                 emit.startSize = size * Random.Range(0.75f, 1.15f);
                 emit.startLifetime = Random.Range(dustLifetime.x, dustLifetime.y);
-                Color color = dustColor;
-                float shade = Random.Range(0.92f, 1.05f);
-                emit.startColor = new Color(color.r * shade, color.g * shade, color.b * shade, color.a);
                 dustParticles.Emit(emit, 1);
             }
         }
 
-        // Puffs cartoon: crecen rápido, frenan y se encogen hasta desaparecer (no se vuelven transparentes).
-        ParticleSystem CreateDustSystem()
+        // Colas en punta: salen disparadas hacia "direction" en abanico, frenan, se curvan hacia arriba y se
+        // retraen hasta desaparecer.
+        void EmitWisps(Vector3 point, Vector3 direction, int count, float speedMultiplier = 1f)
         {
-            GameObject go = new("DustParticles");
+            if (wispParticles == null || count <= 0) return;
+
+            Vector3 side = Vector3.Cross(Vector3.up, direction);
+            ParticleSystem.EmitParams emit = new() { applyShapeToPosition = false };
+            for (int i = 0; i < count; i++)
+            {
+                float fan = count == 1 ? 0f : i / (count - 1f) * 2f - 1f; // -1..1
+                Vector3 heading = (direction + side * (fan * 0.6f + Random.Range(-0.15f, 0.15f)) + Vector3.up * Random.Range(0.05f, 0.25f)).normalized;
+                emit.position = point + side * (fan * 0.1f) + Vector3.up * Random.Range(0.08f, 0.2f);
+                emit.velocity = heading * (Random.Range(wispSpeed.x, wispSpeed.y) * speedMultiplier);
+                emit.startSize = wispWidth * Random.Range(0.8f, 1.2f);
+                emit.startLifetime = wispLifetime * Random.Range(0.85f, 1.15f);
+                wispParticles.Emit(emit, 1);
+            }
+        }
+
+        void CreateWisps()
+        {
+            Material material = wispMaterial;
+            if (material == null && dustMaterial != null && dustMaterial.HasProperty(WispId))
+            {
+                runtimeWispMaterial = new Material(dustMaterial) { name = $"{dustMaterial.name}_Wisp" };
+                runtimeWispMaterial.SetFloat(WispId, 1f);
+                material = runtimeWispMaterial;
+            }
+            if (material != null) wispParticles = CreateWispSystem(material);
+        }
+
+        // Partículas invisibles que solo dibujan su Trail: una cola en punta por los dos extremos.
+        ParticleSystem CreateWispSystem(Material material)
+        {
+            GameObject go = new("DustWisps");
             go.transform.SetParent(transform, false);
             ParticleSystem system = go.AddComponent<ParticleSystem>();
             system.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
@@ -277,36 +439,45 @@ namespace Racoon.VFX
             main.playOnAwake = false;
             main.simulationSpace = ParticleSystemSimulationSpace.World;
             main.startSpeed = 0f;
-            main.startLifetime = new ParticleSystem.MinMaxCurve(dustLifetime.x, dustLifetime.y);
-            main.startRotation = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
-            main.gravityModifier = -0.05f; // Sube un poquito.
-            main.maxParticles = 128;
+            main.startLifetime = wispLifetime;
+            main.gravityModifier = -wispLift; // Se curvan hacia arriba.
+            main.maxParticles = 32;
 
             ParticleSystem.EmissionModule emission = system.emission;
             emission.enabled = false;
             ParticleSystem.ShapeModule shape = system.shape;
             shape.enabled = false;
 
-            ParticleSystem.SizeOverLifetimeModule sizeOverLifetime = system.sizeOverLifetime;
-            sizeOverLifetime.enabled = true;
-            sizeOverLifetime.size = new ParticleSystem.MinMaxCurve(1f, new AnimationCurve(
-                new Keyframe(0f, 0.4f), new Keyframe(0.18f, 1f), new Keyframe(0.6f, 0.85f), new Keyframe(1f, 0f)));
-
             ParticleSystem.LimitVelocityOverLifetimeModule limit = system.limitVelocityOverLifetime;
             limit.enabled = true;
             limit.limit = 100f;
-            limit.drag = 4f; // Salen rápido y frenan.
+            limit.drag = 5f;
 
-            ParticleSystem.RotationOverLifetimeModule rotation = system.rotationOverLifetime;
-            rotation.enabled = true;
-            rotation.z = new ParticleSystem.MinMaxCurve(-1.5f, 1.5f);
+            ParticleSystem.SizeOverLifetimeModule sizeOverLifetime = system.sizeOverLifetime;
+            sizeOverLifetime.enabled = true;
+            sizeOverLifetime.size = new ParticleSystem.MinMaxCurve(1f, new AnimationCurve(
+                new Keyframe(0f, 1f), new Keyframe(0.6f, 0.8f), new Keyframe(1f, 0f)));
+
+            ParticleSystem.TrailModule trails = system.trails;
+            trails.enabled = true;
+            trails.mode = ParticleSystemTrailMode.PerParticle;
+            trails.ratio = 1f;
+            trails.lifetime = 0.5f; // Fracción de la vida de la partícula: la cola se va retrayendo.
+            trails.minVertexDistance = 0.03f;
+            trails.worldSpace = true;
+            trails.dieWithParticles = false; // Termina de retraerse aunque la partícula ya no exista.
+            trails.textureMode = ParticleSystemTrailTextureMode.Stretch;
+            trails.sizeAffectsWidth = true;
+            trails.sizeAffectsLifetime = false;
+            trails.inheritParticleColor = true;
+            trails.widthOverTrail = new ParticleSystem.MinMaxCurve(1f, new AnimationCurve(
+                new Keyframe(0f, 0.15f), new Keyframe(0.3f, 1f), new Keyframe(1f, 0f)));
 
             ParticleSystemRenderer renderer = go.GetComponent<ParticleSystemRenderer>();
-            renderer.sharedMaterial = dustMaterial;
-            renderer.renderMode = ParticleSystemRenderMode.Billboard;
+            renderer.renderMode = ParticleSystemRenderMode.None;
+            renderer.trailMaterial = material;
             renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             renderer.receiveShadows = false;
-            renderer.sortMode = ParticleSystemSortMode.Distance;
 
             system.Play();
             return system;
@@ -316,7 +487,7 @@ namespace Racoon.VFX
 
         void CreatePawPool()
         {
-            if (quadMesh == null) quadMesh = CreateQuad();
+            if (pawMesh == null) pawMesh = CreatePawMesh();
             block = new MaterialPropertyBlock();
 
             // Fuera del personaje: las huellas se quedan en el mundo.
@@ -329,7 +500,7 @@ namespace Racoon.VFX
             {
                 GameObject go = new("Paw");
                 go.transform.SetParent(pawContainer, false);
-                go.AddComponent<MeshFilter>().sharedMesh = quadMesh;
+                go.AddComponent<MeshFilter>().sharedMesh = pawMesh;
                 MeshRenderer renderer = go.AddComponent<MeshRenderer>();
                 renderer.sharedMaterial = pawMaterial;
                 renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
@@ -385,21 +556,112 @@ namespace Racoon.VFX
             pawRenderers[i].SetPropertyBlock(block);
         }
 
-        // Quad 1x1 tumbado (XZ), mirando hacia arriba. UV v = 1 hacia delante (+Z): los dedos de la textura van arriba.
-        static Mesh CreateQuad()
+        // ---------------- Mallas generadas ----------------
+
+        // Huella con la forma de T_VFX_PawPrint (mismas figuras, en píxeles de la textura de 128):
+        // almohadilla (envolvente de dos elipses) + 5 dedos. Tumbada en XZ mirando hacia arriba, 1x1 m,
+        // dedos hacia +Z. Las UV coinciden con la textura, así el borde suave de la textura se mantiene.
+        static Mesh CreatePawMesh()
         {
-            Mesh mesh = new() { name = "PawQuad" };
-            mesh.vertices = new[]
+            const float texSize = 128f, margin = 1.5f; // Píxeles extra para no cortar el borde difuminado.
+            List<Vector3> vertices = new();
+            List<Vector2> uvs = new();
+            List<int> triangles = new();
+
+            // Almohadilla: una sola figura convexa (sin solapes que oscurezcan la huella).
+            List<Vector2> pad = new();
+            AddEllipsePoints(pad, new Vector2(64f, 82f), 24f + margin, 20f + margin, 0f, 32);
+            AddEllipsePoints(pad, new Vector2(64f, 92f), 18f + margin, 14f + margin, 0f, 32);
+            AddFan(ConvexHull(pad), vertices, uvs, triangles, texSize);
+
+            // Dedos: (desplazamiento x, inclinación) como en la textura.
+            (float x, float angle)[] toes = { (-30f, -0.55f), (-15f, -0.2f), (0f, 0f), (15f, 0.2f), (30f, 0.55f) };
+            for (int i = 0; i < toes.Length; i++)
             {
-                new Vector3(-0.5f, 0f, -0.5f), new Vector3(-0.5f, 0f, 0.5f),
-                new Vector3(0.5f, 0f, 0.5f), new Vector3(0.5f, 0f, -0.5f),
-            };
-            mesh.uv = new[] { new Vector2(0f, 0f), new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(1f, 0f) };
-            mesh.normals = new[] { Vector3.up, Vector3.up, Vector3.up, Vector3.up };
-            mesh.colors = new[] { Color.white, Color.white, Color.white, Color.white };
-            mesh.triangles = new[] { 0, 1, 2, 0, 2, 3 };
+                float distance = i is >= 1 and <= 3 ? 40f : 33f;
+                Vector2 center = new(64f + toes[i].x, 82f - distance + Mathf.Abs(toes[i].x) * 0.25f);
+                List<Vector2> toe = new();
+                AddEllipsePoints(toe, center, 6.5f + margin, 11f + margin, toes[i].angle, 16);
+                AddFan(toe, vertices, uvs, triangles, texSize);
+            }
+
+            Mesh mesh = new() { name = "PawPrint" };
+            mesh.SetVertices(vertices);
+            mesh.SetUVs(0, uvs);
+            mesh.SetTriangles(triangles, 0);
+            Vector3[] normals = new Vector3[vertices.Count];
+            Color[] colors = new Color[vertices.Count];
+            for (int i = 0; i < normals.Length; i++)
+            {
+                normals[i] = Vector3.up;
+                colors[i] = Color.white;
+            }
+            mesh.normals = normals;
+            mesh.colors = colors;
             mesh.RecalculateBounds();
             return mesh;
+        }
+
+        // Elipse en coordenadas de imagen (y hacia abajo), girada como en el generador de la textura.
+        static void AddEllipsePoints(List<Vector2> points, Vector2 center, float rx, float ry, float angle, int segments)
+        {
+            float cos = Mathf.Cos(angle), sin = Mathf.Sin(angle);
+            for (int i = 0; i < segments; i++)
+            {
+                float t = i * Mathf.PI * 2f / segments;
+                float x = rx * Mathf.Cos(t), y = ry * Mathf.Sin(t);
+                points.Add(new Vector2(center.x + x * cos - y * sin, center.y + x * sin + y * cos));
+            }
+        }
+
+        // Abanico desde el centro de una figura convexa. Píxel de imagen → quad 1x1 en XZ (+Z = arriba de la imagen).
+        static void AddFan(List<Vector2> outline, List<Vector3> vertices, List<Vector2> uvs, List<int> triangles, float texSize)
+        {
+            Vector2 centroid = Vector2.zero;
+            foreach (Vector2 point in outline) centroid += point;
+            centroid /= outline.Count;
+
+            int start = vertices.Count;
+            AddVertex(centroid);
+            foreach (Vector2 point in outline) AddVertex(point);
+
+            for (int i = 0; i < outline.Count; i++)
+            {
+                int a = start, b = start + 1 + i, c = start + 1 + (i + 1) % outline.Count;
+                // Que mire hacia arriba (Unity: cara visible = cross(b-a, c-a)).
+                if (Vector3.Cross(vertices[b] - vertices[a], vertices[c] - vertices[a]).y < 0f) (b, c) = (c, b);
+                triangles.Add(a);
+                triangles.Add(b);
+                triangles.Add(c);
+            }
+
+            void AddVertex(Vector2 pixel)
+            {
+                Vector2 uv = new(pixel.x / texSize, 1f - pixel.y / texSize);
+                uvs.Add(uv);
+                vertices.Add(new Vector3(uv.x - 0.5f, 0f, uv.y - 0.5f));
+            }
+        }
+
+        // Envolvente convexa (cadena monótona), en orden.
+        static List<Vector2> ConvexHull(List<Vector2> points)
+        {
+            points.Sort((a, b) => a.x != b.x ? a.x.CompareTo(b.x) : a.y.CompareTo(b.y));
+            List<Vector2> hull = new();
+            for (int pass = 0; pass < 2; pass++)
+            {
+                int floor = hull.Count;
+                for (int i = 0; i < points.Count; i++)
+                {
+                    Vector2 p = points[pass == 0 ? i : points.Count - 1 - i];
+                    while (hull.Count >= floor + 2 && Cross(hull[^2], hull[^1], p) <= 0f) hull.RemoveAt(hull.Count - 1);
+                    hull.Add(p);
+                }
+                hull.RemoveAt(hull.Count - 1);
+            }
+            return hull;
+
+            static float Cross(Vector2 o, Vector2 a, Vector2 b) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
         }
 
         // ---------------- Gizmos ----------------
