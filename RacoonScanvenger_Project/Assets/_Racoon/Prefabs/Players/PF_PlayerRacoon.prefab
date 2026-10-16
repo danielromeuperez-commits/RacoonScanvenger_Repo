@@ -341,7 +341,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Racoon.Player.PlayerInventory
   ShowTopMostFoldoutHeaderGroup: 1
-  database: {fileID: 11400000, guid: d6b1ff4e5c51f6f499883211ca5f2dbd, type: 2}
+  database: {fileID: 11400000, guid: 366f5ce6386323543b3fb0c43dabf98b, type: 2}
   maxItems: 2
   autoEquipOnPickup: 1
   autoEquipNextAfterUse: 1
@@ -651,6 +651,9 @@ MonoBehaviour:
   debugCurrentWeight: 0
   debugCurrentPoints: 0
   bagFullWeight: 20
+  debugBankedPoints: 0
+  debugPendingPoints: 0
+  debugCurrentWeight: 0
 --- !u!1 &6483509581117828954
 GameObject:
   m_ObjectHideFlags: 0

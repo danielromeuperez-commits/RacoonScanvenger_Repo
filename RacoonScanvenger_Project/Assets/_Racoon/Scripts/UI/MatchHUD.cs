@@ -68,7 +68,7 @@ public class MatchHUD : MonoBehaviour
         {
             player1PointsText.text =
                 players.Count > 0
-                    ? players[0].LootPoints.ToString()
+                    ? GetPointsText(players[0])
                     : "0";
         }
 
@@ -76,9 +76,38 @@ public class MatchHUD : MonoBehaviour
         {
             player2PointsText.text =
                 players.Count > 1
-                    ? players[1].LootPoints.ToString()
+                    ? GetPointsText(players[1])
                     : "0";
         }
+    }
+
+    string GetPointsText(PlayerLoot player)
+    {
+        if (player == null)
+            return "0";
+
+        int banked = player.BankedPoints;
+        int pending = player.PendingPoints;
+
+        // Si todavía no ha vendido nada, mostramos
+        // únicamente los puntos pendientes en rojo.
+        if (banked == 0 && pending > 0)
+        {
+            return $"<color=#E84C4C>{pending}</color>";
+        }
+
+        // Si tiene puntos vendidos y además lleva nuevo loot,
+        // mostramos los vendidos en verde y los pendientes en rojo.
+        if (pending > 0)
+        {
+            return
+                $"<color=#55C96B>{banked}</color> " +
+                $"<color=#E84C4C>+{pending}</color>";
+        }
+
+        // Si no lleva loot pendiente, mostramos
+        // únicamente los puntos ya vendidos en verde.
+        return $"<color=#55C96B>{banked}</color>";
     }
 
     void UpdateTimer()

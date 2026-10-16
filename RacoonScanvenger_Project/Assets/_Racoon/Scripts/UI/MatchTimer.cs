@@ -6,7 +6,9 @@ using UnityEngine;
 public class MatchTimer : NetworkBehaviour
 {
     [Header("Partida")]
-    [SerializeField] float matchDuration = 300f;
+    [Tooltip("Duración de la partida en segundos.")]
+    [SerializeField, Min(1f)] float matchDuration = 300f;
+
     [SerializeField] bool autoStart = true;
 
     readonly NetworkVariable<double> matchEndTime = new(0);
@@ -62,6 +64,9 @@ public class MatchTimer : NetworkBehaviour
             return;
 
         matchRunning.Value = false;
+
+        DetermineWinner();
+
         matchFinished.Value = true;
     }
 
@@ -75,6 +80,72 @@ public class MatchTimer : NetworkBehaviour
 
         matchEndTime.Value =
             NetworkManager.ServerTime.Time + matchDuration;
+    }
+
+    void DetermineWinner()
+    {
+        if (!IsServer)
+            return;
+
+        PlayerLoot[] players =
+            FindObjectsByType<PlayerLoot>(FindObjectsSortMode.None);
+
+        if (players.Length < 2)
+        {
+            Debug.LogWarning(
+                "No hay suficientes jugadores para determinar un ganador."
+            );
+            return;
+        }
+
+        // Los ordenamos por OwnerClientId para que el orden sea
+        // siempre el mismo en todas las partidas.
+        System.Array.Sort(players, (a, b) =>
+            a.OwnerClientId.CompareTo(b.OwnerClientId)
+        );
+
+        PlayerLoot player1 = players[0];
+        PlayerLoot player2 = players[1];
+
+        int player1Points = player1.BankedPoints;
+        int player2Points = player2.BankedPoints;
+
+        Debug.Log(
+            $"RESULTADO FINAL -> " +
+            $"Jugador {player1.OwnerClientId}: {player1Points} puntos | " +
+            $"Jugador {player2.OwnerClientId}: {player2Points} puntos"
+        );
+
+        // JUGADOR 1 GANA
+        if (player1Points > player2Points)
+        {
+            Debug.Log(
+                $"Ganador: jugador {player1.OwnerClientId}"
+            );
+
+            player1.ServerSendMatchResult(true);
+            player2.ServerSendMatchResult(false);
+        }
+
+        // JUGADOR 2 GANA
+        else if (player2Points > player1Points)
+        {
+            Debug.Log(
+                $"Ganador: jugador {player2.OwnerClientId}"
+            );
+
+            player1.ServerSendMatchResult(false);
+            player2.ServerSendMatchResult(true);
+        }
+
+        // EMPATE
+        else
+        {
+            Debug.Log("La partida ha terminado en empate.");
+
+            player1.ServerSendDrawResult();
+            player2.ServerSendDrawResult();
+        }
     }
 
     void OnMatchFinishedChanged(bool previous, bool current)
