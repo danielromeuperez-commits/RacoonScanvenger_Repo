@@ -3,29 +3,44 @@ using UnityEngine;
 namespace Racoon.VFX
 {
     /// <summary>
-    /// Golpe al aire (estilo Persona 5): una media luna blanca con bordes dorados que barre por delante del
-    /// personaje y unas líneas de velocidad hacia delante. Cada golpe barre hacia el lado contrario que el
-    /// anterior (izquierda / derecha), como un combo.
+    /// Golpe al aire: un tajo 3D en media luna (sección aplanada, gordo en el centro y en punta por los extremos)
+    /// que barre por delante del personaje, y unas líneas de velocidad con volumen hacia delante. Cada golpe barre
+    /// hacia el lado contrario que el anterior (izquierda / derecha), como un combo. Con volumen (SG_VFX_ToonVolume):
+    /// luz y sombra en dos tonos, brillo especular, luz de borde y contorno; caras blancas y filos dorados.
     ///
     /// Montaje: hijo del personaje a la altura del pecho, Z hacia delante. Lo lanza PlayerVFX al empezar el
     /// puñetazo (en todos los clientes), conecte o no.
     /// </summary>
     public class SwingVFX : VfxBehaviour
     {
-        [Tooltip("M_VFX_ToonFlat (con profundidad: puede quedar detrás del personaje u objetos).")]
+        [Header("Materiales")]
+        [Tooltip("M_VFX_ToonVolume: tajo y líneas con volumen.")]
+        [SerializeField] Material volumeMaterial;
+        [Tooltip("M_VFX_ToonFlat: solo si falta volumeMaterial.")]
         [SerializeField] Material flatMaterial;
 
         [Header("Colores")]
+        [Tooltip("Caras del tajo...")]
         [SerializeField] Color arcColor = Color.white;
+        [Tooltip("...y sus filos.")]
         [SerializeField] Color arcEdgeColor = new(1f, 0.8f, 0.28f);
         [SerializeField] Color lineColor = Color.white;
         [SerializeField] Color lineTipColor = new(1f, 0.8f, 0.28f);
+        [SerializeField] Color outlineColor = new(0.85f, 0.58f, 0.14f);
+        [Tooltip("Multiplica el color en la cara en sombra.")]
+        [SerializeField] Color shadowTint = new(1f, 0.85f, 0.65f);
+        [Tooltip("Brillo especular (alfa = intensidad).")]
+        [SerializeField] Color highlightColor = Color.white;
+        [Tooltip("Luz de borde en la silueta (alfa = intensidad).")]
+        [SerializeField] Color rimColor = new(1f, 1f, 0.9f, 0.8f);
 
         [Header("Forma")]
         [Tooltip("Radio de la media luna (metros).")]
         [SerializeField] float radius = 0.65f;
-        [Tooltip("Grosor máximo de la media luna (metros).")]
+        [Tooltip("Ancho máximo de la media luna, hacia fuera (metros).")]
         [SerializeField] float width = 0.24f;
+        [Tooltip("Grosor máximo de la media luna, en vertical (metros).")]
+        [SerializeField] float thickness = 0.09f;
         [Tooltip("Inclinación (grados) de la media luna: cada golpe hacia un lado.")]
         [SerializeField] float tilt = 16f;
         [SerializeField] float forwardOffset = 0.05f;
@@ -43,21 +58,25 @@ namespace Racoon.VFX
 
         void Awake()
         {
-            if (flatMaterial == null)
+            Material material = volumeMaterial != null ? volumeMaterial : flatMaterial;
+            if (material == null)
             {
-                Debug.LogWarning("SwingVFX: falta flatMaterial (M_VFX_ToonFlat).", this);
+                Debug.LogWarning("SwingVFX: falta volumeMaterial (M_VFX_ToonVolume).", this);
                 enabled = false;
                 return;
             }
 
             // De derecha a izquierda y al revés (los ángulos van de -Z.. a +X; 0 = delante).
-            arcRight = new FlatPiece("SwingArcR", transform, FlatMeshes.Arc(radius, 115f, -45f, width * 0.5f, 0.7f), flatMaterial)
-                .Colors(arcColor, arcEdgeColor, arcEdgeColor);
-            arcLeft = new FlatPiece("SwingArcL", transform, FlatMeshes.Arc(radius, -115f, 45f, width * 0.5f, 0.7f), flatMaterial)
-                .Colors(arcColor, arcEdgeColor, arcEdgeColor);
+            arcRight = Volume("SwingArcR", FlatMeshes.SwingBlade(radius, 115f, -45f, width * 0.5f, thickness * 0.5f, 0.7f, 0.012f))
+                .Colors(arcColor, arcEdgeColor, outlineColor);
+            arcLeft = Volume("SwingArcL", FlatMeshes.SwingBlade(radius, -115f, 45f, width * 0.5f, thickness * 0.5f, 0.7f, 0.012f))
+                .Colors(arcColor, arcEdgeColor, outlineColor);
             if (speedLines)
-                lines = new FlatPiece("SpeedLines", transform, FlatMeshes.SpeedLines(7, 3, 0.16f, new Vector2(0.45f, 0.7f), 0.018f), flatMaterial)
-                    .Colors(lineColor, lineTipColor, lineTipColor).Spread(0.35f);
+                lines = Volume("SpeedLines", FlatMeshes.SpeedSpindles(7, 3, 0.16f, new Vector2(0.45f, 0.7f), 0.016f, 0.006f))
+                    .Colors(lineColor, lineTipColor, outlineColor).Spread(0.35f);
+
+            FlatPiece Volume(string pieceName, Mesh mesh) => new FlatPiece(pieceName, transform, mesh, material)
+                .Cel(1f, shadowTint).Shine(highlightColor, rimColor);
         }
 
         void OnDisable() => Hide();

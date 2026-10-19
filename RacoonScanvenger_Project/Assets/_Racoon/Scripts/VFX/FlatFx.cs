@@ -19,8 +19,8 @@ namespace Racoon.VFX
     }
 
     /// <summary>
-    /// Una pieza de efecto plano (SG_VFX_ToonFlat / SG_VFX_ToonFlatOverlay): malla + material compartido +
-    /// MaterialPropertyBlock propio (colores y "revelado"), animada por código.
+    /// Una pieza de efecto (SG_VFX_ToonFlat / SG_VFX_ToonFlatOverlay / SG_VFX_ToonVolume): malla + material compartido
+    /// + MaterialPropertyBlock propio (colores, "revelado"...), animada por código.
     /// </summary>
     public sealed class FlatPiece
     {
@@ -84,6 +84,21 @@ namespace Racoon.VFX
             return Apply();
         }
 
+        /// <summary>Brillo especular y luz de borde (SG_VFX_ToonVolume). El alfa de cada color es su intensidad.</summary>
+        public FlatPiece Shine(Color highlight, Color rim)
+        {
+            block.SetColor(FlatFx.HighlightColorId, highlight);
+            block.SetColor(FlatFx.RimColorId, rim);
+            return Apply();
+        }
+
+        /// <summary>Un valor del shader animado por código (p. ej. FlatFx.ThicknessId, FlatFx.RimCutId).</summary>
+        public void Set(int id, float value)
+        {
+            block.SetFloat(id, value);
+            renderer.SetPropertyBlock(block);
+        }
+
         /// <summary>Parte visible de cada rayo / esquirla: de shrink a grow (0 = base, 1 = punta).</summary>
         public void Window(float grow, float shrink)
         {
@@ -111,6 +126,11 @@ namespace Racoon.VFX
         public static readonly int GrowId = Shader.PropertyToID("_Grow");
         public static readonly int ShrinkId = Shader.PropertyToID("_Shrink");
         public static readonly int SpreadId = Shader.PropertyToID("_Spread");
+        // SG_VFX_ToonVolume
+        public static readonly int HighlightColorId = Shader.PropertyToID("_HighlightColor");
+        public static readonly int RimColorId = Shader.PropertyToID("_RimColor");
+        public static readonly int ThicknessId = Shader.PropertyToID("_Thickness");
+        public static readonly int RimCutId = Shader.PropertyToID("_RimCut");
 
         /// <summary>Totalmente visible (por encima de 1 aunque el Spread frene a algunas piezas).</summary>
         public const float Full = 10f;

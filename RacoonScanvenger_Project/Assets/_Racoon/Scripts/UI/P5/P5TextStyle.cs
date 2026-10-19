@@ -41,7 +41,7 @@ namespace Racoon.UI.P5
         public enum Mode { LetraPorFicha, Bloque, SoloTexto }
 
         /// <summary>Radio de las esquinas dibujado en el sprite de ficha redonda (9-slice).</summary>
-        public const float SpriteRadius = 24f;
+        public const float SpriteRadius = 96f;
 
         [Header("Forma")]
         public Mode modo = Mode.LetraPorFicha;
@@ -55,6 +55,8 @@ namespace Racoon.UI.P5
         [Tooltip("Espacio extra entre letras dentro de un mismo texto TMP (px).")]
         public float interletrado;
         public FontStyles estiloFuente = FontStyles.Normal;
+        [Tooltip("Centra cada texto por la forma real de sus letras y no por la línea: útil para símbolos sueltos como «?».")]
+        public bool centradoOptico;
 
         [Header("Fichas")]
         [Tooltip("Se repite letra a letra. En «Bloque» y «Solo texto» solo se usa la primera.")]
@@ -93,5 +95,22 @@ namespace Racoon.UI.P5
 
         public P5TileLook Look(int index) =>
             secuencia == null || secuencia.Length == 0 ? new P5TileLook() : secuencia[index % secuencia.Length];
+
+#if UNITY_EDITOR
+        // Al retocar el estilo se regeneran todos los textos que lo usan (escenas abiertas y modo prefab)
+        void OnValidate()
+        {
+            UnityEditor.EditorApplication.delayCall -= RebuildUsers;
+            UnityEditor.EditorApplication.delayCall += RebuildUsers;
+        }
+
+        void RebuildUsers()
+        {
+            if (this == null) return;
+            foreach (var text in Resources.FindObjectsOfTypeAll<P5Text>())
+                if (text.gameObject.scene.IsValid() && text.isActiveAndEnabled && (text.style == this || text.estiloChapa == this))
+                    text.Rebuild();
+        }
+#endif
     }
 }

@@ -15,13 +15,14 @@ namespace Racoon.Player
     ///
     /// Se suscribe solo por código a los eventos del PlayerController (NO conectarlos también en el
     /// Inspector o se ejecutarían dos veces):
-    ///  - onLightHit    → OnLightHit: parpadeo rápido mientras está aturdido (golpes 1º y 2º), impacto
-    ///                    (ImpactVFX) y polvo del empujón (KnockbackDustVFX).
+    ///  - onLightHit    → OnLightHit: parpadeo rápido mientras está aturdido (golpes 1º y 2º), onda de choque
+    ///                    en el punto de la malla donde entra el golpe (ImpactVFX) y polvo del empujón
+    ///                    (KnockbackDustVFX).
     ///  - onHeavyHit    → OnHeavyHit: parpadeo rápido en el suelo + lento durante los i-frames al
     ///                    levantarse (se corta si los gasta atacando o con un dash), impacto fuerte, polvo
     ///                    del derribo y estrellas de mareo (DizzyStarsVFX) hasta que se levanta.
     ///  - ActionStarted → Punch: golpe al aire (SwingVFX), conecte o no.
-    ///  - Estamina      → cansancio (TiredVFX: aliento y saliva) mientras está agotado.
+    ///  - Estamina      → cansancio (TiredVFX: aliento y sudor) mientras está agotado.
     ///  - onDash        → OnDash: humo del dash (FootstepVFX.PlayDash: explosión hacia atrás + rastro + colas) y, si hay
     ///                    un efecto "DashDust" en la lista, también ese (uno por cada valor de dashDustDelays).
     ///  - StateChanged  → estelas de viento (WindTrailVFX hijo del jugador): fuertes en Dash, flojas en Run,
@@ -87,6 +88,9 @@ namespace Racoon.Player
         [SerializeField] float blinkInterval = 0.08f;
         [Tooltip("Durante los i-frames al levantarse (ya puede moverse, pero no le pueden golpear).")]
         [SerializeField] float recoveryBlinkInterval = 0.16f;
+
+        /// <summary>Color del jugador (el HUD lo usa para teñir sus piezas).</summary>
+        public Color WindTint => windTint;
 
         readonly Dictionary<string, VfxEntry> lookup = new();
         readonly List<Renderer> blinkRenderers = new();
@@ -255,15 +259,15 @@ namespace Racoon.Player
         /// <summary>Suscrito a PlayerController.onLightHit (golpes 1º y 2º del combo).</summary>
         public void OnLightHit(PlayerController attacker, int hitNumber)
         {
-            StartBlink(controller.LightHit);
             PlayHitVFX(attacker, false, controller.LightHit.stunDuration);
+            StartBlink(controller.LightHit);
         }
 
         /// <summary>Suscrito a PlayerController.onHeavyHit (golpe 3º: derribo).</summary>
         public void OnHeavyHit(PlayerController attacker)
         {
-            StartBlink(controller.HeavyHit);
             PlayHitVFX(attacker, true, controller.HeavyHit.stunDuration);
+            StartBlink(controller.HeavyHit);
             if (dizzyStars != null) dizzyStars.Play();
         }
 

@@ -65,17 +65,13 @@ namespace Racoon.Player
             equippedSlot.OnValueChanged += OnEquippedSlotChanged;
             NotifyChanged();
 
-            // Registramos este inventario en el gestor de UI para que
-            // se conecte automáticamente con la interfaz de su jugador.
+            // Si hay un ItemUIManager (UI antigua), registramos este inventario para que se conecte
+            // con la interfaz de su jugador. Es opcional: el HUD (HUDController) lee el inventario por su cuenta.
             ItemUIManager uiManager = FindFirstObjectByType<ItemUIManager>();
 
             if (uiManager != null)
             {
                 uiManager.RegisterPlayer(this);
-            }
-            else
-            {
-                Debug.LogWarning("No se ha encontrado ningún ItemUIManager en la escena.", this);
             }
         }
 

@@ -53,6 +53,7 @@ MonoBehaviour:
   breathDown: 22
   saliva: 1
   flatMaterial: {fileID: 2100000, guid: 9e4a6c8d0f2b43c5d7e9f1a3b5c7d9e1, type: 2}
+  volumeMaterial: {fileID: 2100000, guid: f3a5b7c9d1e34f4a0b2c4d6e8f0a2b35, type: 2}
   salivaColor: {r: 0.82, g: 0.96, b: 1, a: 1}
   salivaTipColor: {r: 0.55, g: 0.84, b: 1, a: 1}
   salivaShadow: {r: 0.7, g: 0.84, b: 1, a: 1}
@@ -325,6 +326,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Racoon.VFX.ImpactVFX
   overlayMaterial: {fileID: 2100000, guid: b06c8e0f2b4d45e7f9a1b3c5d7e9f1a3, type: 2}
   flatMaterial: {fileID: 2100000, guid: 9e4a6c8d0f2b43c5d7e9f1a3b5c7d9e1, type: 2}
+  volumeMaterial: {fileID: 2100000, guid: f3a5b7c9d1e34f4a0b2c4d6e8f0a2b35, type: 2}
   rayColor: {r: 1, g: 1, b: 0.88, a: 1}
   rayTipColor: {r: 1, g: 0.7, b: 0.08, a: 1}
   shardColor: {r: 1, g: 1, b: 1, a: 1}
@@ -355,6 +357,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Racoon.VFX.SwingVFX
   flatMaterial: {fileID: 2100000, guid: 9e4a6c8d0f2b43c5d7e9f1a3b5c7d9e1, type: 2}
+  volumeMaterial: {fileID: 2100000, guid: f3a5b7c9d1e34f4a0b2c4d6e8f0a2b35, type: 2}
   arcColor: {r: 1, g: 1, b: 1, a: 1}
   arcEdgeColor: {r: 1, g: 0.8, b: 0.28, a: 1}
   lineColor: {r: 1, g: 1, b: 1, a: 1}

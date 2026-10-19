@@ -9,8 +9,11 @@ namespace Racoon.VFX
     ///  - Gráficos "billboard" (rayos, esquirlas, globos, destellos): plano XY, mirando a -Z (hacia la cámara
     ///    cuando el objeto se orienta con FlatFx.Billboard). El contorno va detrás (+Z) y SE AÑADE ANTES que el
     ///    relleno: en el overlay (sin profundidad) se pinta en ese orden.
-    ///  - Cintas (arco del golpe, líneas de velocidad, remolinos): plano XZ, de doble cara.
+    ///  - Cintas (remolinos de las estrellas de mareo): plano XZ, de doble cara.
     ///  - Objetos 3D (estrella, gota): volumen con normales suaves + cáscara de contorno (inverted hull).
+    ///  - Con volumen para SG_VFX_ToonVolume (onda de choque y golpe al aire): anillo-tubo, burbuja hueca, cristales
+    ///    y bola de pinchos facetados, tajo en media luna y husos de velocidad, con cáscara de contorno que no se abre
+    ///    en las aristas. UV2.x = radio del tubo.
     /// </summary>
     public static class FlatMeshes
     {
@@ -160,7 +163,8 @@ namespace Racoon.VFX
                 float t = i / (float)segments;
                 float angle = Mathf.Lerp(fromDeg, toDeg, t) * Mathf.Deg2Rad;
                 Vector3 dir = new(Mathf.Sin(angle), 0f, Mathf.Cos(angle));
-                float w = halfWidth * (taper <= 0f ? 1f : Mathf.Pow(Mathf.Sin(Mathf.PI * t), taper));
+                // sin(π) sale un pelín negativo y Pow daría NaN.
+                float w = halfWidth * (taper <= 0f ? 1f : Mathf.Pow(Mathf.Max(0f, Mathf.Sin(Mathf.PI * t)), taper));
                 inner[i] = b.Add(dir * (radius - w), Vector3.up, t, 0f, 0f, 1f);
                 middle[i] = b.Add(dir * radius, Vector3.up, t, 0f, 0f, 0f);
                 outer[i] = b.Add(dir * (radius + w), Vector3.up, t, 0f, 0f, 1f);
@@ -173,25 +177,6 @@ namespace Racoon.VFX
                 b.TriBoth(outer[i], outer[i + 1], middle[i + 1]);
             }
             return b.Build("FX_Arc");
-        }
-
-        /// <summary>Líneas de velocidad: agujas a lo largo de +Z repartidas en X. Recorrido = de atrás a delante.</summary>
-        public static Mesh SpeedLines(int seed, int count, float spread, Vector2 length, float halfWidth)
-        {
-            System.Random random = new(seed);
-            MeshBuilder b = new();
-            for (int i = 0; i < count; i++)
-            {
-                float x = (count == 1 ? 0f : Mathf.Lerp(-spread, spread, i / (count - 1f))) + Range(random, -0.03f, 0.03f);
-                float z = Range(random, -0.1f, 0.1f), len = Range(random, length.x, length.y), rnd = (float)random.NextDouble();
-                int back = b.Add(new Vector3(x, 0f, z), Vector3.up, 0f, rnd, 0f, 0f);
-                int l = b.Add(new Vector3(x - halfWidth, 0f, z + len * 0.3f), Vector3.up, 0.3f, rnd, 0f, 0.3f);
-                int r = b.Add(new Vector3(x + halfWidth, 0f, z + len * 0.3f), Vector3.up, 0.3f, rnd, 0f, 0.3f);
-                int front = b.Add(new Vector3(x, 0f, z + len), Vector3.up, 1f, rnd, 0f, 1f);
-                b.TriBoth(back, l, front);
-                b.TriBoth(back, front, r);
-            }
-            return b.Build("FX_SpeedLines");
         }
 
         // ---------------- Objetos 3D ----------------
@@ -218,7 +203,7 @@ namespace Racoon.VFX
                     for (int j = 0; j < samples; j++)
                     {
                         float theta = j / (float)samples * Mathf.PI * 2f;
-                        float r = outer * (innerRatio + (1f - innerRatio) * Mathf.Pow(0.5f + 0.5f * Mathf.Cos(5f * theta), 1.35f));
+                        float r = outer * (innerRatio + (1f - innerRatio) * Mathf.Pow(Mathf.Max(0f, 0.5f + 0.5f * Mathf.Cos(5f * theta)), 1.35f));
                         AddVertex(new Vector3(Mathf.Sin(theta) * r * s, Mathf.Cos(theta) * r * s, depth * side * Mathf.Sqrt(1f - s * s)), s, k == rings);
                     }
                 }
@@ -351,6 +336,214 @@ namespace Racoon.VFX
             return b.Build("FX_Splat");
         }
 
+        // ---------------- Con volumen (SG_VFX_ToonVolume) ----------------
+        // Además de UV0 / UV1, UV2.x = radio del tubo (anillos): el shader lo adelgaza con Thickness.
+
+        /// <summary>
+        /// Anillo con volumen: tubo de radio <paramref name="tube"/> alrededor de un aro de radio 1 (borde ondulado) en el
+        /// plano XY, con contorno. Recorrido = la vuelta (0 → 1): con Grow se dibuja dando la vuelta. Degradado = del lado
+        /// de dentro (BaseColor) al de fuera (TipColor). Con Thickness el tubo adelgaza hasta desaparecer.
+        /// </summary>
+        public static Mesh Torus(int seed, float tube, float outline, float wobble, int waves = 5, int segments = 56, int sides = 10)
+        {
+            System.Random random = new(seed);
+            float phase = Range(random, 0f, Mathf.PI * 2f);
+            VolumeBuilder b = new();
+            for (int i = 0; i <= segments; i++)
+            {
+                float t = i / (float)segments, angle = t * Mathf.PI * 2f;
+                Vector3 radial = new(Mathf.Cos(angle), Mathf.Sin(angle), 0f);
+                Vector3 center = radial * (1f + wobble * Mathf.Sin(angle * waves + phase));
+                for (int j = 0; j < sides; j++)
+                {
+                    float a = j / (float)sides * Mathf.PI * 2f;
+                    Vector3 normal = radial * Mathf.Cos(a) + Vector3.forward * Mathf.Sin(a);
+                    b.Add(center + normal * tube, normal, t, 0.5f, 0.5f + 0.5f * Mathf.Cos(a), tube);
+                }
+            }
+            AddTubeFaces(b, 0, segments, sides);
+            return b.Build("FX_Torus", outline);
+        }
+
+        /// <summary>
+        /// Burbuja de choque: media esfera de radio 1 abombada hacia +Z (base en z = 0), hueca y de doble cara (por
+        /// dentro con las normales al revés). Pensada para RimCut: se ve su silueta y se va vaciando. Recorrido = de la
+        /// punta (0) a la base (1). Degradado = de la punta a la base; por dentro, TipColor.
+        /// </summary>
+        public static Mesh Bubble(int rings = 10, int segments = 40)
+        {
+            VolumeBuilder b = new();
+            for (int side = 1; side >= -1; side -= 2)
+            {
+                int apex = b.Add(Vector3.forward, Vector3.forward * side, 0f, 0.5f, side > 0 ? 0f : 1f);
+                int first = b.Count;
+                for (int k = 1; k <= rings; k++)
+                {
+                    float t = k / (float)rings, phi = t * Mathf.PI * 0.5f;
+                    for (int s = 0; s < segments; s++)
+                    {
+                        float angle = s / (float)segments * Mathf.PI * 2f;
+                        Vector3 p = new(Mathf.Sin(phi) * Mathf.Cos(angle), Mathf.Sin(phi) * Mathf.Sin(angle), Mathf.Cos(phi));
+                        b.Add(p, p * side, t, 0.5f, side > 0 ? t : 1f);
+                    }
+                }
+                for (int s = 0; s < segments; s++)
+                {
+                    int s1 = (s + 1) % segments;
+                    b.TriSmooth(apex, first + s, first + s1);
+                    for (int k = 0; k < rings - 1; k++)
+                    {
+                        int a = first + k * segments + s, c = first + k * segments + s1;
+                        int d = first + (k + 1) * segments + s, e = first + (k + 1) * segments + s1;
+                        b.TriSmooth(a, d, c);
+                        b.TriSmooth(c, d, e);
+                    }
+                }
+            }
+            return b.Build("FX_Bubble", 0f);
+        }
+
+        /// <summary>
+        /// Cristales facetados (<paramref name="sides"/> caras planas, algo aplastados) que salen del centro repartidos por
+        /// un cono alrededor de +Z (coneDeg = 0 todos rectos, 90 media esfera), con contorno. Recorrido = de la base (0) a
+        /// la punta (1), cada uno a su ritmo (Spread). Degradado = de la base a la punta. Escala 1 = longitud máx.
+        /// </summary>
+        public static Mesh Crystals(int seed, int count, float coneDeg, float innerRadius, Vector2 length, Vector2 halfWidth, float outline, int sides = 5)
+        {
+            const float shoulder = 0.28f;
+            System.Random random = new(seed);
+            VolumeBuilder b = new();
+            float cosCone = Mathf.Cos(coneDeg * Mathf.Deg2Rad);
+            float golden = Mathf.PI * (3f - Mathf.Sqrt(5f));
+            float spin = Range(random, 0f, Mathf.PI * 2f);
+            Vector3[] ring = new Vector3[sides];
+            for (int i = 0; i < count; i++)
+            {
+                // Repartidos por el casquete (espiral áurea, área uniforme) con un poco de azar.
+                float h = Mathf.Lerp(1f, cosCone, (i + Range(random, 0.2f, 0.8f)) / count);
+                float theta = Mathf.Acos(h), azimuth = spin + i * golden + Range(random, -0.3f, 0.3f);
+                Vector3 dir = new(Mathf.Sin(theta) * Mathf.Cos(azimuth), Mathf.Sin(theta) * Mathf.Sin(azimuth), h);
+                Vector3 side1 = Vector3.Cross(dir, Mathf.Abs(dir.y) < 0.9f ? Vector3.up : Vector3.right).normalized;
+                Vector3 side2 = Vector3.Cross(dir, side1);
+                float len = Range(random, length.x, length.y), w = Range(random, halfWidth.x, halfWidth.y);
+                float rnd = (float)random.NextDouble(), twist = Range(random, 0f, Mathf.PI * 2f);
+
+                Vector3 basePoint = dir * innerRadius, tip = dir * (innerRadius + len);
+                for (int s = 0; s < sides; s++)
+                {
+                    float a = twist + s / (float)sides * Mathf.PI * 2f;
+                    ring[s] = dir * (innerRadius + len * shoulder) + (side1 * Mathf.Cos(a) + side2 * (Mathf.Sin(a) * 0.65f)) * w;
+                }
+                for (int s = 0; s < sides; s++)
+                {
+                    Vector3 r0 = ring[s], r1 = ring[(s + 1) % sides];
+                    b.Facet(basePoint, r0, r1, 0f, shoulder, shoulder, rnd, dir);
+                    b.Facet(r0, tip, r1, shoulder, 1f, shoulder, rnd, dir);
+                }
+            }
+            return b.Build("FX_Crystals", outline);
+        }
+
+        /// <summary>
+        /// Bola de pinchos facetada (icosaedro con sus 12 vértices estirados), de diámetro 1 contando los pinchos, con
+        /// contorno. Degradado = del cuerpo (BaseColor) a las puntas (TipColor).
+        /// </summary>
+        public static Mesh SpikeBall(float body = 0.55f, float outline = 0.04f)
+        {
+            Mesh sphere = ToonSmoke.CreateSphere(1);
+            Vector3[] sphereVertices = sphere.vertices;
+            int[] sphereTriangles = sphere.triangles;
+            Object.Destroy(sphere);
+
+            VolumeBuilder b = new();
+            for (int i = 0; i < sphereTriangles.Length; i += 3)
+            {
+                // Los 12 primeros vértices son los del icosaedro: las puntas.
+                int ia = sphereTriangles[i], ib = sphereTriangles[i + 1], ic = sphereTriangles[i + 2];
+                b.Facet(Point(ia), Point(ib), Point(ic), 0.5f, 0.5f, 0.5f, 0f, Vector3.zero, Tip(ia), Tip(ib), Tip(ic));
+            }
+            return b.Build("FX_SpikeBall", outline);
+
+            Vector3 Point(int i) => sphereVertices[i].normalized * (i < 12 ? 0.5f : 0.5f * body);
+            float Tip(int i) => i < 12 ? 1f : 0f;
+        }
+
+        /// <summary>
+        /// Tajo con volumen: media luna alrededor del origen en el plano XZ (de fromDeg a toDeg; 0 = +Z, 90 = +X) con
+        /// sección elíptica aplanada (halfWidth hacia fuera, halfThickness en vertical) que engorda en el centro y acaba
+        /// en punta por los dos extremos, con contorno. Recorrido = a lo largo del arco; degradado = de las caras planas
+        /// (BaseColor) a los filos (TipColor).
+        /// </summary>
+        public static Mesh SwingBlade(float radius, float fromDeg, float toDeg, float halfWidth, float halfThickness, float taper,
+            float outline, int segments = 40, int sides = 10)
+        {
+            VolumeBuilder b = new();
+            for (int i = 0; i <= segments; i++)
+            {
+                float t = i / (float)segments;
+                float angle = Mathf.Lerp(fromDeg, toDeg, t) * Mathf.Deg2Rad;
+                Vector3 dir = new(Mathf.Sin(angle), 0f, Mathf.Cos(angle));
+                // sin(π) sale un pelín negativo y Pow daría NaN.
+                float profile = Mathf.Pow(Mathf.Max(0f, Mathf.Sin(Mathf.PI * t)), taper);
+                float w = Mathf.Max(halfWidth * profile, 1e-4f), h = Mathf.Max(halfThickness * profile, 1e-4f);
+                for (int j = 0; j < sides; j++)
+                {
+                    float a = j / (float)sides * Mathf.PI * 2f;
+                    float c = Mathf.Cos(a), s = Mathf.Sin(a);
+                    Vector3 normal = (dir * (c / halfWidth) + Vector3.up * (s / halfThickness)).normalized;
+                    b.Add(dir * (radius + c * w) + Vector3.up * (s * h), normal, t, 0.5f, Mathf.Abs(c));
+                }
+            }
+            AddTubeFaces(b, 0, segments, sides);
+            return b.Build("FX_SwingBlade", outline);
+        }
+
+        /// <summary>
+        /// Líneas de velocidad con volumen: husos finos a lo largo de +Z repartidos en X (y un poco en altura), más
+        /// gordos hacia delante y en punta por los dos extremos, con contorno. Recorrido = de atrás (0) a delante (1).
+        /// </summary>
+        public static Mesh SpeedSpindles(int seed, int count, float spread, Vector2 length, float radius, float outline, int rings = 8, int sides = 6)
+        {
+            System.Random random = new(seed);
+            VolumeBuilder b = new();
+            for (int i = 0; i < count; i++)
+            {
+                float x = (count == 1 ? 0f : Mathf.Lerp(-spread, spread, i / (count - 1f))) + Range(random, -0.03f, 0.03f);
+                float y = Range(random, -0.04f, 0.04f), z = Range(random, -0.1f, 0.1f);
+                float len = Range(random, length.x, length.y), rnd = (float)random.NextDouble();
+                int start = b.Count;
+                for (int k = 0; k <= rings; k++)
+                {
+                    float t = k / (float)rings;
+                    float r = Mathf.Max(radius * Mathf.Pow(Mathf.Max(0f, Mathf.Sin(Mathf.PI * Mathf.Pow(t, 1.6f))), 0.7f), 1e-4f);
+                    for (int j = 0; j < sides; j++)
+                    {
+                        float a = j / (float)sides * Mathf.PI * 2f;
+                        Vector3 normal = new(Mathf.Cos(a), Mathf.Sin(a), 0f);
+                        b.Add(new Vector3(x, y, z + len * t) + normal * r, normal, t, rnd, t);
+                    }
+                }
+                AddTubeFaces(b, start, rings, sides);
+            }
+            return b.Build("FX_SpeedSpindles", outline);
+        }
+
+        // Caras de un tubo hecho de anillos de "sides" vértices seguidos (rings + 1 anillos desde start).
+        static void AddTubeFaces(VolumeBuilder b, int start, int rings, int sides)
+        {
+            for (int i = 0; i < rings; i++)
+            {
+                for (int j = 0; j < sides; j++)
+                {
+                    int j1 = (j + 1) % sides;
+                    int a = start + i * sides + j, c = start + i * sides + j1;
+                    int d = start + (i + 1) * sides + j, e = start + (i + 1) * sides + j1;
+                    b.TriSmooth(a, d, c);
+                    b.TriSmooth(c, d, e);
+                }
+            }
+        }
+
         // Volumen + cáscara de contorno: la misma malla inflada por las normales con las caras al revés. Con
         // backface culling solo se ve la parte de detrás de la cáscara, asomando alrededor de la silueta.
         static Mesh WithOutline(string name, List<Vector3> vertices, List<Vector2> uv0, List<Vector2> uv1, List<int> triangles, List<bool> rim, float outline)
@@ -438,6 +631,110 @@ namespace Racoon.VFX
                 mesh.SetTriangles(triangles, 0);
                 mesh.RecalculateBounds();
                 return mesh;
+            }
+        }
+
+        // Mallas con volumen: UV2 (radio del tubo), caras facetadas y cáscara de contorno que no se abre en las aristas.
+        sealed class VolumeBuilder
+        {
+            readonly List<Vector3> vertices = new(), normals = new();
+            readonly List<Vector2> uv0 = new(), uv1 = new(), uv2 = new();
+            readonly List<int> triangles = new();
+
+            public int Count => vertices.Count;
+
+            public int Add(Vector3 position, Vector3 normal, float along, float random, float gradient, float tube = 0f)
+            {
+                vertices.Add(position);
+                normals.Add(normal);
+                uv0.Add(new Vector2(along, random));
+                uv1.Add(new Vector2(0f, gradient));
+                uv2.Add(new Vector2(tube, 0f));
+                return vertices.Count - 1;
+            }
+
+            // Cara visible hacia donde miran las normales de sus vértices (superficies suaves).
+            public void TriSmooth(int a, int b, int c)
+            {
+                Vector3 facing = normals[a] + normals[b] + normals[c];
+                if (Vector3.Dot(Vector3.Cross(vertices[b] - vertices[a], vertices[c] - vertices[a]), facing) < 0f) (b, c) = (c, b);
+                triangles.Add(a);
+                triangles.Add(b);
+                triangles.Add(c);
+            }
+
+            /// <summary>
+            /// Cara plana con sus propios vértices y la normal de la cara (facetado), hacia fuera del eje
+            /// <paramref name="axis"/> que pasa por el origen (cero = hacia fuera del origen). Degradado = recorrido, o
+            /// los que se den.
+            /// </summary>
+            public void Facet(Vector3 a, Vector3 b, Vector3 c, float alongA, float alongB, float alongC, float random, Vector3 axis,
+                float gradientA = -1f, float gradientB = -1f, float gradientC = -1f)
+            {
+                Vector3 centroid = (a + b + c) / 3f;
+                Vector3 facing = axis == Vector3.zero ? centroid : centroid - axis * Vector3.Dot(centroid, axis);
+                Vector3 normal = Vector3.Cross(b - a, c - a);
+                if (normal.sqrMagnitude < 1e-14f) return;
+                if (Vector3.Dot(normal, facing) < 0f)
+                {
+                    (b, c) = (c, b);
+                    (alongB, alongC) = (alongC, alongB);
+                    (gradientB, gradientC) = (gradientC, gradientB);
+                    normal = -normal;
+                }
+                normal.Normalize();
+                triangles.Add(Add(a, normal, alongA, random, gradientA < 0f ? alongA : gradientA));
+                triangles.Add(Add(b, normal, alongB, random, gradientB < 0f ? alongB : gradientB));
+                triangles.Add(Add(c, normal, alongC, random, gradientC < 0f ? alongC : gradientC));
+            }
+
+            /// <summary>
+            /// Con outline > 0 añade la cáscara de contorno: la malla inflada por la normal suave (media de las de los
+            /// vértices que están en el mismo sitio, así las aristas de las caras planas no la abren), con las caras al
+            /// revés. Con backface culling solo asoma alrededor de la silueta.
+            /// </summary>
+            public Mesh Build(string name, float outline)
+            {
+                int count = vertices.Count;
+                if (outline > 0f)
+                {
+                    Dictionary<Vector3Int, Vector3> smooth = new();
+                    for (int i = 0; i < count; i++)
+                    {
+                        Vector3Int key = Key(vertices[i]);
+                        smooth[key] = (smooth.TryGetValue(key, out Vector3 sum) ? sum : Vector3.zero) + normals[i];
+                    }
+                    for (int i = 0; i < count; i++)
+                    {
+                        Vector3 push = smooth[Key(vertices[i])];
+                        push = push.sqrMagnitude > 1e-10f ? push.normalized : normals[i];
+                        vertices.Add(vertices[i] + push * outline);
+                        normals.Add(normals[i]);
+                        uv0.Add(uv0[i]);
+                        uv1.Add(new Vector2(1f, uv1[i].y));
+                        uv2.Add(uv2[i]);
+                    }
+                    int triangleCount = triangles.Count;
+                    for (int i = 0; i < triangleCount; i += 3)
+                    {
+                        triangles.Add(triangles[i] + count);
+                        triangles.Add(triangles[i + 2] + count);
+                        triangles.Add(triangles[i + 1] + count);
+                    }
+                }
+
+                Mesh mesh = new() { name = name };
+                if (vertices.Count > 65535) mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
+                mesh.SetVertices(vertices);
+                mesh.SetNormals(normals);
+                mesh.SetUVs(0, uv0);
+                mesh.SetUVs(1, uv1);
+                mesh.SetUVs(2, uv2);
+                mesh.SetTriangles(triangles, 0);
+                mesh.RecalculateBounds();
+                return mesh;
+
+                static Vector3Int Key(Vector3 p) => new(Mathf.RoundToInt(p.x * 1e4f), Mathf.RoundToInt(p.y * 1e4f), Mathf.RoundToInt(p.z * 1e4f));
             }
         }
     }

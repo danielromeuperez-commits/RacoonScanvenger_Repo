@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c8fe031231d5b2543bf492311fe72ab7, type: 3}
+  m_Name: Rotulos_Chapa
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.P5.P5TextStyle
+  modo: 1
+  mayusculas: 1
+  fuente: {fileID: 11400000, guid: de21af5c9d0aa854e9f9ec0c2c9a226a, type: 2}
+  material: {fileID: 0}
+  tamano: 42
+  interletrado: 0
+  estiloFuente: 0
+  centradoOptico: 0
+  secuencia:
+  - fondo: 3
+    texto: 4
+    borde: 4
+    escala: 1
+    fondoPersonalizado: {r: 1, g: 1, b: 1, a: 1}
+    textoPersonalizado: {r: 1, g: 0.9647059, b: 0.9019608, a: 1}
+    bordePersonalizado: {r: 0.11372549, g: 0.13725491, b: 0.2509804, a: 1}
+  relleno: {x: 20, y: 3}
+  altoLinea: 1.15
+  grosorBorde: 6
+  radio: 18
+  fichaRecta: {fileID: 21300000, guid: 7fd2e49afaa2a8c48a0fa0a00e81a85f, type: 3}
+  fichaRedonda: {fileID: 21300000, guid: 5a77efa65f7bb974cae9e384fc40ffa4, type: 3}
+  separacionLetras: 4
+  separacionPalabras: 12
+  separacionFilas: 6
+  anchoMaximo: 0
+  giroLetras: 5
+  sombras:
+  - color: 4
+    opacidad: 0.22
+    desplazamiento: {x: 0, y: -12}
+    personalizado: {r: 0.11372549, g: 0.13725491, b: 0.2509804, a: 1}

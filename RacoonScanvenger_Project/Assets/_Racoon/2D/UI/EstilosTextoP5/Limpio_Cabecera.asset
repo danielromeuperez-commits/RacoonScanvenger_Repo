@@ -19,6 +19,7 @@ MonoBehaviour:
   tamano: 24
   interletrado: 4
   estiloFuente: 0
+  centradoOptico: 0
   secuencia:
   - fondo: 0
     texto: 2
@@ -32,7 +33,7 @@ MonoBehaviour:
   grosorBorde: 4
   radio: 0
   fichaRecta: {fileID: 21300000, guid: 7fd2e49afaa2a8c48a0fa0a00e81a85f, type: 3}
-  fichaRedonda: {fileID: 21300000, guid: d0ce302f1aa3fb24eb00d586005b50c8, type: 3}
+  fichaRedonda: {fileID: 21300000, guid: 5a77efa65f7bb974cae9e384fc40ffa4, type: 3}
   separacionLetras: 4
   separacionPalabras: 12
   separacionFilas: 6

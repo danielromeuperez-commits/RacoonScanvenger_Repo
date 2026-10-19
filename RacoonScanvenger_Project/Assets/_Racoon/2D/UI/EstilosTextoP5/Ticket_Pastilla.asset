@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c8fe031231d5b2543bf492311fe72ab7, type: 3}
+  m_Name: Ticket_Pastilla
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.P5.P5TextStyle
+  modo: 1
+  mayusculas: 1
+  fuente: {fileID: 11400000, guid: 49a681e8e23ebf14eb4f3824a2c7e3f6, type: 2}
+  material: {fileID: 0}
+  tamano: 26
+  interletrado: 6
+  estiloFuente: 0
+  centradoOptico: 0
+  secuencia:
+  - fondo: 4
+    texto: 4
+    borde: 4
+    escala: 1
+    fondoPersonalizado: {r: 0.9843137, g: 0.96862745, b: 0.93333334, a: 1}
+    textoPersonalizado: {r: 0.14117648, g: 0.13333334, b: 0.12156863, a: 1}
+    bordePersonalizado: {r: 0.14117648, g: 0.13333334, b: 0.12156863, a: 1}
+  relleno: {x: 24, y: 2}
+  altoLinea: 1.15
+  grosorBorde: 5
+  radio: 0
+  fichaRecta: {fileID: 21300000, guid: 7fd2e49afaa2a8c48a0fa0a00e81a85f, type: 3}
+  fichaRedonda: {fileID: 21300000, guid: 5a77efa65f7bb974cae9e384fc40ffa4, type: 3}
+  separacionLetras: 4
+  separacionPalabras: 12
+  separacionFilas: 6
+  anchoMaximo: 0
+  giroLetras: 5
+  sombras: []

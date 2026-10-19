@@ -8,7 +8,7 @@ namespace Racoon.UI.HUD
 {
     /// <summary>
     /// Referencias de todas las piezas animables del HUD. La rellena HUDVariantBuilder al montar cada variante;
-    /// los scripts de juego (puntos, tiempo, estamina, ítems, racha) deberían trabajar solo a través de aquí.
+    /// <see cref="HUDController"/> las conecta con la partida y las anima.
     /// Medidas en px a escala 2560×1440.
     /// </summary>
     public class HUDView : MonoBehaviour
@@ -21,34 +21,45 @@ namespace Racoon.UI.HUD
             [Header("Retrato")]
             [Tooltip("Filled Radial360, origen arriba, sin sentido horario: fillAmount = estamina (0-1).")]
             public Image staminaFill;
+            [Tooltip("Copia del aro, detrás, que brilla durante la racha.")]
+            public Image staminaGlow;
+            [Tooltip("Copia blanca del aro, detrás: estela de la estamina que se acaba de gastar.")]
+            public Image staminaTrail;
             [Tooltip("Ilustración del personaje (recortada por la máscara del fondo). Vacía hasta tener los dibujos.")]
             public Image illustration;
 
             [Header("Racha y liderato (desactivados por defecto)")]
             public GameObject fire;
-            [Tooltip("Fotogramas de la llama: alternar uno cada 0,12 s.")]
+            [Tooltip("Fotogramas de la llama: uno cada 0,12 s.")]
             public GameObject[] fireFrames = new GameObject[3];
             public GameObject streak;
-            [Tooltip("Contador «xN»: streakCounter.SetText(\"x\" + n).")]
+            [Tooltip("Contador «xN».")]
             public P5Text streakCounter;
             public GameObject top;
 
             [Header("Puntos (rodillo)")]
             public RectTransform scorePanel;
             public P5Text scoreHeader;
-            [Tooltip("Tiras de dígitos 0-9,0-9 dentro de su máscara: para ver el dígito d, anchoredPosition.y = reelOffset + d * reelPitch.")]
+            [Tooltip("Ficha de cada rodillo (con su tira de dígitos dentro): se balancea y salta al puntuar.")]
+            public RectTransform[] reels = new RectTransform[4];
+            [Tooltip("Tiras de dígitos 0-9,0-9,0,1 dentro de su máscara: para ver el dígito d, anchoredPosition.y = reelOffset + d * reelPitch.")]
             public RectTransform[] reelStrips = new RectTransform[4];
             public float reelPitch = 100f;
             public float reelOffset = 50f;
+            [Tooltip("Puntos que lleva en la bolsa sin vender (desactivado sin bolsa).")]
+            public P5Text bag;
 
             [Header("Ítems")]
+            [Tooltip("Caja principal con su «?» y su icono: flota y hace la entrada.")]
+            public RectTransform mainSlot;
             public RectTransform mainItemBox;
-            [Tooltip("Icono del ítem principal (desactivado sin ítem). Encaja con ItemUIController.mainItemImage.")]
+            [Tooltip("Icono del ítem principal (desactivado sin ítem).")]
             public Image mainItemIcon;
             [Tooltip("«?» que se ve sin ítem.")]
             public GameObject mainItemEmpty;
+            [Tooltip("Caja de reserva con su «?» y su icono.")]
+            public RectTransform reserveSlot;
             public RectTransform reserveItemBox;
-            [Tooltip("Icono del ítem de reserva. Encaja con ItemUIController.reserveItemImage.")]
             public Image reserveItemIcon;
             public GameObject reserveItemEmpty;
 
@@ -69,14 +80,32 @@ namespace Racoon.UI.HUD
             public TMP_Text time;
             public TMP_Text shadowP1;
             public TMP_Text shadowP2;
+            [Tooltip("Grupo del texto y sus sombras: late en los últimos segundos.")]
+            public RectTransform digits;
             [Tooltip("Filled Horizontal: fillAmount = tiempo restante / duración.")]
             public Image barFill;
             [Tooltip("Losa roja de los últimos 30 s.")]
             public GameObject urgentSlab;
             public P5Text label;
+            [Tooltip("Color del texto del tiempo.")]
+            public Color textColor = Color.white;
+            [Tooltip("Color del texto en los últimos segundos (con la losa roja). Transparente = no cambia.")]
+            public Color urgentTextColor = Color.clear;
+        }
+
+        /// <summary>Animación propia del panel de puntos de cada variante, además del salto de los rodillos.</summary>
+        public enum PanelFx
+        {
+            [Tooltip("Solo saltan los rodillos.")] None,
+            [Tooltip("Cartel colgante: se balancea y da un vaivén al puntuar.")] Swing,
+            [Tooltip("Tique: da un tirón, como al imprimir, al puntuar.")] Print,
+            [Tooltip("Pegatina: se aplasta y rebota al puntuar.")] Squash,
         }
 
         public HUDPlayerColors colors;
+        [Tooltip("Variante sin inclinaciones (Soft limpio): la caja principal flota sin girar.")]
+        public bool calm;
+        public PanelFx scorePanelFx;
         public PlayerView player1 = new();
         public PlayerView player2 = new();
         public TimerView timer = new();

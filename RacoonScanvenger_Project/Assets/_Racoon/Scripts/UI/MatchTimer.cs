@@ -19,6 +19,8 @@ public class MatchTimer : NetworkBehaviour
 
     public bool IsRunning => matchRunning.Value;
     public bool IsFinished => matchFinished.Value;
+    /// <summary>Duracion total de la partida (s).</summary>
+    public float Duration => matchDuration;
 
     public float TimeRemaining
     {

@@ -6,30 +6,21 @@ using UnityEngine;
 namespace Racoon.EditorTools
 {
     /// <summary>
-    /// Inspector de <see cref="P5Text"/>: regenera las piezas al cambiar cualquier campo (fuera de instancias de
-    /// prefab) y añade el menú GameObject → UI → Racoon → Texto P5.
+    /// Inspector de <see cref="P5Text"/> (se regenera solo al cambiar cualquier campo; el botón lo fuerza, p. ej. tras
+    /// retocar el estilo) y menú GameObject → UI → Racoon → Texto P5.
     /// </summary>
     [CustomEditor(typeof(P5Text)), CanEditMultipleObjects]
     public class P5TextEditor : Editor
     {
         public override void OnInspectorGUI()
         {
-            EditorGUI.BeginChangeCheck();
             DrawDefaultInspector();
-            bool changed = EditorGUI.EndChangeCheck();
-            bool anyInstance = targets.Any(t => PrefabUtility.IsPartOfPrefabInstance(t));
-
             EditorGUILayout.Space();
-            if (GUILayout.Button("Regenerar") || changed)
+            if (GUILayout.Button("Regenerar"))
                 foreach (P5Text text in targets)
-                    if (!PrefabUtility.IsPartOfPrefabInstance(text))
-                    {
-                        Undo.RegisterFullObjectHierarchyUndo(text.gameObject, "Regenerar texto P5");
-                        text.Rebuild();
-                    }
-            if (anyInstance)
-                EditorGUILayout.HelpBox("Forma parte de una instancia de prefab: ábrelo en modo prefab para que se regeneren las piezas. " +
-                                        "En partida usa SetText().", MessageType.Info);
+                    text.Rebuild();
+            EditorGUILayout.HelpBox("Las piezas (fichas y letras) se generan solas y no se guardan: para animar, mueve este objeto. " +
+                                    "En partida: SetText(\"...\") y SetChip(\"P1\").", MessageType.None);
         }
 
         [MenuItem("GameObject/UI/Racoon/Texto P5", false, 10)]

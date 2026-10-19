@@ -14,10 +14,14 @@ namespace Racoon.UI.P5
     /// Las piezas del color del jugador llevan <see cref="HUDTint"/> (las tiñe <see cref="HUDPlayerColors"/>);
     /// fuera del HUD se usa <see cref="colorJugador"/>.
     /// El tamaño del RectTransform se ajusta al contenido; el pivote y los anclajes los decides tú.
+    /// Las piezas no se guardan (como los submeshes de TextMeshPro): se generan al activarse y al cambiar cualquier
+    /// campo, así que funciona igual en escena, en prefabs y en sus instancias. Para animar, mueve este objeto.
     /// </summary>
-    [RequireComponent(typeof(RectTransform))]
+    [ExecuteAlways, RequireComponent(typeof(RectTransform))]
     public class P5Text : MonoBehaviour
     {
+        const HideFlags PieceFlags = HideFlags.DontSave | HideFlags.NotEditable;
+
         public enum Alignment { Izquierda, Centro, Derecha }
 
         [SerializeField, TextArea] string text = "TEXTO";
@@ -41,6 +45,27 @@ namespace Racoon.UI.P5
 
         public string Text => text;
 
+        [NonSerialized] bool built;
+
+        void OnEnable()
+        {
+            if (!built) Rebuild();
+        }
+
+#if UNITY_EDITOR
+        // Cualquier cambio en el inspector (o un deshacer) regenera las piezas; no se puede hacer dentro de OnValidate
+        void OnValidate()
+        {
+            UnityEditor.EditorApplication.delayCall -= RebuildIfAlive;
+            UnityEditor.EditorApplication.delayCall += RebuildIfAlive;
+        }
+
+        void RebuildIfAlive()
+        {
+            if (this != null && isActiveAndEnabled) Rebuild();
+        }
+#endif
+
         public void SetText(string value)
         {
             text = value;
@@ -56,7 +81,15 @@ namespace Racoon.UI.P5
         [ContextMenu("Regenerar")]
         public void Rebuild()
         {
-            if (!Clear()) return;
+            if (!gameObject.scene.IsValid()) return; // asset de prefab sin abrir: se genera en sus instancias
+            // Desactivado, TextMeshPro no mide bien el texto (las fichas salían diminutas): se monta al activarse
+            if (!isActiveAndEnabled)
+            {
+                built = false;
+                return;
+            }
+            built = true;
+            Clear();
 
             var pieces = new List<Piece>();
             bool hasChip = !string.IsNullOrEmpty(chapa) && estiloChapa != null;
@@ -241,7 +274,7 @@ namespace Racoon.UI.P5
             tmp.fontStyle = s.estiloFuente;
             tmp.characterSpacing = s.interletrado / Mathf.Max(1f, tmp.fontSize) * 100f;
             tmp.text = value;
-            tmp.alignment = TextAlignmentOptions.Center;
+            tmp.alignment = s.centradoOptico ? TextAlignmentOptions.CenterGeoAligned : TextAlignmentOptions.Center;
             tmp.textWrappingMode = TextWrappingModes.NoWrap;
             tmp.overflowMode = TextOverflowModes.Overflow;
             tmp.raycastTarget = false;
@@ -295,28 +328,29 @@ namespace Racoon.UI.P5
 
         // ---------- Utilidades ----------
 
-        bool Clear()
+        void Clear()
         {
-#if UNITY_EDITOR
-            if (!Application.isPlaying && UnityEditor.PrefabUtility.IsPartOfPrefabInstance(gameObject))
-            {
-                Debug.LogWarning($"P5Text «{name}»: forma parte de una instancia de prefab; edítalo en modo prefab para regenerarlo.", this);
-                return false;
-            }
-#endif
             for (int i = transform.childCount - 1; i >= 0; i--)
             {
                 var child = transform.GetChild(i).gameObject;
+#if UNITY_EDITOR
+                // Piezas guardadas por una versión anterior dentro de un prefab: desde la instancia no se pueden
+                // borrar; se ocultan hasta que se vuelva a montar el prefab
+                if (!Application.isPlaying && UnityEditor.PrefabUtility.IsPartOfPrefabInstance(child))
+                {
+                    if (child.activeSelf) child.SetActive(false);
+                    continue;
+                }
+#endif
                 child.SetActive(false);
                 if (Application.isPlaying) Destroy(child);
                 else DestroyImmediate(child);
             }
-            return true;
         }
 
         GameObject NewChild(string childName, Transform parent)
         {
-            var go = new GameObject(childName, typeof(RectTransform)) { layer = gameObject.layer };
+            var go = new GameObject(childName, typeof(RectTransform)) { layer = gameObject.layer, hideFlags = PieceFlags };
             go.transform.SetParent(parent, false);
             return go;
         }
