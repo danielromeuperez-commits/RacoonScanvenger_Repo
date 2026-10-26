@@ -51,8 +51,6 @@ namespace Racoon.Player
 
         readonly object runKey = new();
         readonly object tiredKey = new();
-        float lastHitTime = float.NegativeInfinity;
-        float stunCheckTime = -1f;
 
         bool IsLocal => controller != null && controller.IsSpawned && controller.IsOwner;
 
@@ -98,13 +96,6 @@ namespace Racoon.Player
 
             CameraShaker.SetContinuous(runKey, run, controller.State == PlayerState.Run ? intensity : 0f, 4f);
             CameraShaker.SetContinuous(tiredKey, tired, controller.IsExhausted ? intensity : 0f, 1.5f);
-
-            // HitStun sin golpe = aturdido por un objeto (el golpe llega justo después del cambio de estado).
-            if (stunCheckTime >= 0f && Time.time - stunCheckTime > 0.12f)
-            {
-                if (lastHitTime < stunCheckTime - 0.15f) Play(itemStun);
-                stunCheckTime = -1f;
-            }
         }
 
         void Play(CameraShakeProfile profile, float strength = 1f, Vector3 direction = default) =>
@@ -114,7 +105,6 @@ namespace Racoon.Player
 
         void OnLightHit(PlayerController attacker, int hitNumber)
         {
-            lastHitTime = Time.time;
             Vector3 away = AwayFrom(attacker);
             if (IsLocal) Play(lightHit, 1f + comboStep * Mathf.Max(0, hitNumber - 1), away);
             ConfirmForAttacker(attacker, -away, 1f);
@@ -122,7 +112,6 @@ namespace Racoon.Player
 
         void OnHeavyHit(PlayerController attacker)
         {
-            lastHitTime = Time.time;
             Vector3 away = AwayFrom(attacker);
             if (IsLocal) Play(heavyHit, 1f, away);
             ConfirmForAttacker(attacker, -away, heavyConfirmMultiplier);
@@ -153,8 +142,8 @@ namespace Racoon.Player
         void OnStateChanged(PlayerState previous, PlayerState current)
         {
             if (!IsLocal) return;
-            if (current == PlayerState.HitStun) stunCheckTime = Time.time;
-            if (previous == PlayerState.Knockdown && current != PlayerState.Knockdown) Play(getUp, 1f, Vector3.up);
+            if (current == PlayerState.Downed && previous != PlayerState.Downed) Play(itemStun);
+            if (previous.IsGrounded() && !current.IsGrounded()) Play(getUp, 1f, Vector3.up);
         }
 
         void OnActionStarted(PlayerState action)
