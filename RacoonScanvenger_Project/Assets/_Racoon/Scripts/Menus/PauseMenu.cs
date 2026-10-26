@@ -19,6 +19,7 @@ public class PauseMenu : MonoBehaviour
     [SerializeField] GameObject optionsPanel;
 
     bool isPaused;
+    bool cursorLockedForGameplay;
 
     void Start()
     {
@@ -32,8 +33,8 @@ public class PauseMenu : MonoBehaviour
 
         isPaused = false;
 
-        Cursor.visible = false;
-        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.None;
     }
 
     void Update()
@@ -47,6 +48,18 @@ public class PauseMenu : MonoBehaviour
             {
                 Pause();
                 return;
+            }
+
+            // Cuando ya existe nuestro jugador local,
+            // significa que ya hemos entrado en la partida.
+            if (!cursorLockedForGameplay &&
+                !isPaused &&
+                PlayerController.Local != null)
+            {
+                Cursor.visible = false;
+                Cursor.lockState = CursorLockMode.Locked;
+
+                cursorLockedForGameplay = true;
             }
 
             // Si estamos en Options, ESC vuelve al menú de pausa.
