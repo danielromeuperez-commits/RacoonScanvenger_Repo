@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &2018251849792585226
+--- !u!1 &2087854251873482391
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -8,37 +8,37 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 444817130851840992}
-  - component: {fileID: 710645567852123602}
-  m_Layer: 8
+  - component: {fileID: 7926161055259727055}
+  - component: {fileID: 7671375091220977538}
+  m_Layer: 0
   m_Name: VFX_Tired
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &444817130851840992
+--- !u!4 &7926161055259727055
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2018251849792585226}
+  m_GameObject: {fileID: 2087854251873482391}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.18246832, y: -0.024831442, z: -0.016486568, w: 0.98275983}
-  m_LocalPosition: {x: -0.006000063, y: 0.15499292, z: 0.19299953}
-  m_LocalScale: {x: 1.0075183, y: 0.98227984, z: 1.0101362}
+  m_LocalRotation: {x: 0.01379213, y: -0.046532713, z: 0.028395804, w: 0.99841785}
+  m_LocalPosition: {x: 0.005, y: 0.125, z: -0.001}
+  m_LocalScale: {x: 0.9970321, y: 1.0075192, z: 0.99545354}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 7408803683254340359}
-  m_LocalEulerAnglesHint: {x: -21.067, y: -2.628, z: -1.433}
---- !u!114 &710645567852123602
+  m_Father: {fileID: 9148743221045717343}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &7671375091220977538
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2018251849792585226}
+  m_GameObject: {fileID: 2087854251873482391}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8b9c0d1e2f3a4eb5c6d7e8f9a0b1c2d3, type: 3}
@@ -314,7 +314,7 @@ Transform:
   m_GameObject: {fileID: 5434399878066750498}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.1, z: 0}
+  m_LocalPosition: {x: 0, y: -0.25, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -332,14 +332,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4d5e6f7a8b9c4ad1e2f3a4b5c6d7e8f9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Racoon.VFX.ImpactVFX
+  style: 0
+  hollow: 0.2
+  coreFlash: 0
+  impactFrames: 1
+  freezeDuration: {x: 0.08, y: 0.14}
+  freezeAttacker: 1
+  effectSpeedInFreeze: 0.3
+  flashColor: 0
+  flashWhite: {r: 1, g: 1, b: 1, a: 1}
+  flashInterval: 0.04
   volumeMaterial: {fileID: 2100000, guid: f3a5b7c9d1e34f4a0b2c4d6e8f0a2b35, type: 2}
   flatMaterial: {fileID: 2100000, guid: 9e4a6c8d0f2b43c5d7e9f1a3b5c7d9e1, type: 2}
   coreColor: {r: 1, g: 1, b: 1, a: 1}
   coreTipColor: {r: 1, g: 0.85, b: 0.35, a: 1}
-  crystalColor: {r: 1, g: 1, b: 0.88, a: 1}
-  crystalTipColor: {r: 1, g: 0.7, b: 0.08, a: 1}
-  waveColor: {r: 1, g: 1, b: 0.92, a: 1}
-  waveEdgeColor: {r: 1, g: 0.78, b: 0.25, a: 1}
+  spikeColor: {r: 1, g: 1, b: 0.88, a: 1}
+  spikeTipColor: {r: 1, g: 0.7, b: 0.08, a: 1}
   accentColor: {r: 0.9716981, g: 0.8653351, b: 0.43543077, a: 1}
   outlineColor: {r: 0.5943396, g: 0.50087804, b: 0.19344072, a: 0.44705883}
   shadowTint: {r: 1, g: 0.82, b: 0.62, a: 1}
@@ -352,8 +360,14 @@ MonoBehaviour:
   size: {x: 0.55, y: 0.85}
   followTarget: 0.8
   hitScatter: {x: 0.1, y: 0.12}
+  shake: 0.05
+  birthTime: 0.07
+  surfaceOffset: 0.03
   timeScale: 0.8
   poolSize: 3
+  shards: 6
+  shardSize: 0.07
+  shardGravity: 7
   heavyStars: 3
   starSize: 0.18
   starGravity: 9
@@ -373,8 +387,6 @@ MonoBehaviour:
   flatMaterial: {fileID: 2100000, guid: 9e4a6c8d0f2b43c5d7e9f1a3b5c7d9e1, type: 2}
   arcColor: {r: 1, g: 1, b: 1, a: 1}
   arcEdgeColor: {r: 1, g: 0.8, b: 0.28, a: 1}
-  lineColor: {r: 1, g: 1, b: 1, a: 1}
-  lineTipColor: {r: 1, g: 0.8, b: 0.28, a: 1}
   outlineColor: {r: 0.85, g: 0.58, b: 0.14, a: 1}
   shadowTint: {r: 1, g: 0.85, b: 0.65, a: 1}
   highlightColor: {r: 1, g: 1, b: 1, a: 1}
@@ -382,9 +394,12 @@ MonoBehaviour:
   radius: 0.65
   width: 0.24
   thickness: 0.09
+  startAngle: 125
+  endAngle: -25
+  trail: 105
   tilt: 16
   forwardOffset: 0.05
-  speedLines: 1
+  strands: 1
   delay: 0.04
   duration: 0.2
 --- !u!1 &6443071073951013002
@@ -510,7 +525,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Racoon.Player.PlayerController
   ShowTopMostFoldoutHeaderGroup: 1
-  walkSpeed: 3.5
+  walkSpeed: 2.5
   runSpeed: 6.5
   acceleration: 30
   rotationSpeed: 720
@@ -642,6 +657,8 @@ MonoBehaviour:
   smallSackBlendShape: Saco_Pequeno
   bigSackBlendShape: Saco_Grande
   sackSmoothTime: 0.25
+  sackFullWeightScale: 1.6
+  sackFillExponent: 1.3
 --- !u!136 &4584103816076866246
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -1936,9 +1953,9 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects:
-    - targetCorrespondingSourceObject: {fileID: -9024679872692868464, guid: d8b1305a1f1b9da4caeb1d3cceaa53c7, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 444817130851840992}
+    - targetCorrespondingSourceObject: {fileID: -7285025709699086136, guid: d8b1305a1f1b9da4caeb1d3cceaa53c7, type: 3}
+      insertIndex: 0
+      addedObject: {fileID: 7926161055259727055}
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: d8b1305a1f1b9da4caeb1d3cceaa53c7, type: 3}
 --- !u!95 &3853440138688175110 stripped
@@ -1951,8 +1968,8 @@ Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: d8b1305a1f1b9da4caeb1d3cceaa53c7, type: 3}
   m_PrefabInstance: {fileID: 7210472779261223319}
   m_PrefabAsset: {fileID: 0}
---- !u!4 &7408803683254340359 stripped
+--- !u!4 &9148743221045717343 stripped
 Transform:
-  m_CorrespondingSourceObject: {fileID: -9024679872692868464, guid: d8b1305a1f1b9da4caeb1d3cceaa53c7, type: 3}
+  m_CorrespondingSourceObject: {fileID: -7285025709699086136, guid: d8b1305a1f1b9da4caeb1d3cceaa53c7, type: 3}
   m_PrefabInstance: {fileID: 7210472779261223319}
   m_PrefabAsset: {fileID: 0}
