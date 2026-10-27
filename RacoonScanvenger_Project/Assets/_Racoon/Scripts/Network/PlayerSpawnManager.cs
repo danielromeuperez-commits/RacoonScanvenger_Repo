@@ -5,12 +5,11 @@ using UnityEngine;
 namespace Racoon.Network
 {
     /// <summary>
-    /// Va en el GameObject del NetworkManager. Decide, en el HOST, qué prefab y en qué spawn point
-    /// aparece cada jugador que se conecta (incluido el propio host):
-    ///  1. El jugador elige personaje y lo manda en ConnectionData (SetLocalSelection).
-    ///  2. El host lo lee en la aprobación de conexión, reserva un spawn point libre y le dice a
-    ///     Netcode qué prefab crear y dónde. Netcode lo spawnea y lo replica a todos.
-    /// Así la escena no necesita ningún jugador colocado a mano.
+    /// Gestiona la conexión y el spawn de los jugadores.
+    ///
+    /// Los clientes pueden conectarse sin crear todavía su PlayerObject.
+    /// El personaje se crea más tarde, cuando todos han elegido personaje
+    /// y han marcado READY en el lobby.
     /// </summary>
     [RequireComponent(typeof(NetworkManager))]
     public class PlayerSpawnManager : MonoBehaviour
@@ -26,28 +25,45 @@ namespace Racoon.Network
         void Awake()
         {
             networkManager = GetComponent<NetworkManager>();
+
             networkManager.NetworkConfig.ConnectionApproval = true;
             networkManager.ConnectionApprovalCallback = ApproveConnection;
+
             networkManager.OnClientDisconnectCallback += OnClientDisconnect;
             networkManager.OnServerStopped += OnServerStopped;
+
             ValidateRoster();
         }
 
         void OnDestroy()
         {
-            if (networkManager == null) return;
+            if (networkManager == null)
+                return;
+
             networkManager.OnClientDisconnectCallback -= OnClientDisconnect;
             networkManager.OnServerStopped -= OnServerStopped;
         }
 
-        /// <summary>Llamar ANTES de hostear o unirse (local u online).</summary>
+        /// <summary>
+        /// Se mantiene por compatibilidad con el NetworkTestMenu antiguo.
+        /// La selección definitiva ahora se hace en CharacterLobbyManager.
+        /// </summary>
         public void SetLocalSelection(int characterIndex)
         {
-            networkManager.NetworkConfig.ConnectionData = new ConnectionPayload { characterIndex = characterIndex }.Encode();
+            networkManager.NetworkConfig.ConnectionData =
+                new ConnectionPayload
+                {
+                    characterIndex = characterIndex
+                }.Encode();
         }
 
-        // Solo se ejecuta en el host/servidor.
-        void ApproveConnection(NetworkManager.ConnectionApprovalRequest request, NetworkManager.ConnectionApprovalResponse response)
+        // ============================================================
+        // APROBACIÓN DE CONEXIÓN
+        // ============================================================
+
+        void ApproveConnection(
+            NetworkManager.ConnectionApprovalRequest request,
+            NetworkManager.ConnectionApprovalResponse response)
         {
             if (networkManager.ConnectedClientsIds.Count >= maxPlayers)
             {
@@ -55,62 +71,177 @@ namespace Racoon.Network
                 return;
             }
 
-            ConnectionPayload payload = ConnectionPayload.Decode(request.Payload);
-            PlayerCharacterDefinition character = roster != null ? roster.Get(payload.characterIndex) ?? roster.Get(0) : null;
-            if (character == null || character.prefab == null)
-            {
-                Reject(response, "Personaje no válido.");
-                return;
-            }
-
-            Pose? spawn = PlayerSpawnPoints.Reserve(request.ClientNetworkId);
-            if (spawn == null)
-            {
-                Reject(response, "No quedan spawn points libres.");
-                return;
-            }
-
+            // Permitimos entrar al cliente...
             response.Approved = true;
-            response.CreatePlayerObject = true;
-            response.PlayerPrefabHash = character.prefab.PrefabIdHash;
-            response.Position = spawn.Value.position;
-            response.Rotation = spawn.Value.rotation;
+
+            // ...pero NO creamos todavía su personaje.
+            response.CreatePlayerObject = false;
         }
 
-        static void Reject(NetworkManager.ConnectionApprovalResponse response, string reason)
+        static void Reject(
+            NetworkManager.ConnectionApprovalResponse response,
+            string reason)
         {
             response.Approved = false;
             response.CreatePlayerObject = false;
             response.Reason = reason;
         }
 
-        void OnClientDisconnect(ulong clientId)
+        // ============================================================
+        // SPAWN DESPUÉS DEL READY
+        // ============================================================
+
+        /// <summary>
+        /// Solo servidor.
+        /// Crea el personaje elegido y lo convierte
+        /// en PlayerObject del cliente indicado.
+        /// </summary>
+        public bool ServerSpawnPlayer(
+            ulong clientId,
+            int characterIndex)
         {
-            if (networkManager.IsServer) PlayerSpawnPoints.Release(clientId);
+            if (!networkManager.IsServer)
+            {
+                Debug.LogWarning(
+                    "ServerSpawnPlayer solo puede ejecutarse en el servidor.",
+                    this
+                );
+
+                return false;
+            }
+
+            if (!networkManager.ConnectedClients.TryGetValue(
+                    clientId,
+                    out NetworkClient client))
+            {
+                Debug.LogWarning(
+                    $"No existe el cliente {clientId}.",
+                    this
+                );
+
+                return false;
+            }
+
+            // Evita crear el jugador dos veces.
+            if (client.PlayerObject != null)
+                return true;
+
+            PlayerCharacterDefinition character =
+                roster != null
+                    ? roster.Get(characterIndex)
+                    : null;
+
+            if (character == null || character.prefab == null)
+            {
+                Debug.LogError(
+                    $"Personaje {characterIndex} no válido.",
+                    this
+                );
+
+                return false;
+            }
+
+            Pose? spawn =
+                PlayerSpawnPoints.Reserve(clientId);
+
+            if (spawn == null)
+            {
+                Debug.LogError(
+                    $"No queda Spawn Point para el cliente {clientId}.",
+                    this
+                );
+
+                return false;
+            }
+
+            NetworkObject playerObject =
+                Instantiate(
+                    character.prefab,
+                    spawn.Value.position,
+                    spawn.Value.rotation
+                );
+
+            playerObject.SpawnAsPlayerObject(
+                clientId,
+                true
+            );
+
+            Debug.Log(
+                $"Jugador {clientId} creado como " +
+                $"{character.displayName}."
+            );
+
+            return true;
         }
 
-        void OnServerStopped(bool wasHost) => PlayerSpawnPoints.ReleaseAll();
+        // ============================================================
+        // LIMPIEZA
+        // ============================================================
+
+        void OnClientDisconnect(ulong clientId)
+        {
+            if (networkManager.IsServer)
+                PlayerSpawnPoints.Release(clientId);
+        }
+
+        void OnServerStopped(bool wasHost)
+        {
+            PlayerSpawnPoints.ReleaseAll();
+        }
+
+        // ============================================================
+        // VALIDACIÓN
+        // ============================================================
 
         void ValidateRoster()
         {
             if (roster == null || roster.Count == 0)
             {
-                Debug.LogError("PlayerSpawnManager: asigna un Character Roster con al menos un personaje.", this);
+                Debug.LogError(
+                    "PlayerSpawnManager: asigna un Character Roster " +
+                    "con al menos un personaje.",
+                    this
+                );
+
                 return;
             }
 
-            foreach (PlayerCharacterDefinition character in roster.Characters)
+            foreach (
+                PlayerCharacterDefinition character
+                in roster.Characters)
             {
-                if (character == null || character.prefab == null)
+                if (character == null ||
+                    character.prefab == null)
                 {
-                    Debug.LogError($"PlayerSpawnManager: el personaje '{character?.name}' no tiene prefab.", this);
+                    Debug.LogError(
+                        $"PlayerSpawnManager: el personaje " +
+                        $"'{character?.name}' no tiene prefab.",
+                        this
+                    );
+
                     continue;
                 }
 
-                bool registered = networkManager.NetworkConfig.Prefabs.NetworkPrefabsLists
-                    .Exists(list => list != null && list.Contains(character.prefab.gameObject));
+                bool registered =
+                    networkManager.NetworkConfig.Prefabs
+                        .NetworkPrefabsLists
+                        .Exists(
+                            list =>
+                                list != null &&
+                                list.Contains(
+                                    character.prefab.gameObject
+                                )
+                        );
+
                 if (!registered)
-                    Debug.LogError($"PlayerSpawnManager: añade '{character.prefab.name}' a la Network Prefabs List del NetworkManager.", this);
+                {
+                    Debug.LogError(
+                        $"PlayerSpawnManager: añade " +
+                        $"'{character.prefab.name}' a la " +
+                        $"Network Prefabs List.",
+                        this
+                    );
+                }
             }
         }
     }

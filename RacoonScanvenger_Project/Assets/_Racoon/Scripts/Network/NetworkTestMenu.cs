@@ -111,6 +111,22 @@ namespace Racoon.Network
 
         int MaxPlayers => spawnManager.MaxPlayers;
 
+        // Información pública para nuestra nueva UI.
+        public int MaxPlayerCount => MaxPlayers;
+
+        public int ConnectedPlayerCount =>
+            networkManager != null && networkManager.IsListening
+                ? networkManager.ConnectedClientsIds.Count
+                : 0;
+
+        public string LocalIPAddress =>
+            string.IsNullOrEmpty(localAddresses)
+                ? "---"
+                : localAddresses;
+
+        public bool IsNetworkListening =>
+            networkManager != null && networkManager.IsListening;
+
         // El personaje elegido viaja al host dentro de los datos de conexión.
         void ApplySelection() => spawnManager.SetLocalSelection(selectedCharacter);
 
