@@ -15529,7 +15529,7 @@ GameObject:
   - component: {fileID: 1808436353}
   - component: {fileID: 1808436354}
   m_Layer: 0
-  m_Name: EVENT
+  m_Name: Event_Double_Points
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -15591,6 +15591,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::eventDoublePoints
   ShowTopMostFoldoutHeaderGroup: 1
   triggerTime: 60
+  PopUpPanel: {fileID: 0}
+  PopUpText: {fileID: 0}
+  displayDuration: 5
 --- !u!1001 &1808884937
 PrefabInstance:
   m_ObjectHideFlags: 0
