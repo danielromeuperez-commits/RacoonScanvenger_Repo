@@ -114,7 +114,7 @@ namespace Racoon.Network
         // El personaje elegido viaja al host dentro de los datos de conexión.
         void ApplySelection() => spawnManager.SetLocalSelection(selectedCharacter);
 
-        void StartLocalHost()
+        public void StartLocalHost()
         {
             ApplySelection();
             // 0.0.0.0 = acepta conexiones de este PC y de otros de la misma red.
@@ -131,7 +131,7 @@ namespace Racoon.Network
             }
         }
 
-        void StartLocalClient()
+        public void StartLocalClient()
         {
             string address = joinAddress.Trim();
             if (!IPAddress.TryParse(address, out _))
@@ -151,6 +151,11 @@ namespace Racoon.Network
             {
                 status = "No se pudo iniciar el cliente.";
             }
+        }
+
+        public void SetJoinAddress(string address)
+        {
+            joinAddress = address;
         }
 
         // Si el host rechaza al cliente con "NetworkConfig mismatch", compara esta línea en las dos consolas:

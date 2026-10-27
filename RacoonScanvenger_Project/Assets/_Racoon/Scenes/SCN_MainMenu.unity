@@ -1569,6 +1569,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: -8742558273962548880, guid: f8636e61bb9304a4c94bb4bce9c65956, type: 3}
+      propertyPath: gameSceneName
+      value: SCN_Masip_Pruebas_Fabre
+      objectReference: {fileID: 0}
     - target: {fileID: 4130605362715180219, guid: f8636e61bb9304a4c94bb4bce9c65956, type: 3}
       propertyPath: m_Name
       value: PF_MainMenuManager
