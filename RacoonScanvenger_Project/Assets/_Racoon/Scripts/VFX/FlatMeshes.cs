@@ -11,9 +11,9 @@ namespace Racoon.VFX
     ///    relleno: en el overlay (sin profundidad) se pinta en ese orden.
     ///  - Cintas (remolinos de las estrellas de mareo): plano XZ, de doble cara.
     ///  - Objetos 3D (estrella, gota): volumen con normales suaves + cáscara de contorno (inverted hull).
-    ///  - Con volumen para SG_VFX_ToonVolume (onda de choque y golpe al aire): anillo-tubo, burbuja hueca, cristales
-    ///    y bola de pinchos facetados, tajo en media luna y husos de velocidad, con cáscara de contorno que no se abre
-    ///    en las aristas. UV2.x = radio del tubo.
+    ///  - Con volumen para SG_VFX_ToonVolume (impacto y golpe al aire): pinchos, rayos en zigzag y bola de pinchos
+    ///    facetados, con cáscara de contorno que no se abre en las aristas. UV2.x = radio del
+    ///    tubo. (El tajo del golpe al aire se rehace cada frame en SwingVFX.)
     /// </summary>
     public static class FlatMeshes
     {
@@ -337,111 +337,140 @@ namespace Racoon.VFX
         }
 
         // ---------------- Con volumen (SG_VFX_ToonVolume) ----------------
-        // Además de UV0 / UV1, UV2.x = radio del tubo (anillos): el shader lo adelgaza con Thickness.
+        // Además de UV0 / UV1, UV2.x = radio del tubo: el shader lo adelgaza con Thickness.
 
         /// <summary>
-        /// Anillo con volumen: tubo de radio <paramref name="tube"/> alrededor de un aro de radio 1 (borde ondulado) en el
-        /// plano XY, con contorno. Recorrido = la vuelta (0 → 1): con Grow se dibuja dando la vuelta. Degradado = del lado
-        /// de dentro (BaseColor) al de fuera (TipColor). Con Thickness el tubo adelgaza hasta desaparecer.
+        /// Pinchos facetados (<paramref name="sides"/> caras planas) que salen del centro repartidos entre dos conos
+        /// alrededor de +Z (de minDeg a maxDeg: 0 = rectos hacia +Z, 90 = tumbados en el plano XY), con contorno.
+        /// shoulder = dónde son más anchos (0 = en la base: aguja; 0.3 = rombo); flatten aplasta la sección hacia +Z (1 =
+        /// regular, menos = cuchilla plana que se ve de frente). alternate = uno largo y otro corto (estrella de manga).
+        /// hollow = radio del hueco del centro: cada pincho nace apartado del eje Z esa distancia (0 = todos desde el centro).
+        /// Recorrido = de la base (0) a la punta (1), cada uno a su ritmo (Spread). Degradado = de la base a la punta.
+        /// Escala 1 = longitud máx.
         /// </summary>
-        public static Mesh Torus(int seed, float tube, float outline, float wobble, int waves = 5, int segments = 56, int sides = 10)
+        public static Mesh Spikes(int seed, int count, float minDeg, float maxDeg, float innerRadius, Vector2 length, Vector2 halfWidth,
+            float outline, float shoulder = 0.28f, float flatten = 0.65f, int sides = 5, bool alternate = false, float hollow = 0f)
         {
             System.Random random = new(seed);
-            float phase = Range(random, 0f, Mathf.PI * 2f);
             VolumeBuilder b = new();
-            for (int i = 0; i <= segments; i++)
-            {
-                float t = i / (float)segments, angle = t * Mathf.PI * 2f;
-                Vector3 radial = new(Mathf.Cos(angle), Mathf.Sin(angle), 0f);
-                Vector3 center = radial * (1f + wobble * Mathf.Sin(angle * waves + phase));
-                for (int j = 0; j < sides; j++)
-                {
-                    float a = j / (float)sides * Mathf.PI * 2f;
-                    Vector3 normal = radial * Mathf.Cos(a) + Vector3.forward * Mathf.Sin(a);
-                    b.Add(center + normal * tube, normal, t, 0.5f, 0.5f + 0.5f * Mathf.Cos(a), tube);
-                }
-            }
-            AddTubeFaces(b, 0, segments, sides);
-            return b.Build("FX_Torus", outline);
-        }
-
-        /// <summary>
-        /// Burbuja de choque: media esfera de radio 1 abombada hacia +Z (base en z = 0), hueca y de doble cara (por
-        /// dentro con las normales al revés). Pensada para RimCut: se ve su silueta y se va vaciando. Recorrido = de la
-        /// punta (0) a la base (1). Degradado = de la punta a la base; por dentro, TipColor.
-        /// </summary>
-        public static Mesh Bubble(int rings = 10, int segments = 40)
-        {
-            VolumeBuilder b = new();
-            for (int side = 1; side >= -1; side -= 2)
-            {
-                int apex = b.Add(Vector3.forward, Vector3.forward * side, 0f, 0.5f, side > 0 ? 0f : 1f);
-                int first = b.Count;
-                for (int k = 1; k <= rings; k++)
-                {
-                    float t = k / (float)rings, phi = t * Mathf.PI * 0.5f;
-                    for (int s = 0; s < segments; s++)
-                    {
-                        float angle = s / (float)segments * Mathf.PI * 2f;
-                        Vector3 p = new(Mathf.Sin(phi) * Mathf.Cos(angle), Mathf.Sin(phi) * Mathf.Sin(angle), Mathf.Cos(phi));
-                        b.Add(p, p * side, t, 0.5f, side > 0 ? t : 1f);
-                    }
-                }
-                for (int s = 0; s < segments; s++)
-                {
-                    int s1 = (s + 1) % segments;
-                    b.TriSmooth(apex, first + s, first + s1);
-                    for (int k = 0; k < rings - 1; k++)
-                    {
-                        int a = first + k * segments + s, c = first + k * segments + s1;
-                        int d = first + (k + 1) * segments + s, e = first + (k + 1) * segments + s1;
-                        b.TriSmooth(a, d, c);
-                        b.TriSmooth(c, d, e);
-                    }
-                }
-            }
-            return b.Build("FX_Bubble", 0f);
-        }
-
-        /// <summary>
-        /// Cristales facetados (<paramref name="sides"/> caras planas, algo aplastados) que salen del centro repartidos por
-        /// un cono alrededor de +Z (coneDeg = 0 todos rectos, 90 media esfera), con contorno. Recorrido = de la base (0) a
-        /// la punta (1), cada uno a su ritmo (Spread). Degradado = de la base a la punta. Escala 1 = longitud máx.
-        /// </summary>
-        public static Mesh Crystals(int seed, int count, float coneDeg, float innerRadius, Vector2 length, Vector2 halfWidth, float outline, int sides = 5)
-        {
-            const float shoulder = 0.28f;
-            System.Random random = new(seed);
-            VolumeBuilder b = new();
-            float cosCone = Mathf.Cos(coneDeg * Mathf.Deg2Rad);
+            float cosMin = Mathf.Cos(minDeg * Mathf.Deg2Rad), cosMax = Mathf.Cos(maxDeg * Mathf.Deg2Rad);
             float golden = Mathf.PI * (3f - Mathf.Sqrt(5f));
             float spin = Range(random, 0f, Mathf.PI * 2f);
             Vector3[] ring = new Vector3[sides];
             for (int i = 0; i < count; i++)
             {
-                // Repartidos por el casquete (espiral áurea, área uniforme) con un poco de azar.
-                float h = Mathf.Lerp(1f, cosCone, (i + Range(random, 0.2f, 0.8f)) / count);
-                float theta = Mathf.Acos(h), azimuth = spin + i * golden + Range(random, -0.3f, 0.3f);
+                // Repartidos por la franja (espiral áurea, área uniforme) con un poco de azar. En la estrella, en orden
+                // alrededor para que se alternen de verdad.
+                float h = Mathf.Lerp(cosMin, cosMax, (i + Range(random, 0.2f, 0.8f)) / count);
+                float azimuth = alternate ? spin + i * Mathf.PI * 2f / count + Range(random, -0.12f, 0.12f) : spin + i * golden + Range(random, -0.3f, 0.3f);
+                if (alternate) h = Mathf.Lerp(cosMin, cosMax, Range(random, 0.3f, 0.7f));
+                float theta = Mathf.Acos(h);
                 Vector3 dir = new(Mathf.Sin(theta) * Mathf.Cos(azimuth), Mathf.Sin(theta) * Mathf.Sin(azimuth), h);
-                Vector3 side1 = Vector3.Cross(dir, Mathf.Abs(dir.y) < 0.9f ? Vector3.up : Vector3.right).normalized;
+                // side1 tangente alrededor de Z, side2 hacia +Z: flatten aplasta hacia la cara que mira a +Z.
+                Vector3 side1 = Vector3.Cross(Vector3.forward, dir);
+                side1 = side1.sqrMagnitude > 1e-4f ? side1.normalized : Vector3.right;
                 Vector3 side2 = Vector3.Cross(dir, side1);
-                float len = Range(random, length.x, length.y), w = Range(random, halfWidth.x, halfWidth.y);
-                float rnd = (float)random.NextDouble(), twist = Range(random, 0f, Mathf.PI * 2f);
+                float len = Range(random, length.x, length.y) * (alternate && i % 2 == 1 ? 0.55f : 1f);
+                float w = Range(random, halfWidth.x, halfWidth.y) * (alternate && i % 2 == 1 ? 0.8f : 1f);
+                float rnd = (float)random.NextDouble(), twist = Range(random, 0f, Mathf.PI * 2f) * (flatten < 0.99f ? 0f : 1f);
 
-                Vector3 basePoint = dir * innerRadius, tip = dir * (innerRadius + len);
+                Vector3 offset = HollowOffset(dir, azimuth, hollow);
+                Vector3 basePoint = offset + dir * innerRadius, tip = offset + dir * (innerRadius + len);
                 for (int s = 0; s < sides; s++)
                 {
                     float a = twist + s / (float)sides * Mathf.PI * 2f;
-                    ring[s] = dir * (innerRadius + len * shoulder) + (side1 * Mathf.Cos(a) + side2 * (Mathf.Sin(a) * 0.65f)) * w;
+                    ring[s] = offset + dir * (innerRadius + len * shoulder) + (side1 * Mathf.Cos(a) + side2 * (Mathf.Sin(a) * flatten)) * w;
                 }
                 for (int s = 0; s < sides; s++)
                 {
+                    // Hacia fuera de su propio eje (el del pincho, que con hueco no pasa por el origen).
                     Vector3 r0 = ring[s], r1 = ring[(s + 1) % sides];
-                    b.Facet(basePoint, r0, r1, 0f, shoulder, shoulder, rnd, dir);
-                    b.Facet(r0, tip, r1, shoulder, 1f, shoulder, rnd, dir);
+                    b.FacetToward(basePoint, r0, r1, 0f, shoulder, shoulder, rnd, AwayFromAxis(offset, dir, basePoint, r0, r1));
+                    b.FacetToward(r0, tip, r1, shoulder, 1f, shoulder, rnd, AwayFromAxis(offset, dir, r0, tip, r1));
                 }
             }
-            return b.Build("FX_Crystals", outline);
+            return b.Build("FX_Spikes", outline);
+        }
+
+        // Cara hacia fuera del eje que pasa por origin en dirección axis.
+        static Vector3 AwayFromAxis(Vector3 origin, Vector3 axis, Vector3 p0, Vector3 p1, Vector3 p2)
+        {
+            Vector3 centroid = (p0 + p1 + p2) / 3f - origin;
+            return centroid - axis * Vector3.Dot(centroid, axis);
+        }
+
+        // Con hueco en el centro: hacia fuera del eje Z (por su azimut si sale recto).
+        static Vector3 HollowOffset(Vector3 dir, float azimuth, float hollow)
+        {
+            if (hollow <= 0f) return Vector3.zero;
+            Vector3 radial = new(dir.x, dir.y, 0f);
+            if (radial.sqrMagnitude < 1e-4f) radial = new Vector3(Mathf.Cos(azimuth), Mathf.Sin(azimuth), 0f);
+            return radial.normalized * hollow;
+        }
+
+        /// <summary>
+        /// Rayos en zigzag facetados (sección de rombo) que salen del centro repartidos por un cono alrededor de +Z, cada
+        /// uno de <paramref name="zigs"/> tramos que van y vienen de lado y adelgazan hasta acabar en punta, con contorno.
+        /// zigAmount = cuánto se tuercen (respecto a su largo). Recorrido = de la base (0) a la punta (1), cada uno a su
+        /// ritmo (Spread). Degradado = de la base a la punta. hollow = radio del hueco del centro (como en Spikes).
+        /// Escala 1 = longitud máx.
+        /// </summary>
+        public static Mesh Bolts(int seed, int count, float coneDeg, float innerRadius, Vector2 length, float halfWidth, int zigs,
+            float zigAmount, float outline, float hollow = 0f)
+        {
+            const int Sides = 4;
+            System.Random random = new(seed);
+            VolumeBuilder b = new();
+            float cosCone = Mathf.Cos(coneDeg * Mathf.Deg2Rad);
+            float golden = Mathf.PI * (3f - Mathf.Sqrt(5f));
+            float spin = Range(random, 0f, Mathf.PI * 2f);
+            zigs = Mathf.Max(1, zigs);
+            Vector3[] spine = new Vector3[zigs + 1];
+            Vector3[,] ring = new Vector3[zigs + 1, Sides];
+            for (int i = 0; i < count; i++)
+            {
+                float h = Mathf.Lerp(1f, cosCone, (i + Range(random, 0.2f, 0.8f)) / count);
+                float theta = Mathf.Acos(h), azimuth = spin + i * golden + Range(random, -0.3f, 0.3f);
+                Vector3 dir = new(Mathf.Sin(theta) * Mathf.Cos(azimuth), Mathf.Sin(theta) * Mathf.Sin(azimuth), h);
+                Vector3 side1 = Vector3.Cross(Vector3.forward, dir);
+                side1 = side1.sqrMagnitude > 1e-4f ? side1.normalized : Vector3.right;
+                Vector3 side2 = Vector3.Cross(dir, side1);
+                float len = Range(random, length.x, length.y), rnd = (float)random.NextDouble();
+                float zigSign = random.NextDouble() < 0.5 ? -1f : 1f;
+
+                // El zigzag va de lado (side1); la punta vuelve al centro.
+                for (int k = 0; k <= zigs; k++)
+                {
+                    float t = k / (float)zigs;
+                    float lateral = k == 0 || k == zigs ? 0f : zigSign * (k % 2 == 1 ? 1f : -1f) * zigAmount * len * Range(random, 0.7f, 1.2f);
+                    spine[k] = HollowOffset(dir, azimuth, hollow) + dir * (innerRadius + len * t) + side1 * lateral;
+                }
+                for (int k = 0; k <= zigs; k++)
+                {
+                    float t = k / (float)zigs;
+                    Vector3 tangent = (spine[Mathf.Min(k + 1, zigs)] - spine[Mathf.Max(k - 1, 0)]).normalized;
+                    Vector3 across = Vector3.Cross(side2, tangent).normalized;
+                    float w = k == zigs ? 0f : halfWidth * Mathf.Lerp(1f, 0.45f, t);
+                    ring[k, 0] = spine[k] + across * w;
+                    ring[k, 1] = spine[k] + side2 * (w * 0.6f);
+                    ring[k, 2] = spine[k] - across * w;
+                    ring[k, 3] = spine[k] - side2 * (w * 0.6f);
+                }
+                for (int s = 0; s < Sides; s++)
+                {
+                    int s1 = (s + 1) % Sides;
+                    // Tapa de la base.
+                    b.FacetToward(spine[0], ring[0, s], ring[0, s1], 0f, 0f, 0f, rnd, -dir);
+                    for (int k = 0; k < zigs; k++)
+                    {
+                        float t0 = k / (float)zigs, t1 = (k + 1) / (float)zigs;
+                        Vector3 facing = (ring[k, s] + ring[k, s1] + ring[k + 1, s] + ring[k + 1, s1]) * 0.25f - (spine[k] + spine[k + 1]) * 0.5f;
+                        b.FacetToward(ring[k, s], ring[k + 1, s], ring[k, s1], t0, t1, t0, rnd, facing);
+                        b.FacetToward(ring[k, s1], ring[k + 1, s], ring[k + 1, s1], t0, t1, t1, rnd, facing);
+                    }
+                }
+            }
+            return b.Build("FX_Bolts", outline);
         }
 
         /// <summary>
@@ -466,82 +495,6 @@ namespace Racoon.VFX
 
             Vector3 Point(int i) => sphereVertices[i].normalized * (i < 12 ? 0.5f : 0.5f * body);
             float Tip(int i) => i < 12 ? 1f : 0f;
-        }
-
-        /// <summary>
-        /// Tajo con volumen: media luna alrededor del origen en el plano XZ (de fromDeg a toDeg; 0 = +Z, 90 = +X) con
-        /// sección elíptica aplanada (halfWidth hacia fuera, halfThickness en vertical) que engorda en el centro y acaba
-        /// en punta por los dos extremos, con contorno. Recorrido = a lo largo del arco; degradado = de las caras planas
-        /// (BaseColor) a los filos (TipColor).
-        /// </summary>
-        public static Mesh SwingBlade(float radius, float fromDeg, float toDeg, float halfWidth, float halfThickness, float taper,
-            float outline, int segments = 40, int sides = 10)
-        {
-            VolumeBuilder b = new();
-            for (int i = 0; i <= segments; i++)
-            {
-                float t = i / (float)segments;
-                float angle = Mathf.Lerp(fromDeg, toDeg, t) * Mathf.Deg2Rad;
-                Vector3 dir = new(Mathf.Sin(angle), 0f, Mathf.Cos(angle));
-                // sin(π) sale un pelín negativo y Pow daría NaN.
-                float profile = Mathf.Pow(Mathf.Max(0f, Mathf.Sin(Mathf.PI * t)), taper);
-                float w = Mathf.Max(halfWidth * profile, 1e-4f), h = Mathf.Max(halfThickness * profile, 1e-4f);
-                for (int j = 0; j < sides; j++)
-                {
-                    float a = j / (float)sides * Mathf.PI * 2f;
-                    float c = Mathf.Cos(a), s = Mathf.Sin(a);
-                    Vector3 normal = (dir * (c / halfWidth) + Vector3.up * (s / halfThickness)).normalized;
-                    b.Add(dir * (radius + c * w) + Vector3.up * (s * h), normal, t, 0.5f, Mathf.Abs(c));
-                }
-            }
-            AddTubeFaces(b, 0, segments, sides);
-            return b.Build("FX_SwingBlade", outline);
-        }
-
-        /// <summary>
-        /// Líneas de velocidad con volumen: husos finos a lo largo de +Z repartidos en X (y un poco en altura), más
-        /// gordos hacia delante y en punta por los dos extremos, con contorno. Recorrido = de atrás (0) a delante (1).
-        /// </summary>
-        public static Mesh SpeedSpindles(int seed, int count, float spread, Vector2 length, float radius, float outline, int rings = 8, int sides = 6)
-        {
-            System.Random random = new(seed);
-            VolumeBuilder b = new();
-            for (int i = 0; i < count; i++)
-            {
-                float x = (count == 1 ? 0f : Mathf.Lerp(-spread, spread, i / (count - 1f))) + Range(random, -0.03f, 0.03f);
-                float y = Range(random, -0.04f, 0.04f), z = Range(random, -0.1f, 0.1f);
-                float len = Range(random, length.x, length.y), rnd = (float)random.NextDouble();
-                int start = b.Count;
-                for (int k = 0; k <= rings; k++)
-                {
-                    float t = k / (float)rings;
-                    float r = Mathf.Max(radius * Mathf.Pow(Mathf.Max(0f, Mathf.Sin(Mathf.PI * Mathf.Pow(t, 1.6f))), 0.7f), 1e-4f);
-                    for (int j = 0; j < sides; j++)
-                    {
-                        float a = j / (float)sides * Mathf.PI * 2f;
-                        Vector3 normal = new(Mathf.Cos(a), Mathf.Sin(a), 0f);
-                        b.Add(new Vector3(x, y, z + len * t) + normal * r, normal, t, rnd, t);
-                    }
-                }
-                AddTubeFaces(b, start, rings, sides);
-            }
-            return b.Build("FX_SpeedSpindles", outline);
-        }
-
-        // Caras de un tubo hecho de anillos de "sides" vértices seguidos (rings + 1 anillos desde start).
-        static void AddTubeFaces(VolumeBuilder b, int start, int rings, int sides)
-        {
-            for (int i = 0; i < rings; i++)
-            {
-                for (int j = 0; j < sides; j++)
-                {
-                    int j1 = (j + 1) % sides;
-                    int a = start + i * sides + j, c = start + i * sides + j1;
-                    int d = start + (i + 1) * sides + j, e = start + (i + 1) * sides + j1;
-                    b.TriSmooth(a, d, c);
-                    b.TriSmooth(c, d, e);
-                }
-            }
         }
 
         // Volumen + cáscara de contorno: la misma malla inflada por las normales con las caras al revés. Con
@@ -673,6 +626,13 @@ namespace Racoon.VFX
             {
                 Vector3 centroid = (a + b + c) / 3f;
                 Vector3 facing = axis == Vector3.zero ? centroid : centroid - axis * Vector3.Dot(centroid, axis);
+                FacetToward(a, b, c, alongA, alongB, alongC, random, facing, gradientA, gradientB, gradientC);
+            }
+
+            /// <summary>Cara plana como <see cref="Facet"/>, visible hacia <paramref name="facing"/>.</summary>
+            public void FacetToward(Vector3 a, Vector3 b, Vector3 c, float alongA, float alongB, float alongC, float random, Vector3 facing,
+                float gradientA = -1f, float gradientB = -1f, float gradientC = -1f)
+            {
                 Vector3 normal = Vector3.Cross(b - a, c - a);
                 if (normal.sqrMagnitude < 1e-14f) return;
                 if (Vector3.Dot(normal, facing) < 0f)

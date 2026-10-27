@@ -20,12 +20,16 @@ namespace Racoon.Player
         HitStun = 14,   // Golpe ligero (1º y 2º del combo): knockback corto + aturdido sin control
         Dash = 15,
         Knockdown = 16, // Golpe fuerte (3º del combo): derribado, invulnerable hasta levantarse
+        Downed = 17,    // Aturdido por un objeto: en el suelo hasta que mantiene Dash para levantarse
     }
 
     public static class PlayerStateExtensions
     {
         public static bool IsAction(this PlayerState state) => state >= PlayerState.Interact;
-        /// <summary>Sin control por haber recibido un golpe (ligero o fuerte).</summary>
-        public static bool IsStun(this PlayerState state) => state == PlayerState.HitStun || state == PlayerState.Knockdown;
+        /// <summary>Sin control por haber recibido un golpe (ligero o fuerte) o por un objeto.</summary>
+        public static bool IsStun(this PlayerState state) =>
+            state == PlayerState.HitStun || state == PlayerState.Knockdown || state == PlayerState.Downed;
+        /// <summary>Tirado en el suelo (derribo o aturdido por un objeto).</summary>
+        public static bool IsGrounded(this PlayerState state) => state == PlayerState.Knockdown || state == PlayerState.Downed;
     }
 }

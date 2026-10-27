@@ -905,7 +905,8 @@ namespace Racoon.Player
 
         void OnUsePressed()
         {
-            if (IsInAction) return;
+            // Tirado por un objeto no se puede golpear ni lanzar hasta levantarse.
+            if (IsInAction || itemRecoveryRequired || State.IsGrounded()) return;
 
             if (inventory.HasEquipped)
             {
@@ -1154,7 +1155,8 @@ namespace Racoon.Player
             itemRecoveryProgress = 0f;
             itemRecoveryRequired = true;
 
-            StartAction(PlayerState.HitStun, duration);
+            // Downed se mantiene hasta levantarse (UpdateItemRecovery vuelve a Idle), no solo lo que dura el stun.
+            StartAction(PlayerState.Downed, duration);
         }
 
         // ---------------- Recibir golpe ----------------

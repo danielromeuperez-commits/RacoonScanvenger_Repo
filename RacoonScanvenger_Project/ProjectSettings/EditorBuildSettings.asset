@@ -8,12 +8,15 @@ EditorBuildSettings:
   - enabled: 0
     path: Assets/_Racoon/Scenes/SCN_test_Daniel.unity
     guid: 99c9720ab356a0642a771bea13969a05
-  - enabled: 1
+  - enabled: 0
     path: Assets/_Racoon/Scenes/SCN_test_Masip.unity
     guid: 6007b9c989a44ea459885fb5fb18d2cc
-  - enabled: 1
-    path: Assets/_Racoon/Scenes/SCN_test_Luisa_GrayBox.unity
+  - enabled: 0
+    path: Assets/_Racoon/Scenes/SCN_test_Masip2_Shader.unity
     guid: 86eecc9327a2bab46bc9b117a044a229
+  - enabled: 1
+    path: Assets/_Racoon/Scenes/SCN_MainMenu.unity
+    guid: 763fd8067fa69a3468587d5778dba50a
   - enabled: 1
     path: Assets/_Racoon/Scenes/SCN_PruebasFabre_Items.unity
     guid: 007ef8e4eef1e7a40b148fa353ae04ef
@@ -22,7 +25,7 @@ EditorBuildSettings:
     guid: 9a4db11f9d2a2614ab7aea9438b940ad
   - enabled: 1
     path: Assets/_Racoon/Scenes/SCN_Masip.unity
-    guid: 49e960163e9c2ab4aa575ebacd6ef383
+    guid: ccf04995bcdd2b14fb375af01be9e532
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   m_UseUCBPForAssetBundles: 0

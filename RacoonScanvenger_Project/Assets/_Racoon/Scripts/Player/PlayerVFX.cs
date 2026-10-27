@@ -15,9 +15,9 @@ namespace Racoon.Player
     ///
     /// Se suscribe solo por código a los eventos del PlayerController (NO conectarlos también en el
     /// Inspector o se ejecutarían dos veces):
-    ///  - onLightHit    → OnLightHit: parpadeo rápido mientras está aturdido (golpes 1º y 2º), onda de choque
-    ///                    en el punto de la malla donde entra el golpe (ImpactVFX) y polvo del empujón
-    ///                    (KnockbackDustVFX).
+    ///  - onLightHit    → OnLightHit: impacto en el punto de la malla donde entra el golpe (ImpactVFX) con sus
+    ///                    impact frames (pausa de los dos jugadores + destello), parpadeo rápido mientras está
+    ///                    aturdido (golpes 1º y 2º; empieza al acabar la pausa) y polvo del empujón (KnockbackDustVFX).
     ///  - onHeavyHit    → OnHeavyHit: parpadeo rápido en el suelo + lento durante los i-frames al
     ///                    levantarse (se corta si los gasta atacando o con un dash), impacto fuerte, polvo
     ///                    del derribo y estrellas de mareo (DizzyStarsVFX) hasta que se levanta.
@@ -115,6 +115,7 @@ namespace Racoon.Player
                 FindOwn(ref tired);
             }
             if (windTrails != null) windTrails.SetPlayerTint(windTint);
+            if (impact != null) impact.PlayerColor = windTint;
             foreach (VfxEntry entry in effects)
                 if (!string.IsNullOrEmpty(entry.id)) lookup[entry.id] = entry;
         }
@@ -128,7 +129,9 @@ namespace Racoon.Player
         // Cambiar windTint en el Inspector durante Play se ve al momento.
         void OnValidate()
         {
-            if (Application.isPlaying && windTrails != null) windTrails.SetPlayerTint(windTint);
+            if (!Application.isPlaying) return;
+            if (windTrails != null) windTrails.SetPlayerTint(windTint);
+            if (impact != null) impact.PlayerColor = windTint;
         }
 
         void OnEnable()
@@ -260,14 +263,14 @@ namespace Racoon.Player
         public void OnLightHit(PlayerController attacker, int hitNumber)
         {
             PlayHitVFX(attacker, false, controller.LightHit.stunDuration);
-            StartBlink(controller.LightHit);
+            StartBlink(controller.LightHit, HitFreeze(false));
         }
 
         /// <summary>Suscrito a PlayerController.onHeavyHit (golpe 3º: derribo).</summary>
         public void OnHeavyHit(PlayerController attacker)
         {
             PlayHitVFX(attacker, true, controller.HeavyHit.stunDuration);
-            StartBlink(controller.HeavyHit);
+            StartBlink(controller.HeavyHit, HitFreeze(true));
             if (dizzyStars != null) dizzyStars.Play();
         }
 
@@ -280,14 +283,23 @@ namespace Racoon.Player
             if (away.sqrMagnitude < 0.0001f) away = -controller.transform.forward;
             away.Normalize();
 
-            if (impact != null) impact.PlayTowards(-away, heavy);
+            if (impact != null)
+            {
+                // Impact frames: también se congela quien golpea, y su color vale para el destello.
+                Animator attackerAnimator = attacker != null ? attacker.GetComponentInChildren<Animator>() : null;
+                PlayerVFX attackerVfx = attacker != null ? attacker.GetComponentInChildren<PlayerVFX>() : null;
+                impact.PlayTowards(-away, heavy, attackerAnimator, attackerVfx != null ? attackerVfx.WindTint : windTint);
+            }
             if (knockbackDust != null) knockbackDust.Play(away, heavy, stunDuration);
         }
+
+        // Pausa de los impact frames: el parpadeo empieza al acabar (si no, taparía el destello).
+        float HitFreeze(bool heavy) => impact != null ? impact.FreezeTime(heavy) : 0f;
 
         // ---------------- Parpadeo ----------------
 
         // Un golpe nuevo reinicia el parpadeo.
-        void StartBlink(PlayerController.HitReaction reaction)
+        void StartBlink(PlayerController.HitReaction reaction, float delay)
         {
             StopBlink();
 
@@ -297,15 +309,16 @@ namespace Racoon.Player
                 if ((rend is MeshRenderer || rend is SkinnedMeshRenderer) && rend.enabled && rend.GetComponentInParent<VfxBehaviour>() == null)
                     blinkRenderers.Add(rend);
 
-            blinkRoutine = StartCoroutine(Blink(reaction.stunDuration, reaction.recoveryInvulnerability));
+            blinkRoutine = StartCoroutine(Blink(reaction.stunDuration, reaction.recoveryInvulnerability, delay));
         }
 
-        IEnumerator Blink(float stunDuration, float recoveryDuration)
+        IEnumerator Blink(float stunDuration, float recoveryDuration, float delay)
         {
             bool visible = true;
 
-            // Sin control: parpadeo rápido. Dura lo mismo que el stun.
+            // Sin control: parpadeo rápido. Dura lo mismo que el stun (contando la pausa del golpe).
             float end = Time.time + stunDuration;
+            if (delay > 0f) yield return new WaitForSeconds(delay);
             WaitForSeconds wait = new(blinkInterval);
             while (Time.time < end)
             {

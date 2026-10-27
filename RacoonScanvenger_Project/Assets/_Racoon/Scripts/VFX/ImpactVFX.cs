@@ -1,28 +1,68 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Serialization;
 
 namespace Racoon.VFX
 {
     /// <summary>
-    /// Impacto de un golpe: onda de choque 3D que nace en el punto de la MALLA por donde entra el golpe (se busca con
-    /// un rayo desde quien golpea, ver <see cref="CharacterSurface"/>), orientada hacia fuera de la superficie:
-    ///  - Núcleo: bola de pinchos facetada que revienta y se cierra.
-    ///  - Cristales facetados que salen disparados en abanico y se recogen hacia la punta.
-    ///  - Burbuja de choque que se hincha y se va vaciando desde el centro hasta quedar en su silueta.
-    ///  - Anillos de choque (tubos) en cono hacia quien golpea: se dibujan dando la vuelta, se abren y el tubo
-    ///    adelgaza hasta desaparecer.
-    ///  - Golpe fuerte: más grande y lento, un anillo y cristales de acento más y estrellas 3D que salen volando.
-    /// Todo tiene volumen (SG_VFX_ToonVolume): luz y sombra en dos tonos, brillo especular, luz de borde en la silueta
-    /// y contorno, como el resto de efectos.
-    /// La onda acompaña al golpeado cuando sale despedido (followTarget).
+    /// Impacto de un golpe: un estallido 3D puntiagudo que nace en el punto de la MALLA por donde entra el golpe (se
+    /// busca con un rayo desde quien golpea, ver <see cref="CharacterSurface"/>) y sale hacia fuera de la superficie.
+    /// Todo nace del punto del impacto (crece desde casi nada) alrededor de un hueco en el centro (hollow), con una
+    /// sacudida seca y, opcional, un fogonazo de pinchos en el centro. Impact frames: al golpear se congelan las
+    /// animaciones del golpeado y de quien golpea un instante, el efecto va a cámara lenta y el golpeado destella
+    /// (blanco o el color de un jugador). Tres variantes (<see cref="Style"/>):
+    ///  - Estallido: erizo de agujas largas que revientan en abanico y salen disparadas por la punta.
+    ///  - Estrella: estrella de manga en 3D (corona de cuchillas, una larga y otra corta, casi tumbadas sobre la
+    ///    superficie) con lanzas que salen rectas hacia quien golpea.
+    ///  - Relámpagos: rayos en zigzag que chispean hacia fuera y esquirlas que saltan con gravedad.
+    /// Golpe fuerte: más grande y lento, pinchos de acento y estrellas que salen volando.
+    /// Todo tiene volumen (SG_VFX_ToonVolume): luz y sombra en dos tonos, brillo especular, luz de borde y contorno.
+    /// Acompaña al golpeado cuando sale despedido (followTarget).
     ///
     /// Montaje: hijo del personaje a la altura del pecho (es el centro hacia el que se lanza el rayo). Lo lanza
     /// PlayerVFX con <see cref="PlayTowards"/> en todos los clientes.
     /// </summary>
     public class ImpactVFX : VfxBehaviour
     {
+        public enum Style
+        {
+            [InspectorName("A · Estallido de agujas")] Burst,
+            [InspectorName("B · Estrella de impacto")] Star,
+            [InspectorName("C · Relámpagos")] Bolts,
+        }
+
+        public enum FlashColor
+        {
+            [InspectorName("Blanco")] White,
+            [InspectorName("Color del golpeado")] Victim,
+            [InspectorName("Color de quien golpea")] Attacker,
+        }
+
+        [Header("Variante")]
+        [SerializeField] Style style = Style.Burst;
+        [Tooltip("Radio del hueco del centro, donde entra el golpe (respecto al tamaño; 0 = sin hueco). Los pinchos nacen alrededor.")]
+        [SerializeField, Range(0f, 0.6f)] float hollow = 0.2f;
+        [Tooltip("Fogonazo de pinchos en el centro (tapa el hueco mientras dura).")]
+        [SerializeField] bool coreFlash = false;
+
+        [Header("Impact frames")]
+        [Tooltip("Pausa del golpe: se congelan las animaciones del golpeado (y de quien golpea) y el golpeado destella.")]
+        [SerializeField] bool impactFrames = true;
+        [Tooltip("Segundos de pausa del golpe ligero / fuerte.")]
+        [SerializeField] Vector2 freezeDuration = new(0.08f, 0.14f);
+        [Tooltip("Congelar también a quien golpea.")]
+        [SerializeField] bool freezeAttacker = true;
+        [Tooltip("Velocidad del efecto durante la pausa (0 = congelado, 1 = normal): despacio, para que se vea nacer.")]
+        [SerializeField, Range(0f, 1f)] float effectSpeedInFreeze = 0.3f;
+        [Tooltip("Color del destello del golpeado.")]
+        [SerializeField] FlashColor flashColor = FlashColor.White;
+        [Tooltip("Color del destello en blanco (por si se quiere un blanco cálido o crema).")]
+        [SerializeField] Color flashWhite = Color.white;
+        [Tooltip("Segundos entre parpadeos del destello (destello / normal) durante la pausa. 0 = destello fijo.")]
+        [SerializeField] float flashInterval = 0.04f;
+
         [Header("Materiales")]
-        [Tooltip("M_VFX_ToonVolume: la onda de choque, con volumen (luz, sombra, brillo y luz de borde).")]
+        [Tooltip("M_VFX_ToonVolume: el impacto, con volumen (luz, sombra, brillo y luz de borde).")]
         [SerializeField] Material volumeMaterial;
         [Tooltip("M_VFX_ToonFlat: estrellas del golpe fuerte.")]
         [SerializeField] Material flatMaterial;
@@ -31,15 +71,13 @@ namespace Racoon.VFX
         [FormerlySerializedAs("flashColor")]
         [SerializeField] Color coreColor = Color.white;
         [SerializeField] Color coreTipColor = new(1f, 0.85f, 0.35f);
-        [FormerlySerializedAs("rayColor")]
-        [SerializeField] Color crystalColor = new(1f, 1f, 0.88f);
-        [FormerlySerializedAs("rayTipColor")]
-        [SerializeField] Color crystalTipColor = new(1f, 0.7f, 0.08f);
-        [Tooltip("Anillos (lado de dentro) y burbuja (punta)...")]
-        [SerializeField] Color waveColor = new(1f, 1f, 0.92f);
-        [Tooltip("...anillos (lado de fuera) y burbuja (base e interior).")]
-        [SerializeField] Color waveEdgeColor = new(1f, 0.78f, 0.25f);
-        [Tooltip("Golpe fuerte: anillo y cristales de acento.")]
+        [Tooltip("Pinchos y rayos: base...")]
+        [FormerlySerializedAs("crystalColor"), FormerlySerializedAs("rayColor")]
+        [SerializeField] Color spikeColor = new(1f, 1f, 0.88f);
+        [Tooltip("...y punta.")]
+        [FormerlySerializedAs("crystalTipColor"), FormerlySerializedAs("rayTipColor")]
+        [SerializeField] Color spikeTipColor = new(1f, 0.7f, 0.08f);
+        [Tooltip("Golpe fuerte: pinchos de acento. También las esquirlas.")]
         [SerializeField] Color accentColor = new(0.97f, 0.87f, 0.44f);
         [SerializeField] Color outlineColor = new(0.59f, 0.5f, 0.19f);
         [Tooltip("Multiplica el color en la cara en sombra.")]
@@ -54,53 +92,77 @@ namespace Racoon.VFX
         [SerializeField] Color starOutline = new(0.28f, 0.11f, 0.03f);
 
         [Header("Tamaño y ritmo")]
-        [Tooltip("Tamaño (metros) de la onda del golpe ligero / fuerte.")]
+        [Tooltip("Tamaño (metros) del impacto del golpe ligero / fuerte.")]
         [SerializeField] Vector2 size = new(0.55f, 0.85f);
-        [Tooltip("Cuánto acompaña la onda al golpeado al salir despedido (0 = se queda donde fue el golpe, 1 = pegada a él).")]
+        [Tooltip("Cuánto acompaña el impacto al golpeado al salir despedido (0 = se queda donde fue el golpe, 1 = pegado a él).")]
         [SerializeField, Range(0f, 1f)] float followTarget = 0.8f;
         [Tooltip("Variación del punto de entrada entre golpes (metros: a los lados, en altura), para que cada golpe del combo entre por un sitio. El fuerte, más centrado.")]
         [SerializeField] Vector2 hitScatter = new(0.1f, 0.12f);
+        [Tooltip("Sacudida del impacto al nacer (metros, por tamaño 1).")]
+        [SerializeField] float shake = 0.05f;
+        [Tooltip("Segundos que tarda cada pieza en crecer desde el punto del impacto hasta su tamaño.")]
+        [SerializeField] float birthTime = 0.07f;
+        [Tooltip("Distancia (metros) por fuera de la superficie a la que nace: para que no se meta en la malla.")]
+        [SerializeField] float surfaceOffset = 0.03f;
         [Tooltip("Multiplica la duración de todo (1 = normal; menos = más seco; más = más lento).")]
         [SerializeField] float timeScale = 1f;
         [Tooltip("Golpes a la vez como máximo.")]
         [SerializeField] int poolSize = 3;
+
+        [Header("Esquirlas (Relámpagos y golpe fuerte)")]
+        [SerializeField] int shards = 6;
+        [SerializeField] float shardSize = 0.07f;
+        [SerializeField] float shardGravity = 7f;
 
         [Header("Golpe fuerte: estrellas")]
         [SerializeField] int heavyStars = 3;
         [SerializeField] float starSize = 0.18f;
         [SerializeField] float starGravity = 9f;
 
-        const float LightDuration = 0.36f;
+        const float LightDuration = 0.34f;
         const float HeavyDuration = 0.62f;
         const float RayStart = 1.5f;
-        // Anillos: radio máx. y distancia hacia fuera (por tamaño), retraso (s). El 3º solo en el fuerte.
-        static readonly float[] RingRadius = { 0.78f, 0.58f, 0.44f };
-        static readonly float[] RingOffset = { 0.03f, 0.16f, 0.3f };
-        static readonly float[] RingDelay = { 0f, 0.035f, 0.07f };
-        // Grosor del tubo de cada anillo (respecto a su radio).
-        static readonly float[] RingTube = { 0.075f, 0.07f, 0.065f };
 
         sealed class Burst
         {
             public Transform root;
-            public FlatPiece core, crystals, accent, bubble;
-            public FlatPiece[] rings;
-            public Vector3[] ringTilt;
+            public readonly List<FlatPiece> pieces = new();
+            public FlatPiece core;
+            // A · Estallido
+            public FlatPiece needles, needlesAccent;
+            // B · Estrella
+            public FlatPiece crown, crownAccent, lances;
+            // C · Relámpagos
+            public FlatPiece bolts, boltsAccent;
+            public FlatPiece[] shards;
+            public Vector3[] shardVelocity, shardSpinAxis;
+            public float[] shardLife;
             public FlatPiece[] stars;
             public Vector3[] starVelocity;
             public float[] starSpin;
-            public Vector3 point;
-            public Vector3 targetStart;
-            public Vector3 coreAxis;
+            public Style style;
+            public Vector3 point, targetStart, coreAxis, shakeDir;
             public float time = -1f;
-            public float scale;
+            public float scale, roll;
             public bool heavy;
         }
+
+        /// <summary>Color del jugador (lo pone PlayerVFX): destello "Color del golpeado".</summary>
+        public Color PlayerColor { get; set; } = Color.white;
 
         Transform character;
         CharacterSurface surface;
         Burst[] bursts;
         int next;
+
+        // Impact frames.
+        Animator victimAnimator;
+        Material flashMaterial;
+        float freezeStart, freezeEnd = -1f;
+        bool flashing;
+        readonly List<(Animator animator, float speed)> frozen = new();
+        readonly List<(Renderer renderer, Material[] materials)> flashRenderers = new();
+        readonly List<Material[]> flashArrays = new();
 
         void Awake()
         {
@@ -114,25 +176,40 @@ namespace Racoon.VFX
             Rigidbody body = GetComponentInParent<Rigidbody>();
             character = body != null ? body.transform : transform.root;
             surface = new CharacterSurface(character);
+            victimAnimator = character.GetComponentInChildren<Animator>();
 
-            Mesh core = FlatMeshes.SpikeBall();
-            Mesh bubble = FlatMeshes.Bubble();
+            // Destello: el mismo shader con un solo color plano (sin sombra, brillo ni luz de borde).
+            flashMaterial = new Material(volumeMaterial) { name = "M_VFX_HitFlash (runtime)" };
+            flashMaterial.SetFloat(FlatFx.CelAmountId, 0f);
+            flashMaterial.SetColor(FlatFx.HighlightColorId, Color.clear);
+            flashMaterial.SetColor(FlatFx.RimColorId, Color.clear);
+            flashMaterial.SetFloat(FlatFx.RimCutId, 0f);
+            flashMaterial.SetFloat(FlatFx.ThicknessId, 1f);
+            flashMaterial.SetFloat(FlatFx.SpreadId, 0f);
+            flashMaterial.SetFloat(FlatFx.GrowId, 1e6f);
+            flashMaterial.SetFloat(FlatFx.ShrinkId, -1e6f);
+
+            Mesh core = FlatMeshes.SpikeBall(0.5f);
             Mesh star = heavyStars > 0 && flatMaterial != null ? FlatMeshes.Star() : null;
-            Mesh[] rings = new Mesh[RingRadius.Length];
-            for (int i = 0; i < rings.Length; i++) rings[i] = FlatMeshes.Torus(310 + i * 17, RingTube[i], 0.02f, 0.035f, 5 + i);
+            Mesh[] shardMeshes = new Mesh[Mathf.Max(0, shards)];
+            for (int i = 0; i < shardMeshes.Length; i++)
+                shardMeshes[i] = FlatMeshes.Spikes(900 + i * 13, 1, 0f, 0f, -0.5f, Vector2.one, new Vector2(0.24f, 0.34f), 0.1f, 0.4f, 0.6f, 4);
 
             bursts = new Burst[Mathf.Max(1, poolSize)];
-            for (int i = 0; i < bursts.Length; i++) bursts[i] = CreateBurst(i, core, bubble, rings, star);
+            for (int i = 0; i < bursts.Length; i++) bursts[i] = CreateBurst(i, core, shardMeshes, star);
         }
 
         void OnDisable()
         {
+            EndImpactFrames();
             if (bursts == null) return;
             foreach (Burst burst in bursts) Hide(burst);
         }
 
         void OnDestroy()
         {
+            EndImpactFrames();
+            if (flashMaterial != null) Destroy(flashMaterial);
             surface?.Dispose();
             if (bursts == null) return;
             foreach (Burst burst in bursts)
@@ -143,11 +220,13 @@ namespace Racoon.VFX
 
         /// <summary>
         /// Golpe que llega desde <paramref name="towardAttacker"/> (dirección hacia quien golpea): busca por dónde entra
-        /// en la malla y lanza la onda ahí.
+        /// en la malla y lanza el impacto ahí, con sus impact frames (<paramref name="attackerAnimator"/> también se
+        /// congela; <paramref name="attackerColor"/> es el color del destello "Color de quien golpea").
         /// </summary>
-        public void PlayTowards(Vector3 towardAttacker, bool heavy)
+        public void PlayTowards(Vector3 towardAttacker, bool heavy, Animator attackerAnimator = null, Color? attackerColor = null)
         {
             if (bursts == null) return;
+            StartImpactFrames(heavy, attackerAnimator, attackerColor ?? PlayerColor);
             towardAttacker.y = 0f;
             if (towardAttacker.sqrMagnitude < 1e-4f) towardAttacker = character.forward;
             towardAttacker.Normalize();
@@ -161,7 +240,7 @@ namespace Racoon.VFX
             Play(point, normal, towardAttacker, heavy);
         }
 
-        /// <summary>Onda en <paramref name="point"/> de la superficie, saliendo hacia <paramref name="normal"/>.</summary>
+        /// <summary>Impacto en <paramref name="point"/> de la superficie, saliendo hacia <paramref name="normal"/>.</summary>
         public void Play(Vector3 point, Vector3 normal, Vector3 towardAttacker, bool heavy)
         {
             if (bursts == null) return;
@@ -170,24 +249,40 @@ namespace Racoon.VFX
             next = (next + 1) % bursts.Length;
             Hide(burst);
 
-            // Entre la normal de la malla y la dirección del golpe: así no sale torcida si toca una oreja o un brazo.
+            // Entre la normal de la malla y la dirección del golpe: así no sale torcido si toca una oreja o un brazo.
             Vector3 axis = (normal.normalized + towardAttacker.normalized).normalized;
             if (axis.sqrMagnitude < 0.5f) axis = towardAttacker.sqrMagnitude > 0f ? towardAttacker.normalized : -character.forward;
 
+            burst.style = style;
             burst.time = 0f;
             burst.heavy = heavy;
             burst.scale = heavy ? size.y : size.x;
-            burst.point = point + axis * 0.01f;
+            burst.point = point + axis * surfaceOffset;
             burst.targetStart = character.position;
+            burst.roll = Random.Range(0f, 360f);
             burst.root.SetPositionAndRotation(burst.point,
-                Quaternion.LookRotation(axis, Mathf.Abs(axis.y) > 0.95f ? Vector3.forward : Vector3.up) * Quaternion.Euler(0f, 0f, Random.Range(0f, 360f)));
+                Quaternion.LookRotation(axis, Mathf.Abs(axis.y) > 0.95f ? Vector3.forward : Vector3.up) * Quaternion.Euler(0f, 0f, burst.roll));
+            // La sacudida va en la dirección del golpe (hacia dentro y fuera), con algo de lado.
+            burst.shakeDir = (-axis + Random.insideUnitSphere * 0.5f).normalized;
 
             burst.core.Transform.localRotation = Random.rotationUniform;
             burst.coreAxis = Random.onUnitSphere;
-            burst.crystals.Transform.localRotation = Quaternion.Euler(0f, 0f, Random.Range(0f, 360f));
-            if (burst.accent != null) burst.accent.Transform.localRotation = Quaternion.Euler(0f, 0f, Random.Range(0f, 360f));
-            for (int i = 0; i < burst.rings.Length; i++)
-                burst.ringTilt[i] = new Vector3(Random.Range(-12f, 12f), Random.Range(-12f, 12f), Random.Range(0f, 360f));
+
+            if (burst.shards != null)
+            {
+                for (int i = 0; i < burst.shards.Length; i++)
+                {
+                    Vector3 spray = Random.insideUnitSphere;
+                    spray -= axis * Vector3.Dot(spray, axis);
+                    burst.shardVelocity[i] = axis * Random.Range(1.6f, 2.6f) + spray.normalized * Random.Range(1.2f, 2.6f) + Vector3.up * Random.Range(0.6f, 1.4f);
+                    burst.shardVelocity[i] *= burst.scale / size.x;
+                    burst.shardSpinAxis[i] = Random.onUnitSphere;
+                    burst.shardLife[i] = Random.Range(0.22f, 0.32f) * (heavy ? 1.3f : 1f);
+                    // Del borde del hueco.
+                    burst.shards[i].Transform.SetPositionAndRotation(burst.point + spray.normalized * (hollow * burst.scale),
+                        Quaternion.LookRotation(burst.shardVelocity[i]));
+                }
+            }
 
             if (heavy && burst.stars != null)
             {
@@ -207,6 +302,22 @@ namespace Racoon.VFX
         [VfxTest("Test golpe fuerte")]
         void TestHeavy() => PlayTowards(TowardCamera(), true);
 
+        [VfxTest("Variante A · Estallido")]
+        void TestBurst() => TestStyle(Style.Burst);
+
+        [VfxTest("Variante B · Estrella")]
+        void TestStar() => TestStyle(Style.Star);
+
+        [VfxTest("Variante C · Relámpagos")]
+        void TestBolts() => TestStyle(Style.Bolts);
+
+        // Cambia la variante (se queda puesta) y la prueba con un golpe ligero.
+        void TestStyle(Style value)
+        {
+            style = value;
+            TestLight();
+        }
+
         // En los tests el golpe entra por el lado que se ve.
         Vector3 TowardCamera()
         {
@@ -218,18 +329,25 @@ namespace Racoon.VFX
 
         void Update()
         {
+            UpdateImpactFrames();
             if (bursts == null) return;
-            float dt = Time.deltaTime;
+            // Durante la pausa el efecto va despacio: se ve nacer del punto del impacto.
+            float speed = Time.time < freezeEnd ? effectSpeedInFreeze : 1f;
+            float dt = Time.deltaTime * speed / Mathf.Max(timeScale, 0.01f);
             foreach (Burst burst in bursts)
             {
                 if (burst.time < 0f) continue;
-                burst.time += dt / Mathf.Max(timeScale, 0.01f);
+                burst.time += dt;
                 if (burst.time > (burst.heavy ? HeavyDuration : LightDuration))
                 {
                     Hide(burst);
                     continue;
                 }
-                burst.root.position = burst.point + (character.position - burst.targetStart) * followTarget;
+                // Sacudida seca que se apaga enseguida (va y viene).
+                float t = burst.time;
+                float jolt = Mathf.Sin(t * 110f) * (1f - FlatFx.Phase(t, 0f, burst.heavy ? 0.14f : 0.09f));
+                burst.root.position = burst.point + (character.position - burst.targetStart) * followTarget
+                    + burst.shakeDir * (shake * burst.scale * jolt);
                 Animate(burst, dt);
             }
         }
@@ -241,54 +359,197 @@ namespace Racoon.VFX
             // El fuerte se estira un poco en el tiempo para que pese más.
             float k = b.heavy ? 1.3f : 1f;
 
-            // Núcleo: revienta de golpe, gira y se cierra.
-            float coreIn = FlatFx.OutBack(FlatFx.Phase(t, 0f, 0.04f));
-            float coreOut = 1f - FlatFx.InCubic(FlatFx.Phase(t, 0.04f, 0.14f * k));
-            Show(b.core, coreOut > 0f, Vector3.one * (s * (b.heavy ? 0.4f : 0.34f) * coreIn * coreOut));
-            b.core.Transform.localRotation = Quaternion.AngleAxis(900f * dt, b.coreAxis) * b.core.Transform.localRotation;
-
-            // Cristales: salen disparados, aguantan un instante y se recogen hacia la punta.
-            float crystalGrow = 1.5f * FlatFx.OutCubic(FlatFx.Phase(t, 0f, 0.06f * k));
-            float crystalShrink = 1.5f * FlatFx.OutCubic(FlatFx.Phase(t, 0.06f * k, 0.25f * k));
-            float pop = 0.85f + 0.15f * FlatFx.OutBack(FlatFx.Phase(t, 0f, 0.08f));
-            Show(b.crystals, crystalShrink < 1.45f, Vector3.one * (s * 0.78f * pop));
-            b.crystals.Window(crystalGrow, crystalShrink);
-
-            // Burbuja de choque: se hincha hacia fuera y se vacía desde el centro hasta quedar en su silueta.
-            float bubbleSize = s * 0.42f * FlatFx.OutCubic(FlatFx.Phase(t, 0f, 0.15f * k));
-            float hollow = Mathf.SmoothStep(0.25f, 0.98f, FlatFx.Phase(t, 0.01f, 0.24f * k));
-            Show(b.bubble, hollow < 0.96f, new Vector3(bubbleSize, bubbleSize, bubbleSize * 0.7f));
-            b.bubble.Set(FlatFx.RimCutId, hollow);
-
-            // Anillos (tubos) en cono hacia quien golpea: se dibujan dando la vuelta, se abren y el tubo adelgaza
-            // hasta desaparecer.
-            for (int i = 0; i < b.rings.Length; i++)
+            // Fogonazo (opcional): bola de pinchos que revienta de golpe, gira y se cierra.
+            if (coreFlash)
             {
-                FlatPiece ring = b.rings[i];
-                bool active = i < 2 || b.heavy;
-                float start = RingDelay[i] * k;
-                float open = FlatFx.OutCubic(FlatFx.Phase(t, start, start + 0.22f * k));
-                float sweep = 1.02f * FlatFx.OutCubic(FlatFx.Phase(t, start, start + 0.08f * k));
-                float thickness = 1f - Mathf.SmoothStep(0f, 1f, FlatFx.Phase(t, start + 0.04f * k, start + 0.28f * k));
-                Show(ring, active && t >= start && thickness > 0.04f, Vector3.one * (s * RingRadius[i] * open));
-                ring.Window(sweep, 0f);
-                ring.Set(FlatFx.ThicknessId, thickness);
-                Vector3 tilt = b.ringTilt[i];
-                ring.Transform.localPosition = Vector3.forward * (s * RingOffset[i] * (0.4f + 0.6f * open));
-                ring.Transform.localRotation = Quaternion.Euler(tilt.x, tilt.y, tilt.z + 90f * open);
+                float coreIn = FlatFx.OutBack(FlatFx.Phase(t, 0f, 0.035f), 2.4f);
+                float coreOut = 1f - FlatFx.InCubic(FlatFx.Phase(t, 0.035f, 0.12f * k));
+                Show(b.core, coreOut > 0f, Vector3.one * (s * (b.heavy ? 0.42f : 0.34f) * coreIn * coreOut));
+                b.core.Transform.localRotation = Quaternion.AngleAxis(1100f * dt, b.coreAxis) * b.core.Transform.localRotation;
             }
 
-            if (!b.heavy) return;
-
-            // Cristales de acento, un pelín después.
-            if (b.accent != null)
+            switch (b.style)
             {
-                float accentGrow = 1.5f * FlatFx.OutCubic(FlatFx.Phase(t, 0.03f, 0.1f));
-                float accentShrink = 1.6f * FlatFx.OutCubic(FlatFx.Phase(t, 0.12f, 0.36f));
-                Show(b.accent, t > 0.03f && accentShrink < 1.55f, Vector3.one * (s * 0.95f));
-                b.accent.Window(accentGrow, accentShrink);
+                case Style.Burst: AnimateBurst(b, t, s, k); break;
+                case Style.Star: AnimateStar(b, t, s, k); break;
+                case Style.Bolts: AnimateBolts(b, t, s, k); break;
             }
 
+            if (b.shards != null && (b.style == Style.Bolts || b.heavy)) AnimateShards(b, t, dt);
+            if (b.heavy) AnimateStars(b, t, dt);
+        }
+
+        // Crece desde el punto del impacto (casi nada) hasta su tamaño, con un pelín de rebote.
+        float Born(float t, float start, float k) =>
+            Mathf.LerpUnclamped(0.04f, 1f, FlatFx.OutBack(FlatFx.Phase(t, start * k, (start + Mathf.Max(birthTime, 0.005f)) * k), 1.5f));
+
+        // A · Agujas que nacen del impacto, revientan en abanico y salen disparadas por la punta.
+        void AnimateBurst(Burst b, float t, float s, float k)
+        {
+            Needles(b.needles, 0f, 0.09f, 0.26f, s * 1.05f, 25f);
+            if (b.heavy) Needles(b.needlesAccent, 0.025f, 0.13f, 0.36f, s * 1.15f, -18f);
+
+            void Needles(FlatPiece piece, float start, float leave, float gone, float size, float spin)
+            {
+                float grow = 1.6f * FlatFx.OutCubic(FlatFx.Phase(t, start * k, (start + birthTime) * k));
+                float shrink = 1.6f * FlatFx.OutCubic(FlatFx.Phase(t, leave * k, gone * k));
+                Show(piece, t >= start * k && shrink < 1.55f, Vector3.one * (size * Born(t, start, k)));
+                piece.Window(grow, shrink);
+                piece.Transform.localRotation = Quaternion.Euler(0f, 0f, spin * FlatFx.OutCubic(FlatFx.Phase(t, 0f, gone * k)));
+            }
+        }
+
+        // B · La estrella nace del impacto abriéndose y girando un poco, las lanzas salen rectas; luego todo se recoge
+        // hacia las puntas.
+        void AnimateStar(Burst b, float t, float s, float k)
+        {
+            Crown(b.crown, 0f, s * 0.9f, -14f, 10f);
+            if (b.heavy) Crown(b.crownAccent, 0.02f, s * 1.12f, 12f, -8f);
+
+            float lanceGrow = 1.6f * FlatFx.OutCubic(FlatFx.Phase(t, 0.01f * k, (0.01f + birthTime) * k));
+            float lanceShrink = 1.6f * FlatFx.OutCubic(FlatFx.Phase(t, 0.1f * k, 0.25f * k));
+            Show(b.lances, t >= 0.01f * k && lanceShrink < 1.55f, Vector3.one * (s * 1f * Born(t, 0.01f, k)));
+            b.lances.Window(lanceGrow, lanceShrink);
+
+            void Crown(FlatPiece piece, float start, float size, float fromDeg, float toDeg)
+            {
+                float open = Born(t, start, k);
+                float shrink = 1.5f * FlatFx.OutCubic(FlatFx.Phase(t, (start + 0.12f) * k, (start + 0.3f) * k));
+                Show(piece, t >= start * k && shrink < 1.45f, Vector3.one * (size * open));
+                piece.Window(FlatFx.Full, shrink);
+                piece.Transform.localRotation = Quaternion.Euler(0f, 0f, Mathf.LerpUnclamped(fromDeg, toDeg, open));
+            }
+        }
+
+        // C · Los rayos nacen del impacto y chispean hacia fuera: se dibujan de la base a la punta, parpadean una vez y
+        // se van por la punta.
+        void AnimateBolts(Burst b, float t, float s, float k)
+        {
+            Zap(b.bolts, 0f, s * 1.05f);
+            if (b.heavy) Zap(b.boltsAccent, 0.03f, s * 1.2f);
+
+            void Zap(FlatPiece piece, float start, float size)
+            {
+                float local = t - start * k;
+                float grow = 1.6f * FlatFx.OutCubic(FlatFx.Phase(local, 0f, birthTime * k));
+                float shrink = 1.6f * FlatFx.OutCubic(FlatFx.Phase(local, 0.11f * k, 0.27f * k));
+                // Parpadeo eléctrico: se apaga un instante y vuelve un poco girado.
+                bool flicker = local > 0.08f * k && local < 0.095f * k;
+                Show(piece, local >= 0f && !flicker && shrink < 1.55f, Vector3.one * (size * Born(t, start, k)));
+                piece.Window(grow, shrink);
+                piece.Transform.localRotation = Quaternion.Euler(0f, 0f, local > 0.095f * k ? 9f : 0f);
+            }
+        }
+
+        // ---------------- Impact frames ----------------
+
+        /// <summary>Segundos de pausa de un golpe (0 sin impact frames): PlayerVFX espera esto para empezar a parpadear.</summary>
+        public float FreezeTime(bool heavy) => impactFrames && enabled ? Mathf.Max(0f, heavy ? freezeDuration.y : freezeDuration.x) : 0f;
+
+        void StartImpactFrames(bool heavy, Animator attackerAnimator, Color attackerColor)
+        {
+            EndImpactFrames();
+            float duration = FreezeTime(heavy);
+            if (duration <= 0f) return;
+            freezeStart = Time.time;
+            freezeEnd = freezeStart + duration;
+
+            Freeze(victimAnimator);
+            if (freezeAttacker) Freeze(attackerAnimator);
+
+            Color color = flashColor switch
+            {
+                FlashColor.Victim => PlayerColor,
+                FlashColor.Attacker => attackerColor,
+                _ => flashWhite,
+            };
+            color.a = 1f;
+            flashMaterial.SetColor(FlatFx.BaseColorId, color);
+            flashMaterial.SetColor(FlatFx.TipColorId, color);
+            flashMaterial.SetColor(FlatFx.OutlineColorId, color);
+            flashMaterial.SetColor(FlatFx.ShadowColorId, Color.white);
+
+            // Se recogen al empezar (entran los objetos equipados); los efectos no.
+            foreach (Renderer rend in character.GetComponentsInChildren<Renderer>())
+            {
+                if (!(rend is MeshRenderer || rend is SkinnedMeshRenderer) || rend.GetComponentInParent<VfxBehaviour>() != null) continue;
+                Material[] materials = rend.sharedMaterials;
+                flashRenderers.Add((rend, materials));
+                Material[] flash = new Material[materials.Length];
+                for (int i = 0; i < flash.Length; i++) flash[i] = flashMaterial;
+                flashArrays.Add(flash);
+            }
+            SetFlash(true);
+        }
+
+        void Freeze(Animator animator)
+        {
+            if (animator == null) return;
+            foreach ((Animator a, float _) in frozen)
+                if (a == animator) return;
+            // Si ya lo ha congelado otro impacto, al acabar vuelve a velocidad normal.
+            frozen.Add((animator, animator.speed > 0f ? animator.speed : 1f));
+            animator.speed = 0f;
+        }
+
+        void UpdateImpactFrames()
+        {
+            if (freezeEnd < 0f) return;
+            if (Time.time >= freezeEnd)
+            {
+                EndImpactFrames();
+                return;
+            }
+            // Destello / normal / destello...
+            SetFlash(flashInterval <= 0f || (int)((Time.time - freezeStart) / flashInterval) % 2 == 0);
+        }
+
+        void EndImpactFrames()
+        {
+            freezeEnd = -1f;
+            SetFlash(false);
+            flashRenderers.Clear();
+            flashArrays.Clear();
+            foreach ((Animator animator, float speed) in frozen)
+                if (animator != null) animator.speed = speed;
+            frozen.Clear();
+        }
+
+        void SetFlash(bool on)
+        {
+            if (flashing == on) return;
+            flashing = on;
+            for (int i = 0; i < flashRenderers.Count; i++)
+            {
+                (Renderer rend, Material[] materials) = flashRenderers[i];
+                if (rend != null) rend.sharedMaterials = on ? flashArrays[i] : materials;
+            }
+        }
+
+        void AnimateShards(Burst b, float t, float dt)
+        {
+            for (int i = 0; i < b.shards.Length; i++)
+            {
+                FlatPiece shard = b.shards[i];
+                float life = b.shardLife[i];
+                if (t > life)
+                {
+                    shard.Visible = false;
+                    continue;
+                }
+                b.shardVelocity[i] += Vector3.down * (shardGravity * dt);
+                b.shardVelocity[i] *= 1f - Mathf.Clamp01(3f * dt);
+                Transform tr = shard.Transform;
+                tr.position += b.shardVelocity[i] * dt;
+                tr.rotation = Quaternion.AngleAxis(1300f * dt, b.shardSpinAxis[i]) * tr.rotation;
+                float grow = FlatFx.OutBack(FlatFx.Phase(t, 0f, 0.05f));
+                float fade = 1f - FlatFx.InCubic(FlatFx.Phase(t, life * 0.55f, life));
+                Show(shard, true, new Vector3(0.75f, 0.75f, 1.4f) * (shardSize * (b.scale / size.x) * grow * fade));
+            }
+        }
+
+        void AnimateStars(Burst b, float t, float dt)
+        {
             // Estrellas que salen volando, girando, y se encogen al final.
             if (b.stars == null) return;
             for (int i = 0; i < b.stars.Length; i++)
@@ -314,38 +575,55 @@ namespace Racoon.VFX
         static void Hide(Burst burst)
         {
             burst.time = -1f;
-            foreach (FlatPiece piece in new[] { burst.core, burst.crystals, burst.accent, burst.bubble })
-                if (piece != null) piece.Visible = false;
-            foreach (FlatPiece ring in burst.rings) ring.Visible = false;
-            if (burst.stars == null) return;
-            foreach (FlatPiece star in burst.stars) star.Visible = false;
+            foreach (FlatPiece piece in burst.pieces) piece.Visible = false;
         }
 
         // ---------------- Montaje ----------------
 
-        Burst CreateBurst(int index, Mesh coreMesh, Mesh bubbleMesh, Mesh[] ringMeshes, Mesh starMesh)
+        Burst CreateBurst(int index, Mesh coreMesh, Mesh[] shardMeshes, Mesh starMesh)
         {
             int seed = 101 + index * 37;
             Burst b = new();
-            // Fuera del personaje: la onda se mueve por su cuenta (followTarget).
+            // Fuera del personaje: el impacto se mueve por su cuenta (followTarget).
             b.root = new GameObject($"Impact_{character.name}_{index}").transform;
 
-            b.core = Volume("Core", coreMesh).Colors(coreColor, coreTipColor, outlineColor);
-            b.crystals = Volume("Crystals",
-                    FlatMeshes.Crystals(seed, 9, 62f, 0.1f, new Vector2(0.55f, 1f), new Vector2(0.06f, 0.085f), 0.03f))
-                .Colors(crystalColor, crystalTipColor, outlineColor).Spread(0.35f);
-            b.accent = Volume("AccentCrystals",
-                    FlatMeshes.Crystals(seed + 1, 6, 75f, 0.18f, new Vector2(0.5f, 0.85f), new Vector2(0.055f, 0.075f), 0.03f))
-                .Colors(accentColor, accentColor, outlineColor).Spread(0.35f);
-            b.bubble = Volume("Bubble", bubbleMesh).Colors(waveColor, waveEdgeColor, outlineColor);
+            b.core = Volume("Core", coreMesh, coreColor, coreTipColor);
 
-            b.rings = new FlatPiece[ringMeshes.Length];
-            b.ringTilt = new Vector3[ringMeshes.Length];
-            for (int i = 0; i < ringMeshes.Length; i++)
+            // A · Estallido: agujas finas (en punta desde la base) por casi media esfera.
+            b.needles = Volume("Needles",
+                FlatMeshes.Spikes(seed, 13, 12f, 70f, 0.05f, new Vector2(0.5f, 1f), new Vector2(0.045f, 0.065f), 0.035f, 0.1f, 1f, 4, false, hollow),
+                spikeColor, spikeTipColor).Spread(0.35f);
+            b.needlesAccent = Volume("NeedlesAccent",
+                FlatMeshes.Spikes(seed + 1, 9, 25f, 85f, 0.08f, new Vector2(0.45f, 0.8f), new Vector2(0.04f, 0.055f), 0.035f, 0.1f, 1f, 4, false, hollow),
+                accentColor, spikeTipColor).Spread(0.35f);
+
+            // B · Estrella: corona de cuchillas planas casi tumbadas (una larga, otra corta) y lanzas hacia fuera.
+            b.crown = Volume("Crown",
+                FlatMeshes.Spikes(seed + 2, 10, 58f, 80f, 0.07f, new Vector2(0.85f, 1f), new Vector2(0.1f, 0.12f), 0.035f, 0.16f, 0.45f, 4, true, hollow),
+                spikeColor, spikeTipColor);
+            b.crownAccent = Volume("CrownAccent",
+                FlatMeshes.Spikes(seed + 3, 8, 65f, 85f, 0.09f, new Vector2(0.8f, 1f), new Vector2(0.085f, 0.1f), 0.035f, 0.16f, 0.45f, 4, true, hollow),
+                accentColor, spikeTipColor);
+            b.lances = Volume("Lances",
+                FlatMeshes.Spikes(seed + 4, 3, 0f, 18f, 0.04f, new Vector2(0.95f, 1.2f), new Vector2(0.05f, 0.06f), 0.035f, 0.12f, 1f, 4, false, hollow),
+                spikeColor, spikeTipColor).Spread(0.25f);
+
+            // C · Relámpagos: rayos en zigzag.
+            b.bolts = Volume("Bolts",
+                FlatMeshes.Bolts(seed + 5, 6, 70f, 0.05f, new Vector2(0.6f, 1f), 0.05f, 3, 0.16f, 0.03f, hollow),
+                spikeColor, spikeTipColor).Spread(0.3f);
+            b.boltsAccent = Volume("BoltsAccent",
+                FlatMeshes.Bolts(seed + 6, 4, 82f, 0.08f, new Vector2(0.5f, 0.85f), 0.045f, 4, 0.2f, 0.03f, hollow),
+                accentColor, spikeTipColor).Spread(0.3f);
+
+            if (shardMeshes.Length > 0)
             {
-                // El 3º (solo en el fuerte) con el color de acento.
-                Color edge = i == 2 ? accentColor : waveEdgeColor;
-                b.rings[i] = Volume($"Ring{i}", ringMeshes[i]).Colors(waveColor, edge, outlineColor);
+                b.shards = new FlatPiece[shardMeshes.Length];
+                b.shardVelocity = new Vector3[shardMeshes.Length];
+                b.shardSpinAxis = new Vector3[shardMeshes.Length];
+                b.shardLife = new float[shardMeshes.Length];
+                for (int i = 0; i < shardMeshes.Length; i++)
+                    b.shards[i] = Volume($"Shard{i}", shardMeshes[i], i % 2 == 0 ? spikeColor : accentColor, spikeTipColor);
             }
 
             if (starMesh != null)
@@ -357,12 +635,18 @@ namespace Racoon.VFX
                 {
                     b.stars[i] = new FlatPiece($"Star{i}", b.root, starMesh, flatMaterial)
                         .Colors(starColor, starTipColor, starOutline).Cel(1f, starShadow);
+                    b.pieces.Add(b.stars[i]);
                 }
             }
             return b;
 
-            FlatPiece Volume(string pieceName, Mesh mesh) => new FlatPiece(pieceName, b.root, mesh, volumeMaterial)
-                .Cel(1f, shadowTint).Shine(highlightColor, rimColor);
+            FlatPiece Volume(string pieceName, Mesh mesh, Color baseColor, Color tipColor)
+            {
+                FlatPiece piece = new FlatPiece(pieceName, b.root, mesh, volumeMaterial)
+                    .Colors(baseColor, tipColor, outlineColor).Cel(1f, shadowTint).Shine(highlightColor, rimColor);
+                b.pieces.Add(piece);
+                return piece;
+            }
         }
     }
 }

@@ -1,5 +1,9 @@
 fileFormatVersion: 2
+<<<<<<<< HEAD:RacoonScanvenger_Project/Assets/_Racoon/3D/Models/Characters/SK_RedPanda.fbx.meta
+guid: dbffbaf2c6441824aba3efa71794b751
+========
 guid: 243e649bfc0f25448bb1c7d8cd5eb4f1
+>>>>>>>> 5a3c666 (SK_Opossum rotado y con piercing):RacoonScanvenger_Project/Assets/_Racoon/3D/Models/Characters/SK_Opossum.fbx.meta
 ModelImporter:
   serializedVersion: 24200
   internalIDToNameTable: []
@@ -30,7 +34,7 @@ ModelImporter:
     extraExposedTransformPaths: []
     extraUserProperties: []
     clipAnimations: []
-    isReadable: 1
+    isReadable: 0
   meshes:
     lODScreenPercentages: []
     globalScale: 1
