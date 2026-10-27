@@ -223,17 +223,25 @@ MonoBehaviour:
   breathSpeed: 1.1
   breathLifetime: {x: 0.5, y: 0.7}
   breathDown: 22
-  saliva: 1
+  breathFollow: 1
+  sweat: 1
   flatMaterial: {fileID: 2100000, guid: 9e4a6c8d0f2b43c5d7e9f1a3b5c7d9e1, type: 2}
   volumeMaterial: {fileID: 2100000, guid: f3a5b7c9d1e34f4a0b2c4d6e8f0a2b35, type: 2}
-  salivaColor: {r: 0.82, g: 0.96, b: 1, a: 1}
-  salivaTipColor: {r: 0.55, g: 0.84, b: 1, a: 1}
-  salivaShadow: {r: 0.7, g: 0.84, b: 1, a: 1}
-  salivaOutline: {r: 0.14, g: 0.34, b: 0.56, a: 1}
-  salivaInterval: {x: 0.6, y: 1.3}
-  dropsPerSpit: {x: 1, y: 2}
+  sweatColor: {r: 0.8, g: 0.95, b: 1, a: 1}
+  sweatTipColor: {r: 0.5, g: 0.8, b: 1, a: 1}
+  sweatShadow: {r: 0.68, g: 0.82, b: 1, a: 1}
+  sweatOutline: {r: 0.14, g: 0.34, b: 0.56, a: 1}
+  sweatHighlight: {r: 1, g: 1, b: 1, a: 1}
+  sweatRim: {r: 0.9, g: 1, b: 1, a: 0.7}
+  headHeight: 0.62
+  sweatInterval: {x: 0.35, y: 0.7}
+  dropsPerFling: {x: 1, y: 2}
   dropSpeed: {x: 1.4, y: 2.4}
   dropSize: 0.06
+  beadInterval: {x: 1.1, y: 1.9}
+  beadSize: 0.1
+  beadSlide: 0.06
+  beadHold: 0.55
   gravity: 9.8
   splatSize: 0.16
   splatLifetime: 0.8
@@ -285,23 +293,42 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4d5e6f7a8b9c4ad1e2f3a4b5c6d7e8f9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Racoon.VFX.ImpactVFX
-  overlayMaterial: {fileID: 2100000, guid: b06c8e0f2b4d45e7f9a1b3c5d7e9f1a3, type: 2}
-  flatMaterial: {fileID: 2100000, guid: 9e4a6c8d0f2b43c5d7e9f1a3b5c7d9e1, type: 2}
+  style: 0
+  hollow: 0.2
+  coreFlash: 0
+  impactFrames: 1
+  freezeDuration: {x: 0.08, y: 0.14}
+  freezeAttacker: 1
+  effectSpeedInFreeze: 0.3
+  flashColor: 0
+  flashWhite: {r: 1, g: 1, b: 1, a: 1}
+  flashInterval: 0.04
   volumeMaterial: {fileID: 2100000, guid: f3a5b7c9d1e34f4a0b2c4d6e8f0a2b35, type: 2}
-  rayColor: {r: 1, g: 1, b: 0.88, a: 1}
-  rayTipColor: {r: 1, g: 0.7, b: 0.08, a: 1}
-  shardColor: {r: 1, g: 1, b: 1, a: 1}
+  flatMaterial: {fileID: 2100000, guid: 9e4a6c8d0f2b43c5d7e9f1a3b5c7d9e1, type: 2}
+  coreColor: {r: 1, g: 1, b: 1, a: 1}
+  coreTipColor: {r: 1, g: 0.85, b: 0.35, a: 1}
+  spikeColor: {r: 1, g: 1, b: 0.88, a: 1}
+  spikeTipColor: {r: 1, g: 0.7, b: 0.08, a: 1}
   accentColor: {r: 0.9716981, g: 0.8653351, b: 0.43543077, a: 1}
   outlineColor: {r: 0.5943396, g: 0.50087804, b: 0.19344072, a: 0.44705883}
-  flashColor: {r: 1, g: 1, b: 1, a: 1}
+  shadowTint: {r: 1, g: 0.82, b: 0.62, a: 1}
+  highlightColor: {r: 1, g: 1, b: 1, a: 1}
+  rimColor: {r: 1, g: 1, b: 0.9, a: 0.8}
   starColor: {r: 1, g: 0.88, b: 0.28, a: 1}
   starTipColor: {r: 1, g: 0.58, b: 0.1, a: 1}
   starShadow: {r: 1, g: 0.72, b: 0.55, a: 1}
   starOutline: {r: 0.28, g: 0.11, b: 0.03, a: 1}
   size: {x: 0.55, y: 0.85}
-  impactRadius: 0.35
+  followTarget: 0.8
+  hitScatter: {x: 0.1, y: 0.12}
+  shake: 0.05
+  birthTime: 0.07
+  surfaceOffset: 0.03
   timeScale: 0.8
   poolSize: 3
+  shards: 6
+  shardSize: 0.07
+  shardGravity: 7
   heavyStars: 3
   starSize: 0.18
   starGravity: 9
@@ -317,132 +344,25 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5e6f7a8b9c0d4be2f3a4b5c6d7e8f9a0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Racoon.VFX.SwingVFX
-  flatMaterial: {fileID: 2100000, guid: 9e4a6c8d0f2b43c5d7e9f1a3b5c7d9e1, type: 2}
   volumeMaterial: {fileID: 2100000, guid: f3a5b7c9d1e34f4a0b2c4d6e8f0a2b35, type: 2}
+  flatMaterial: {fileID: 2100000, guid: 9e4a6c8d0f2b43c5d7e9f1a3b5c7d9e1, type: 2}
   arcColor: {r: 1, g: 1, b: 1, a: 1}
   arcEdgeColor: {r: 1, g: 0.8, b: 0.28, a: 1}
-  lineColor: {r: 1, g: 1, b: 1, a: 1}
-  lineTipColor: {r: 1, g: 0.8, b: 0.28, a: 1}
+  outlineColor: {r: 0.85, g: 0.58, b: 0.14, a: 1}
+  shadowTint: {r: 1, g: 0.85, b: 0.65, a: 1}
+  highlightColor: {r: 1, g: 1, b: 1, a: 1}
+  rimColor: {r: 1, g: 1, b: 0.9, a: 0.8}
   radius: 0.65
   width: 0.24
+  thickness: 0.09
+  startAngle: 125
+  endAngle: -25
+  trail: 105
   tilt: 16
   forwardOffset: 0.05
-  speedLines: 1
+  strands: 1
   delay: 0.04
   duration: 0.2
---- !u!1 &4439787728245799242
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 4285785264062295894}
-  - component: {fileID: 5735511311895863670}
-  - component: {fileID: 328274112209153928}
-  - component: {fileID: 6927876798064382780}
-  m_Layer: 8
-  m_Name: SM_RedTanuki
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &4285785264062295894
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4439787728245799242}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.467, y: -0.5, z: 0}
-  m_LocalScale: {x: 1.25, y: 1.25, z: 1.25}
-  m_ConstrainProportionsScale: 1
-  m_Children: []
-  m_Father: {fileID: 4461479425360024682}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!33 &5735511311895863670
-MeshFilter:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4439787728245799242}
-  m_Mesh: {fileID: -7451236177477191765, guid: 77f77e50f583c0a4196f875b73123e52, type: 3}
---- !u!23 &328274112209153928
-MeshRenderer:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4439787728245799242}
-  m_Enabled: 1
-  m_CastShadows: 1
-  m_ReceiveShadows: 1
-  m_DynamicOccludee: 1
-  m_StaticShadowCaster: 0
-  m_MotionVectors: 1
-  m_LightProbeUsage: 1
-  m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
-  m_RayTraceProcedural: 0
-  m_RayTracingAccelStructBuildFlagsOverride: 0
-  m_RayTracingAccelStructBuildFlags: 1
-  m_SmallMeshCulling: 1
-  m_ForceMeshLod: -1
-  m_MeshLodSelectionBias: 0
-  m_RenderingLayerMask: 1
-  m_RendererPriority: 0
-  m_Materials:
-  - {fileID: 2100000, guid: fb759ca1eeb71f8479c54959070b2dc2, type: 2}
-  m_StaticBatchInfo:
-    firstSubMesh: 0
-    subMeshCount: 0
-  m_StaticBatchRoot: {fileID: 0}
-  m_ProbeAnchor: {fileID: 0}
-  m_LightProbeVolumeOverride: {fileID: 0}
-  m_ScaleInLightmap: 1
-  m_ReceiveGI: 1
-  m_PreserveUVs: 0
-  m_IgnoreNormalsForChartDetection: 0
-  m_ImportantGI: 0
-  m_StitchLightmapSeams: 1
-  m_SelectedEditorRenderState: 3
-  m_MinimumChartSize: 4
-  m_AutoUVMaxDistance: 0.5
-  m_AutoUVMaxAngle: 89
-  m_LightmapParameters: {fileID: 0}
-  m_GlobalIlluminationMeshLod: 0
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
-  m_SortingOrder: 0
-  m_MaskInteraction: 0
-  m_AdditionalVertexStreams: {fileID: 0}
---- !u!95 &6927876798064382780
-Animator:
-  serializedVersion: 7
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4439787728245799242}
-  m_Enabled: 1
-  m_Avatar: {fileID: 0}
-  m_Controller: {fileID: 9100000, guid: 30c65bd3c016eb144aadb2476411169d, type: 2}
-  m_CullingMode: 0
-  m_UpdateMode: 0
-  m_ApplyRootMotion: 0
-  m_LinearVelocityBlending: 0
-  m_StabilizeFeet: 0
-  m_AnimatePhysics: 0
-  m_WarningMessage: 
-  m_HasTransformHierarchy: 1
-  m_AllowConstantClipSamplingOptimization: 1
-  m_KeepAnimatorStateOnDisable: 0
-  m_WriteDefaultValuesOnDisable: 0
 --- !u!1 &5255290004195726841
 GameObject:
   m_ObjectHideFlags: 0
@@ -516,7 +436,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 4285785264062295894}
+  - {fileID: 1511666978250379843}
   - {fileID: 2343502770751616737}
   - {fileID: 4957213430382982291}
   - {fileID: 5671070491347873854}
@@ -581,7 +501,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Racoon.Player.PlayerInventory
   ShowTopMostFoldoutHeaderGroup: 1
-  database: {fileID: 11400000, guid: d6b1ff4e5c51f6f499883211ca5f2dbd, type: 2}
+  database: {fileID: 11400000, guid: 366f5ce6386323543b3fb0c43dabf98b, type: 2}
   maxItems: 2
   autoEquipOnPickup: 1
   autoEquipNextAfterUse: 1
@@ -715,12 +635,23 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Racoon.Player.PlayerAnimatorDriver
   controller: {fileID: 6147228204243766040}
-  animator: {fileID: 6927876798064382780}
+  animator: {fileID: 4763306262625552441}
+  loot: {fileID: 285396400107484525}
   stateParameter: State
   actionTriggerParameter: ActionStart
+  bodyActionTriggerParameter: BodyAction
   speedParameter: Speed
+  sackSizeParameter: SackSize
   fullSpeed: 6.5
   speedDampTime: 0.1
+  upperBodyLayer: UpperBody
+  upperBodyIdleState: Empty
+  upperBodyFadeTime: 0.1
+  smallSackBlendShape: Saco_Pequeno
+  bigSackBlendShape: Saco_Grande
+  sackSmoothTime: 0.25
+  sackFullWeightScale: 1.6
+  sackFillExponent: 1.3
 --- !u!136 &4584103816076866246
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -1083,7 +1014,7 @@ MonoBehaviour:
   walkRunSpeed: {x: 3.5, y: 6.5}
   strideLength: {x: 0.45, y: 0.8}
   minStepSpeed: 0.6
-  footSpacing: 0.15
+  footSpacing: 0.065
   footForward: 0.05
   groundMask:
     serializedVersion: 2
@@ -1093,7 +1024,7 @@ MonoBehaviour:
   dustParticles: {fileID: 0}
   dustMaterial: {fileID: 2100000, guid: e2f4a6b8c0d24f6e8a1b3c5d7e9f0a56, type: 2}
   dustMesh: {fileID: 0}
-  smokeColor: {r: 0.5294118, g: 0.10196079, b: 0.15294118, a: 1}
+  smokeColor: {r: 0.47843137, g: 0.13333334, b: 0.17572565, a: 1}
   dustCount: {x: 1, y: 4}
   dustSize: {x: 0.18, y: 0.32}
   dustSpeed: {x: 0.4, y: 1.2}
@@ -1110,7 +1041,7 @@ MonoBehaviour:
   dashTrailSize: 0.9
   wisps: 1
   wispMaterial: {fileID: 0}
-  wispColor: {r: 0.7924528, g: 0.34015664, b: 0.39410022, a: 1}
+  wispColor: {r: 0.83137256, g: 0.45784822, b: 0.43529412, a: 1}
   dashWispCount: 3
   skidWispCount: 2
   wispSpeed: {x: 3, y: 5}
@@ -1187,6 +1118,89 @@ Transform:
   - {fileID: 5794918321026378418}
   m_Father: {fileID: 4461479425360024682}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1001 &1400685897056269736
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 4461479425360024682}
+    m_Modifications:
+    - target: {fileID: -8679921383154817045, guid: f34a1837090a2604cb2e66bacae22a0a, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: f34a1837090a2604cb2e66bacae22a0a, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: f34a1837090a2604cb2e66bacae22a0a, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: f34a1837090a2604cb2e66bacae22a0a, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: f34a1837090a2604cb2e66bacae22a0a, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: f34a1837090a2604cb2e66bacae22a0a, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: f34a1837090a2604cb2e66bacae22a0a, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: f34a1837090a2604cb2e66bacae22a0a, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: f34a1837090a2604cb2e66bacae22a0a, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: f34a1837090a2604cb2e66bacae22a0a, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -5920300228878476715, guid: f34a1837090a2604cb2e66bacae22a0a, type: 3}
+      propertyPath: m_Name
+      value: SK_RedPanda
+      objectReference: {fileID: 0}
+    - target: {fileID: -1966589418606015477, guid: f34a1837090a2604cb2e66bacae22a0a, type: 3}
+      propertyPath: m_Mesh
+      value: 
+      objectReference: {fileID: -7418347210793394131, guid: 1385db392d808c940a0d4e44dc8d736b, type: 3}
+    - target: {fileID: -1966589418606015477, guid: f34a1837090a2604cb2e66bacae22a0a, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: fb759ca1eeb71f8479c54959070b2dc2, type: 2}
+    - target: {fileID: 919132149155446097, guid: f34a1837090a2604cb2e66bacae22a0a, type: 3}
+      propertyPath: m_Name
+      value: SK_RedPanda
+      objectReference: {fileID: 0}
+    - target: {fileID: 5866666021909216657, guid: f34a1837090a2604cb2e66bacae22a0a, type: 3}
+      propertyPath: m_Controller
+      value: 
+      objectReference: {fileID: 9100000, guid: 30c65bd3c016eb144aadb2476411169d, type: 2}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: f34a1837090a2604cb2e66bacae22a0a, type: 3}
+--- !u!4 &1511666978250379843 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: f34a1837090a2604cb2e66bacae22a0a, type: 3}
+  m_PrefabInstance: {fileID: 1400685897056269736}
+  m_PrefabAsset: {fileID: 0}
+--- !u!95 &4763306262625552441 stripped
+Animator:
+  m_CorrespondingSourceObject: {fileID: 5866666021909216657, guid: f34a1837090a2604cb2e66bacae22a0a, type: 3}
+  m_PrefabInstance: {fileID: 1400685897056269736}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &4744704250288808865
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1247,10 +1261,6 @@ PrefabInstance:
       propertyPath: m_IsActive
       value: 1
       objectReference: {fileID: 0}
-    - target: {fileID: 5064751622248078460, guid: fe14c9d6220a9224fbe7b7ecf9708898, type: 3}
-      propertyPath: bodyRenderer
-      value: 
-      objectReference: {fileID: 328274112209153928}
     - target: {fileID: 5078413208416302845, guid: fe14c9d6220a9224fbe7b7ecf9708898, type: 3}
       propertyPath: m_IsActive
       value: 0

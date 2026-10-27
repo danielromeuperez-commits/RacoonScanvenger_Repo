@@ -58,7 +58,7 @@ Transform:
   m_GameObject: {fileID: 423165095960250623}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.85, z: 0}
+  m_LocalPosition: {x: 0, y: 0.291, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -171,7 +171,7 @@ MonoBehaviour:
   walkRunSpeed: {x: 3.5, y: 6.5}
   strideLength: {x: 0.45, y: 0.8}
   minStepSpeed: 0.6
-  footSpacing: 0.15
+  footSpacing: 0.065
   footForward: 0.05
   groundMask:
     serializedVersion: 2
@@ -181,7 +181,7 @@ MonoBehaviour:
   dustParticles: {fileID: 0}
   dustMaterial: {fileID: 2100000, guid: e2f4a6b8c0d24f6e8a1b3c5d7e9f0a56, type: 2}
   dustMesh: {fileID: 0}
-  smokeColor: {r: 0.0020914965, g: 0.4433962, b: 0.0869578, a: 1}
+  smokeColor: {r: 0.13333334, g: 0.47843137, b: 0.255563, a: 1}
   dustCount: {x: 1, y: 4}
   dustSize: {x: 0.18, y: 0.32}
   dustSpeed: {x: 0.4, y: 1.2}
@@ -198,7 +198,7 @@ MonoBehaviour:
   dashTrailSize: 0.9
   wisps: 1
   wispMaterial: {fileID: 0}
-  wispColor: {r: 0.3476326, g: 0.7924528, b: 0.4300067, a: 1}
+  wispColor: {r: 0.43529412, g: 0.83137256, b: 0.6241558, a: 1}
   dashWispCount: 3
   skidWispCount: 2
   wispSpeed: {x: 3, y: 5}
@@ -207,7 +207,7 @@ MonoBehaviour:
   wispLift: 0.4
   pawPrints: 1
   pawMaterial: {fileID: 2100000, guid: c14a00abacb0f1c42a2a67257bf0eb12, type: 2}
-  pawColor: {r: 0.066037714, g: 0.04702384, b: 0.032084364, a: 1}
+  pawColor: {r: 0.18867922, g: 0.13479398, b: 0.08988963, a: 1}
   pawOpacity: 0.3
   pawSize: 0.28
   pawLifetime: {x: 1.2, y: 0.8}
@@ -400,23 +400,42 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4d5e6f7a8b9c4ad1e2f3a4b5c6d7e8f9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Racoon.VFX.ImpactVFX
-  overlayMaterial: {fileID: 2100000, guid: b06c8e0f2b4d45e7f9a1b3c5d7e9f1a3, type: 2}
-  flatMaterial: {fileID: 2100000, guid: 9e4a6c8d0f2b43c5d7e9f1a3b5c7d9e1, type: 2}
+  style: 0
+  hollow: 0.2
+  coreFlash: 0
+  impactFrames: 1
+  freezeDuration: {x: 0.08, y: 0.14}
+  freezeAttacker: 1
+  effectSpeedInFreeze: 0.3
+  flashColor: 0
+  flashWhite: {r: 1, g: 1, b: 1, a: 1}
+  flashInterval: 0.04
   volumeMaterial: {fileID: 2100000, guid: f3a5b7c9d1e34f4a0b2c4d6e8f0a2b35, type: 2}
-  rayColor: {r: 1, g: 1, b: 0.88, a: 1}
-  rayTipColor: {r: 1, g: 0.7, b: 0.08, a: 1}
-  shardColor: {r: 1, g: 1, b: 1, a: 1}
+  flatMaterial: {fileID: 2100000, guid: 9e4a6c8d0f2b43c5d7e9f1a3b5c7d9e1, type: 2}
+  coreColor: {r: 1, g: 1, b: 1, a: 1}
+  coreTipColor: {r: 1, g: 0.85, b: 0.35, a: 1}
+  spikeColor: {r: 1, g: 1, b: 0.88, a: 1}
+  spikeTipColor: {r: 1, g: 0.7, b: 0.08, a: 1}
   accentColor: {r: 0.9716981, g: 0.8653351, b: 0.43543077, a: 1}
   outlineColor: {r: 0.5943396, g: 0.50087804, b: 0.19344072, a: 0.44705883}
-  flashColor: {r: 1, g: 1, b: 1, a: 1}
+  shadowTint: {r: 1, g: 0.82, b: 0.62, a: 1}
+  highlightColor: {r: 1, g: 1, b: 1, a: 1}
+  rimColor: {r: 1, g: 1, b: 0.9, a: 0.8}
   starColor: {r: 1, g: 0.88, b: 0.28, a: 1}
   starTipColor: {r: 1, g: 0.58, b: 0.1, a: 1}
   starShadow: {r: 1, g: 0.72, b: 0.55, a: 1}
   starOutline: {r: 0.28, g: 0.11, b: 0.03, a: 1}
   size: {x: 0.55, y: 0.85}
-  impactRadius: 0.35
+  followTarget: 0.8
+  hitScatter: {x: 0.1, y: 0.12}
+  shake: 0.05
+  birthTime: 0.07
+  surfaceOffset: 0.03
   timeScale: 0.8
   poolSize: 3
+  shards: 6
+  shardSize: 0.07
+  shardGravity: 7
   heavyStars: 3
   starSize: 0.18
   starGravity: 9
@@ -432,17 +451,23 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5e6f7a8b9c0d4be2f3a4b5c6d7e8f9a0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Racoon.VFX.SwingVFX
-  flatMaterial: {fileID: 2100000, guid: 9e4a6c8d0f2b43c5d7e9f1a3b5c7d9e1, type: 2}
   volumeMaterial: {fileID: 2100000, guid: f3a5b7c9d1e34f4a0b2c4d6e8f0a2b35, type: 2}
+  flatMaterial: {fileID: 2100000, guid: 9e4a6c8d0f2b43c5d7e9f1a3b5c7d9e1, type: 2}
   arcColor: {r: 1, g: 1, b: 1, a: 1}
   arcEdgeColor: {r: 1, g: 0.8, b: 0.28, a: 1}
-  lineColor: {r: 1, g: 1, b: 1, a: 1}
-  lineTipColor: {r: 1, g: 0.8, b: 0.28, a: 1}
+  outlineColor: {r: 0.85, g: 0.58, b: 0.14, a: 1}
+  shadowTint: {r: 1, g: 0.85, b: 0.65, a: 1}
+  highlightColor: {r: 1, g: 1, b: 1, a: 1}
+  rimColor: {r: 1, g: 1, b: 0.9, a: 0.8}
   radius: 0.65
   width: 0.24
+  thickness: 0.09
+  startAngle: 125
+  endAngle: -25
+  trail: 105
   tilt: 16
   forwardOffset: 0.05
-  speedLines: 1
+  strands: 1
   delay: 0.04
   duration: 0.2
 --- !u!1 &6032796751976412665
@@ -471,7 +496,7 @@ Transform:
   m_GameObject: {fileID: 6032796751976412665}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.32, z: 0.36}
+  m_LocalPosition: {x: 0, y: -0.006, z: -0.019}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -496,17 +521,25 @@ MonoBehaviour:
   breathSpeed: 1.1
   breathLifetime: {x: 0.5, y: 0.7}
   breathDown: 22
-  saliva: 1
+  breathFollow: 1
+  sweat: 1
   flatMaterial: {fileID: 2100000, guid: 9e4a6c8d0f2b43c5d7e9f1a3b5c7d9e1, type: 2}
   volumeMaterial: {fileID: 2100000, guid: f3a5b7c9d1e34f4a0b2c4d6e8f0a2b35, type: 2}
-  salivaColor: {r: 0.82, g: 0.96, b: 1, a: 1}
-  salivaTipColor: {r: 0.55, g: 0.84, b: 1, a: 1}
-  salivaShadow: {r: 0.7, g: 0.84, b: 1, a: 1}
-  salivaOutline: {r: 0.14, g: 0.34, b: 0.56, a: 1}
-  salivaInterval: {x: 0.6, y: 1.3}
-  dropsPerSpit: {x: 1, y: 2}
+  sweatColor: {r: 0.8, g: 0.95, b: 1, a: 1}
+  sweatTipColor: {r: 0.5, g: 0.8, b: 1, a: 1}
+  sweatShadow: {r: 0.68, g: 0.82, b: 1, a: 1}
+  sweatOutline: {r: 0.14, g: 0.34, b: 0.56, a: 1}
+  sweatHighlight: {r: 1, g: 1, b: 1, a: 1}
+  sweatRim: {r: 0.9, g: 1, b: 1, a: 0.7}
+  headHeight: 0.62
+  sweatInterval: {x: 0.35, y: 0.7}
+  dropsPerFling: {x: 1, y: 2}
   dropSpeed: {x: 1.4, y: 2.4}
   dropSize: 0.06
+  beadInterval: {x: 1.1, y: 1.9}
+  beadSize: 0.1
+  beadSlide: 0.06
+  beadHold: 0.55
   gravity: 9.8
   splatSize: 0.16
   splatLifetime: 0.8
@@ -555,7 +588,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 337211354612740787}
+  - {fileID: 4065084738747927296}
   - {fileID: 3746231284464520148}
   - {fileID: 809146151829680577}
   - {fileID: 5538411719726722318}
@@ -620,7 +653,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Racoon.Player.PlayerInventory
   ShowTopMostFoldoutHeaderGroup: 1
-  database: {fileID: 11400000, guid: d6b1ff4e5c51f6f499883211ca5f2dbd, type: 2}
+  database: {fileID: 11400000, guid: 366f5ce6386323543b3fb0c43dabf98b, type: 2}
   maxItems: 2
   autoEquipOnPickup: 1
   autoEquipNextAfterUse: 1
@@ -754,12 +787,23 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Racoon.Player.PlayerAnimatorDriver
   controller: {fileID: 6147228204243766040}
-  animator: {fileID: 0}
+  animator: {fileID: 7965242511227834746}
+  loot: {fileID: 3055327258494851128}
   stateParameter: State
   actionTriggerParameter: ActionStart
+  bodyActionTriggerParameter: BodyAction
   speedParameter: Speed
+  sackSizeParameter: SackSize
   fullSpeed: 6.5
   speedDampTime: 0.1
+  upperBodyLayer: UpperBody
+  upperBodyIdleState: Empty
+  upperBodyFadeTime: 0.1
+  smallSackBlendShape: Saco_Pequeno
+  bigSackBlendShape: Saco_Grande
+  sackSmoothTime: 0.25
+  sackFullWeightScale: 1.6
+  sackFillExponent: 1.3
 --- !u!136 &4584103816076866246
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -1074,68 +1118,6 @@ MonoBehaviour:
     kickRoll: 0
     attack: 0
     decayPower: 2
---- !u!1001 &226510999305770328
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 4461479425360024682}
-    m_Modifications:
-    - target: {fileID: -8679921383154817045, guid: 0cf0a2fe6e51bbb4e95d7b7050083136, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 0cf0a2fe6e51bbb4e95d7b7050083136, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 0cf0a2fe6e51bbb4e95d7b7050083136, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 0cf0a2fe6e51bbb4e95d7b7050083136, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 0cf0a2fe6e51bbb4e95d7b7050083136, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 0cf0a2fe6e51bbb4e95d7b7050083136, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 0cf0a2fe6e51bbb4e95d7b7050083136, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 0cf0a2fe6e51bbb4e95d7b7050083136, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 0cf0a2fe6e51bbb4e95d7b7050083136, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 0cf0a2fe6e51bbb4e95d7b7050083136, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 919132149155446097, guid: 0cf0a2fe6e51bbb4e95d7b7050083136, type: 3}
-      propertyPath: m_Name
-      value: SK_Opossum
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 0cf0a2fe6e51bbb4e95d7b7050083136, type: 3}
---- !u!4 &337211354612740787 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 0cf0a2fe6e51bbb4e95d7b7050083136, type: 3}
-  m_PrefabInstance: {fileID: 226510999305770328}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &3909782017475956112
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1252,4 +1234,79 @@ MonoBehaviour:
 Transform:
   m_CorrespondingSourceObject: {fileID: 8835554606918836382, guid: 9bfd4a36357185747b090669e7438151, type: 3}
   m_PrefabInstance: {fileID: 3909782017475956112}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1001 &4602868438830148843
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 4461479425360024682}
+    m_Modifications:
+    - target: {fileID: -8679921383154817045, guid: f34a1837090a2604cb2e66bacae22a0a, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: f34a1837090a2604cb2e66bacae22a0a, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: f34a1837090a2604cb2e66bacae22a0a, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: f34a1837090a2604cb2e66bacae22a0a, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: f34a1837090a2604cb2e66bacae22a0a, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: f34a1837090a2604cb2e66bacae22a0a, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: f34a1837090a2604cb2e66bacae22a0a, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: f34a1837090a2604cb2e66bacae22a0a, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: f34a1837090a2604cb2e66bacae22a0a, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: f34a1837090a2604cb2e66bacae22a0a, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -1966589418606015477, guid: f34a1837090a2604cb2e66bacae22a0a, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 620b4789a208ff541bbf3b5850c81f7c, type: 2}
+    - target: {fileID: 919132149155446097, guid: f34a1837090a2604cb2e66bacae22a0a, type: 3}
+      propertyPath: m_Name
+      value: SK_Opossum
+      objectReference: {fileID: 0}
+    - target: {fileID: 5866666021909216657, guid: f34a1837090a2604cb2e66bacae22a0a, type: 3}
+      propertyPath: m_Controller
+      value: 
+      objectReference: {fileID: 9100000, guid: 30c65bd3c016eb144aadb2476411169d, type: 2}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: f34a1837090a2604cb2e66bacae22a0a, type: 3}
+--- !u!4 &4065084738747927296 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: f34a1837090a2604cb2e66bacae22a0a, type: 3}
+  m_PrefabInstance: {fileID: 4602868438830148843}
+  m_PrefabAsset: {fileID: 0}
+--- !u!95 &7965242511227834746 stripped
+Animator:
+  m_CorrespondingSourceObject: {fileID: 5866666021909216657, guid: f34a1837090a2604cb2e66bacae22a0a, type: 3}
+  m_PrefabInstance: {fileID: 4602868438830148843}
   m_PrefabAsset: {fileID: 0}
