@@ -26,6 +26,20 @@ public class LootPoint : MonoBehaviour, IRepeatableInteractable
     [Tooltip("Segundos hasta rellenarse. 0 = una vez vacía, no reaparece.")]
     [SerializeField, Min(0f)] float respawnTime = 0f;
 
+    [Header("Configuración del Evento X2 y Tiempos")]
+    [Tooltip("Número de recolecciones permitidas antes de que expire el evento x2.")]
+    [SerializeField, Min(1)] int maxDoublePointsCollections = 10;
+
+    [Tooltip("Tiempo de espera entre recolecciones cuando está en estado normal (segundos).")]
+    [SerializeField, Min(0f)] float normalCooldown = 0f;
+
+    [Tooltip("Tiempo de espera entre recolecciones cuando el evento x2 está activo (segundos).")]
+    [SerializeField, Min(0f)] float doublePointsCooldown = 2f;
+
+    bool isDoublePoints = false;
+    int currentDoublePointsCollections = 0;
+    float nextInteractTime = 0f;
+
     int itemsRemaining;
     bool available;
     bool initialized;
@@ -51,17 +65,19 @@ public class LootPoint : MonoBehaviour, IRepeatableInteractable
 
     void Refill()
     {
-        // Random.Range con int no incluye el valor máximo,
-        // por eso usamos maxItems + 1.
-        itemsRemaining =
-            Random.Range(minItems, maxItems + 1);
-
+        itemsRemaining = Random.Range(minItems, maxItems + 1);
         available = true;
     }
 
-    /// <summary>
-    /// Puede seguir saqueándose mientras queden objetos.
-    /// </summary>
+    public void SetDoublePoints(bool enabled)
+    {
+        isDoublePoints = enabled;
+        if (enabled)
+        {
+            currentDoublePointsCollections = 0; // Reiniciar contador al activarse el evento
+        }
+    }
+
     public bool CanInteract(PlayerController player)
     {
         EnsureInitialized();
@@ -71,12 +87,13 @@ public class LootPoint : MonoBehaviour, IRepeatableInteractable
             player == null)
             return false;
 
+        // Comprobar si está en tiempo de espera (cooldown)
+        if (Time.time < nextInteractTime)
+            return false;
+
         return player.TryGetComponent(out PlayerLoot _);
     }
 
-    /// <summary>
-    /// Cada interacción recoge UN objeto de la estantería.
-    /// </summary>
     public void Interact(PlayerController player)
     {
         if (NetworkManager.Singleton == null ||
@@ -84,11 +101,27 @@ public class LootPoint : MonoBehaviour, IRepeatableInteractable
             !CanInteract(player))
             return;
 
-        PlayerLoot playerLoot =
-            player.GetComponent<PlayerLoot>();
+        PlayerLoot playerLoot = player.GetComponent<PlayerLoot>();
 
-        if (!playerLoot.ServerAddLoot(pointsPerItem, weightPerItem))
+        // Calcular puntos según si el evento x2 está activo
+        int finalPoints = isDoublePoints ? pointsPerItem * 2 : pointsPerItem;
+
+        if (!playerLoot.ServerAddLoot(finalPoints, weightPerItem))
             return;
+
+        // Aplicar el tiempo de espera (cooldown) correspondiente
+        float activeCooldown = isDoublePoints ? doublePointsCooldown : normalCooldown;
+        nextInteractTime = Time.time + activeCooldown;
+
+        // Si el x2 está activo, sumamos una recolección al contador del evento
+        if (isDoublePoints)
+        {
+            currentDoublePointsCollections++;
+            if (currentDoublePointsCollections >= maxDoublePointsCollections)
+            {
+                SetDoublePoints(false); // Desactiva el x2 al alcanzar el límite de recolecciones
+            }
+        }
 
         itemsRemaining--;
 
@@ -104,7 +137,6 @@ public class LootPoint : MonoBehaviour, IRepeatableInteractable
     IEnumerator Respawn()
     {
         yield return new WaitForSeconds(respawnTime);
-
         Refill();
     }
-} 
+}
