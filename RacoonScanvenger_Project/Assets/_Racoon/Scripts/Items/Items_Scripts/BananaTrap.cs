@@ -15,6 +15,13 @@ namespace Racoon.Items
         [Tooltip("Normal mínima para considerar que la banana ha tocado el suelo.")]
         [SerializeField, Range(0f, 1f)] float groundNormalThreshold = 0.5f;
 
+        [Header("Rotación al caer")]
+        [Tooltip("Rotación que tendrá la banana cuando aterrice.")]
+        [SerializeField] Vector3 landedRotation = Vector3.zero;
+
+        [Tooltip("Mantiene la rotación Y que tenía la banana al aterrizar.")]
+        [SerializeField] bool keepCurrentYRotation = true;
+
         Rigidbody body;
 
         bool armed;
@@ -28,7 +35,8 @@ namespace Racoon.Items
 
         public override void OnNetworkSpawn()
         {
-            if (!IsServer) return;
+            if (!IsServer)
+                return;
 
             Invoke(nameof(Arm), armDelay);
             Invoke(nameof(RemoveBanana), lifeTime);
@@ -36,7 +44,8 @@ namespace Racoon.Items
 
         void Arm()
         {
-            if (!IsServer) return;
+            if (!IsServer)
+                return;
 
             armed = true;
         }
@@ -62,17 +71,33 @@ namespace Racoon.Items
         {
             landed = true;
 
-            // Una vez en el suelo deja de tener física:
-            // funciona como una trampa estática.
+            // Detenemos completamente la física.
             body.linearVelocity = Vector3.zero;
             body.angularVelocity = Vector3.zero;
+
+            // Calculamos la rotación final.
+            float yRotation = keepCurrentYRotation
+                ? transform.eulerAngles.y
+                : landedRotation.y;
+
+            Quaternion finalRotation = Quaternion.Euler(
+                landedRotation.x,
+                yRotation,
+                landedRotation.z
+            );
+
+            // Colocamos la banana de pie.
+            body.rotation = finalRotation;
+
+            // Una vez colocada deja de tener física:
+            // funciona como una trampa estática.
             body.isKinematic = true;
         }
 
         void OnTriggerEnter(Collider other)
         {
             if (!IsServer || !armed || !landed || consumed)
-            return;
+                return;
 
             PlayerController player =
                 other.GetComponentInParent<PlayerController>();

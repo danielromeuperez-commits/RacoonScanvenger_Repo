@@ -789,7 +789,7 @@ MonoBehaviour:
   inputHandler: {fileID: 7751890442590411093}
   itemHoldPoint: {fileID: 7656385880907016937}
   throwPoint: {fileID: 8218162048503567313}
-  aimArrow: {fileID: 8489917828443600770}
+  aimArrow: {fileID: 0}
 --- !u!114 &4691211560147461367
 MonoBehaviour:
   m_ObjectHideFlags: 0
