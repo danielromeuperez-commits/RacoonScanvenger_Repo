@@ -10,11 +10,17 @@ namespace Racoon.EditorTools
     ///  - Rig Generic con avatar propio, blend shapes del saco y sin extraer materiales (los pone el prefab).
     ///  - Un clip por toma del FBX, con el nombre limpio («rig|Idle» → «Idle»).
     ///  - Los bucles terminan un frame antes: en Blender el último frame es igual al primero y repetido se nota.
+    /// Los demás personajes (zarigüeya, panda rojo) usan el mismo rig sin animaciones: mismos ajustes, sin tomas,
+    /// y reproducen los clips del mapache (Generic: se enlazan por ruta de hueso, que es idéntica).
     /// Se reaplica en cada reimportación: si cambias algo a mano en el inspector, cámbialo aquí.
     /// </summary>
     public class RacoonModelImporter : AssetPostprocessor
     {
         public const string ModelPath = "Assets/_Racoon/3D/Models/Characters/SK_Mapache_Rig.fbx";
+        public const string OpossumModelPath = "Assets/_Racoon/3D/Models/Characters/SK_Opossum.fbx";
+        public const string RedPandaModelPath = "Assets/_Racoon/3D/Models/Characters/SK_RedPanda.fbx";
+
+        static readonly string[] SkinModelPaths = { OpossumModelPath, RedPandaModelPath };
 
         // Prefijo del clip → (bucle, primer frame, último frame). El orden importa: Knockback_Idle antes que Knockback.
         static readonly (string prefix, bool loop, int first, int last)[] Clips =
@@ -34,7 +40,8 @@ namespace Racoon.EditorTools
 
         void OnPreprocessModel()
         {
-            if (assetPath != ModelPath) return;
+            bool isRig = assetPath == ModelPath;
+            if (!isRig && System.Array.IndexOf(SkinModelPaths, assetPath) < 0) return;
             var importer = (ModelImporter)assetImporter;
             importer.animationType = ModelImporterAnimationType.Generic;
             importer.avatarSetup = ModelImporterAvatarSetup.CreateFromThisModel;
@@ -43,7 +50,7 @@ namespace Racoon.EditorTools
             importer.importCameras = false;
             importer.importLights = false;
             importer.materialImportMode = ModelImporterMaterialImportMode.None;
-            importer.importAnimation = true;
+            importer.importAnimation = isRig;
             importer.resampleCurves = true;
         }
 

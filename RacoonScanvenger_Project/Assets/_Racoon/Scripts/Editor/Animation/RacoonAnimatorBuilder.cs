@@ -321,7 +321,7 @@ namespace Racoon.EditorTools
             }
         }
 
-        static Transform FindModelInstance(Transform root, string modelPath)
+        internal static Transform FindModelInstance(Transform root, string modelPath)
         {
             foreach (Transform child in root)
             {
@@ -394,7 +394,7 @@ namespace Racoon.EditorTools
             return bounds;
         }
 
-        static Transform FindDeep(Transform root, string name)
+        internal static Transform FindDeep(Transform root, string name)
         {
             if (root.name == name) return root;
             foreach (Transform child in root)

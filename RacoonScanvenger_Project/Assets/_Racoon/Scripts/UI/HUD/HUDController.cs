@@ -58,6 +58,9 @@ namespace Racoon.UI.HUD
         readonly MatchStandings.Standing[] bound = new MatchStandings.Standing[2];
         readonly Action[] inventoryHandlers = new Action[2];
         readonly List<ItemData> itemPool = new();
+        // Reacciones del retrato a lo que le pasa a cada jugador (solo en las variantes con HUDView.reactions)
+        readonly Action<PlayerState>[] actionHandlers = new Action<PlayerState>[2];
+        readonly Action<PlayerState, PlayerState>[] stateHandlers = new Action<PlayerState, PlayerState>[2];
         ItemDatabase poolSource;
         int shownSeconds = -1;
         float nextTimerSearch, sessionStart = -1f;
@@ -100,6 +103,8 @@ namespace Racoon.UI.HUD
                     ShowBag = showBag,
                 };
                 inventoryHandlers[i] = () => SyncItems(index, true);
+                actionHandlers[i] = state => OnAction(index, state);
+                stateHandlers[i] = (_, state) => OnState(index, state);
                 presenters[i].ResetView();
             }
             ShowTime(defaultDuration, defaultDuration, false, false);
@@ -243,6 +248,11 @@ namespace Racoon.UI.HUD
         {
             var previous = bound[index];
             if (previous != null && previous.Inventory) previous.Inventory.InventoryChanged -= inventoryHandlers[index];
+            if (previous != null && previous.Controller)
+            {
+                previous.Controller.ActionStarted -= actionHandlers[index];
+                previous.Controller.StateChanged -= stateHandlers[index];
+            }
             bound[index] = null;
         }
 
@@ -272,6 +282,35 @@ namespace Racoon.UI.HUD
             if (standing.Controller) presenter.SetStamina(standing.Controller.StaminaNormalized);
             if (standing.Inventory) standing.Inventory.InventoryChanged += inventoryHandlers[index];
             SyncItems(index, false);
+            if (standing.Controller)
+            {
+                standing.Controller.ActionStarted += actionHandlers[index];
+                standing.Controller.StateChanged += stateHandlers[index];
+                OnState(index, standing.Controller.State);
+            }
+        }
+
+        // Golpe ligero, golpe fuerte, aturdido por un objeto (plátano), voltereta (dash) y puñetazo
+        void OnAction(int index, PlayerState state)
+        {
+            if (demoMode) return;
+            HUDReaction? reaction = state switch
+            {
+                PlayerState.HitStun => HUDReaction.Hit,
+                PlayerState.Knockdown => HUDReaction.HeavyHit,
+                PlayerState.Downed => HUDReaction.Slip,
+                PlayerState.Dash => HUDReaction.Roll,
+                PlayerState.Punch => HUDReaction.Punch,
+                _ => null,
+            };
+            if (reaction.HasValue) presenters[index].React(reaction.Value);
+        }
+
+        void OnState(int index, PlayerState state)
+        {
+            if (demoMode) return;
+            presenters[index].SetRunning(state == PlayerState.Run);
+            presenters[index].SetDizzy(state.IsGrounded());
         }
 
         bool IsBound(MatchStandings.Standing standing) =>

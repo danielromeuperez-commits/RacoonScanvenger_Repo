@@ -35,7 +35,10 @@ namespace Racoon.UI.HUD
             public GameObject streak;
             [Tooltip("Contador «xN».")]
             public P5Text streakCounter;
+            [Tooltip("Insignia «TOP» o, si hay corona, la corona.")]
             public GameObject top;
+            [Tooltip("Opcional: corona del que va ganando (en lugar de la insignia). Cae sobre el aro del retrato, aterriza y se queda colgando; pivote en su base.")]
+            public RectTransform crown;
 
             [Header("Puntos (rodillo)")]
             public RectTransform scorePanel;
@@ -62,6 +65,12 @@ namespace Racoon.UI.HUD
             public RectTransform reserveItemBox;
             public Image reserveItemIcon;
             public GameObject reserveItemEmpty;
+
+            [Header("Reacciones (solo con «Reactions»)")]
+            [Tooltip("Rayas de velocidad detrás del retrato: al correr y en la voltereta.")]
+            public RectTransform[] speedLines = new RectTransform[0];
+            [Tooltip("Estrellas que giran sobre el retrato mientras está aturdido en el suelo.")]
+            public RectTransform[] dizzyStars = new RectTransform[0];
 
             [Header("Etiqueta")]
             [Tooltip("Chapa «Pn» y, si la variante lo muestra, el apodo: tag.SetText(apodo).")]
@@ -106,6 +115,8 @@ namespace Racoon.UI.HUD
         [Tooltip("Variante sin inclinaciones (Soft limpio): la caja principal flota sin girar.")]
         public bool calm;
         public PanelFx scorePanelFx;
+        [Tooltip("El retrato reacciona a lo que le pasa al jugador: golpes, plátanos, voltereta, puñetazos, correr y mareo.")]
+        public bool reactions;
         public PlayerView player1 = new();
         public PlayerView player2 = new();
         public TimerView timer = new();
