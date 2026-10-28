@@ -33,7 +33,8 @@ namespace Racoon.UI.HUD
         readonly Side[] sides = { new(), new() };
         readonly List<ItemData> pool = new();
         HUDController hud;
-        float remaining, nextLoot, nextSale, nextStamina, nextItems;
+        float remaining, nextLoot, nextSale, nextStamina, nextItems, nextReaction;
+        readonly float[] dizzyUntil = new float[2], runUntil = new float[2];
         int lastScorer, itemTurn;
 
         void Start()
@@ -108,6 +109,7 @@ namespace Racoon.UI.HUD
                     hud.Player(n + 1).SetStamina(s.stamina);
                 }
             }
+            if (hud.View.reactions) Reactions(now);
             if (now >= nextItems && pool.Count > 0)
             {
                 nextItems = now + 2.6f;
@@ -135,6 +137,23 @@ namespace Racoon.UI.HUD
             hud.Player(n + 1).SetPending(0, true);
             hud.Player(n + 1).SetStreak(side.streak, side.OnFire);
             for (int k = 0; k < 2; k++) hud.Player(k + 1).SetTop(sides[k].banked > sides[1 - k].banked);
+        }
+
+        // Variantes reactivas: golpes, plátanos, volteretas, puñetazos, carreras y mareos al azar
+        void Reactions(float now)
+        {
+            for (int n = 0; n < 2; n++)
+            {
+                hud.Player(n + 1).SetDizzy(now < dizzyUntil[n]);
+                hud.Player(n + 1).SetRunning(now < runUntil[n] && now >= dizzyUntil[n]);
+            }
+            if (now < nextReaction) return;
+            nextReaction = now + Random.Range(1.2f, 2.4f);
+            int side = Random.Range(0, 2);
+            var reaction = (HUDReaction)Random.Range(0, 5);
+            hud.Player(side + 1).React(reaction);
+            if (reaction == HUDReaction.Slip || reaction == HUDReaction.HeavyHit) dizzyUntil[side] = now + 1.8f;
+            else if (Random.value < .5f) runUntil[side] = now + Random.Range(1.5f, 3f);
         }
 
         void ItemStep(int n)

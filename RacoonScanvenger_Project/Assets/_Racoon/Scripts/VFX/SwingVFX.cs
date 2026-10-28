@@ -44,6 +44,8 @@ namespace Racoon.VFX
         [SerializeField] float startAngle = 125f;
         [Tooltip("Dónde acaba (grados; negativo = a la izquierda): un poco pasado el centro.")]
         [SerializeField] float endAngle = -25f;
+        [Tooltip("Grados que sigue la cabeza pasado endAngle, frenando, mientras se cierra (para que no pare en seco).")]
+        [SerializeField] float followThrough = 14f;
         [Tooltip("Largo máximo de la estela (grados).")]
         [SerializeField] float trail = 105f;
         [Tooltip("Inclinación (grados): empieza más alto por la derecha y acaba más bajo por la izquierda.")]
@@ -126,7 +128,7 @@ namespace Racoon.VFX
             if (time < 0f) return;
             time += Time.deltaTime;
             float t = time - delay, d = Mathf.Max(duration, 0.01f);
-            if (t > d * 1.25f)
+            if (t > d * 1.4f)
             {
                 Hide();
                 return;
@@ -139,31 +141,34 @@ namespace Racoon.VFX
                     Sweep(strandSmears[i], t / d - StrandLag[i], radius * StrandRadius[i], width * 0.5f * StrandWidth[i], thickness * 0.5f * StrandThickness[i]);
         }
 
-        // x = tiempo normalizado (0 → 1 la cabeza llega al final; la cola llega un poco después y la estela se cierra).
+        // x = tiempo normalizado (0 → 0.7 la cabeza llega a endAngle; luego sigue un poco, frenando, mientras la cola
+        // la alcanza y todo adelgaza hasta desaparecer en redondo, hacia 1.2).
         void Sweep(Smear smear, float x, float smearRadius, float halfWidth, float halfThickness)
         {
-            if (x <= 0f || x >= 1.2f)
+            // Se desvanece adelgazando (contorno incluido), sin cortarse.
+            float fade = 1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.68f, 1.15f, x));
+            if (x <= 0f || fade <= 0.005f)
             {
                 smear.Piece.Visible = false;
                 return;
             }
-            // La cabeza arranca rápido y frena suave; la cola sale después y la alcanza.
-            float head = Ease(x / 0.7f);
-            float tail = Ease((x - 0.22f) / 0.98f);
-            float headDeg = Mathf.Lerp(startAngle, endAngle, head);
-            float tailDeg = Mathf.Lerp(startAngle, endAngle, tail);
             float sign = Mathf.Sign(startAngle - endAngle);
-            tailDeg = headDeg + sign * Mathf.Min(sign * (tailDeg - headDeg), trail);
+            float finalDeg = endAngle - sign * followThrough;
+            // La cabeza arranca rápido, frena suave en endAngle y sigue un poquito (sin parar en seco); la cola sale
+            // después y la alcanza al final del todo.
+            float headDeg = Mathf.Lerp(startAngle, endAngle, Ease(x / 0.7f)) - sign * followThrough * FlatFx.OutCubic(Mathf.InverseLerp(0.5f, 1.2f, x));
+            float tailDeg = Mathf.Lerp(startAngle, finalDeg, Ease((x - 0.22f) / 0.98f));
+            tailDeg = headDeg + sign * Mathf.Clamp(sign * (tailDeg - headDeg), 0f, trail);
 
             float span = Mathf.Abs(tailDeg - headDeg);
-            if (span < 1f)
+            if (span < 0.5f)
             {
                 smear.Piece.Visible = false;
                 return;
             }
             // Engorda al arrancar y adelgaza al cerrarse (si es corta, también más fina).
-            float body = FlatFx.OutCubic(Mathf.Clamp01(x / 0.25f)) * Mathf.Sqrt(Mathf.Clamp01(span / 45f));
-            smear.Build(tailDeg, headDeg, smearRadius, halfWidth * body, halfThickness * body);
+            float body = FlatFx.OutCubic(Mathf.Clamp01(x / 0.25f)) * Mathf.Sqrt(Mathf.Clamp01(span / 45f)) * fade;
+            smear.Build(tailDeg, headDeg, smearRadius, halfWidth * body, halfThickness * body, Mathf.Sqrt(fade));
             smear.Piece.Visible = true;
         }
 
@@ -191,15 +196,13 @@ namespace Racoon.VFX
         /// </summary>
         sealed class Smear
         {
-            const int Segments = 48, Sides = 12;
+            const int Segments = 64, Sides = 12;
             const int Rings = Segments + 1;
             const int BodyCount = Rings * Sides + 2;
-            // Donde empieza la cabeza redondeada (recorrido de cola 0 a cabeza 1).
-            const float HeadStart = 0.8f;
-
             public readonly FlatPiece Piece;
             readonly Mesh mesh;
             readonly float outline;
+            float outlineNow;
             readonly Vector3[] vertices = new Vector3[BodyCount * 2];
             readonly Vector3[] normals = new Vector3[BodyCount * 2];
 
@@ -244,8 +247,13 @@ namespace Racoon.VFX
                 }
             }
 
-            public void Build(float tailDeg, float headDeg, float radius, float halfWidth, float halfThickness)
+            /// <summary>outlineScale adelgaza también el contorno (para desvanecerse sin que quede la raya).</summary>
+            public void Build(float tailDeg, float headDeg, float radius, float halfWidth, float halfThickness, float outlineScale = 1f)
             {
+                outlineNow = outline * Mathf.Clamp01(outlineScale);
+                // La cabeza, media elipse de verdad: su largo (en recorrido) es el de su ancho, sea larga o corta la estela.
+                float length = Mathf.Abs(headDeg - tailDeg) * Mathf.Deg2Rad * radius;
+                float headStart = 1f - Mathf.Clamp(halfWidth / Mathf.Max(length, 1e-4f), 0.06f, 0.5f);
                 halfWidth = Mathf.Max(halfWidth, 1e-4f);
                 halfThickness = Mathf.Max(halfThickness, 1e-4f);
                 float sign = Mathf.Sign(headDeg - tailDeg);
@@ -257,7 +265,7 @@ namespace Racoon.VFX
                     Vector3 dir = new(Mathf.Sin(angle), 0f, Mathf.Cos(angle));
                     // Se abre un pelín hacia la cabeza (espiral): más dinámico que un arco perfecto.
                     Vector3 center = dir * (radius * (1f + 0.07f * (u - 0.5f)));
-                    float profile = Profile(u);
+                    float profile = Profile(u, headStart);
                     float w = Mathf.Max(halfWidth * profile, 1e-4f), h = Mathf.Max(halfThickness * profile, 1e-4f);
                     for (int j = 0; j < Sides; j++)
                     {
@@ -278,10 +286,10 @@ namespace Racoon.VFX
             }
 
             // Grosor a lo largo (0 cola → 1 cabeza): crece hasta justo detrás de la cabeza y se cierra en redondo.
-            static float Profile(float u)
+            static float Profile(float u, float headStart)
             {
-                if (u <= HeadStart) return Mathf.Pow(u / HeadStart, 0.85f);
-                float x = (u - HeadStart) / (1f - HeadStart);
+                if (u <= headStart) return Mathf.Pow(u / headStart, 0.85f);
+                float x = (u - headStart) / (1f - headStart);
                 return Mathf.Sqrt(Mathf.Max(0f, 1f - x * x));
             }
 
@@ -290,7 +298,7 @@ namespace Racoon.VFX
             {
                 vertices[index] = position;
                 normals[index] = normal;
-                vertices[index + BodyCount] = position + normal * outline;
+                vertices[index + BodyCount] = position + normal * outlineNow;
                 normals[index + BodyCount] = normal;
             }
 
