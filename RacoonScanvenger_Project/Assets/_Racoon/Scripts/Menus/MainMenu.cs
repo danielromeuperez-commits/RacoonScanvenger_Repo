@@ -4,7 +4,7 @@ using UnityEngine.SceneManagement;
 public class MainMenu : MonoBehaviour
 {
     [Header("Escenas")]
-    [SerializeField] string gameSceneName = "SCN_PruebasFabre_Items";
+    [SerializeField] string gameSceneName = "SCN_Masip_Pruebas_Fabre";
 
     void Start()
     {
