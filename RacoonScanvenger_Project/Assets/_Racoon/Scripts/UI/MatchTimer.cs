@@ -160,4 +160,12 @@ public class MatchTimer : NetworkBehaviour
         if (PlayerController.Local != null)
             PlayerController.Local.InputHandler.SetInputEnabled(false);
     }
+
+    public void ApplyCustomTimeReduction(float secondsToSubtract)
+    {
+        if (!IsServer || !matchRunning.Value)
+            return;
+
+        matchEndTime.Value -= secondsToSubtract;
+    }
 }
