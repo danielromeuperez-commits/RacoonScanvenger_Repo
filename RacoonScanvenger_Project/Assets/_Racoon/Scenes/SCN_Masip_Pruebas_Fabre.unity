@@ -4787,7 +4787,7 @@ RectTransform:
   m_GameObject: {fileID: 455895651}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.43379, y: 0.43379, z: 0.43379}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1543422533}
@@ -4801,7 +4801,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 0, y: 22}
   m_SizeDelta: {x: 100, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!4 &458902885 stripped
@@ -16475,7 +16475,7 @@ RectTransform:
   m_GameObject: {fileID: 1283572970}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.45142, y: 0.45142, z: 0.45142}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 340290838}
@@ -25423,7 +25423,7 @@ RectTransform:
   m_GameObject: {fileID: 2099904633}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.47865, y: 0.47865, z: 0.47865}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 377060786}
@@ -25438,7 +25438,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 232}
+  m_AnchoredPosition: {x: 0, y: 86}
   m_SizeDelta: {x: 100, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &2107600978
@@ -25840,6 +25840,10 @@ PrefabInstance:
     - target: {fileID: 882812113611249663, guid: c49dd5596f13ee549a39d01c0e1d3aee, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2240020350791418006, guid: c49dd5596f13ee549a39d01c0e1d3aee, type: 3}
+      propertyPath: m_UiScaleMode
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 8531910521885873152, guid: c49dd5596f13ee549a39d01c0e1d3aee, type: 3}
       propertyPath: m_Name
