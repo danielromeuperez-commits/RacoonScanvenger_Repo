@@ -177,7 +177,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.P5.P5Text
   text: "\xA1YA VAS A TOPE!"
   style: {fileID: 11400000, guid: dfb93864dd1a64e4fb479d0827ed64c3, type: 2}
-  player: 0
+  player: 1
   colorJugador: {r: 0.22352941, g: 0.36078432, b: 0.9607843, a: 1}
   escalaTexto: 1.2
   alineacion: 1
@@ -246,7 +246,7 @@ Canvas:
   m_OverridePixelPerfect: 0
   m_SortingBucketNormalizedSize: 0
   m_VertexColorAlwaysGammaSpace: 0
-  m_AdditionalShaderChannelsFlag: 0
+  m_AdditionalShaderChannelsFlag: 25
   m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
   m_SortingOrder: 55
@@ -908,7 +908,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.P5.P5Text
   text: "\xA1LLENA!"
   style: {fileID: 11400000, guid: dfb93864dd1a64e4fb479d0827ed64c3, type: 2}
-  player: 0
+  player: 1
   colorJugador: {r: 0.22352941, g: 0.36078432, b: 0.9607843, a: 1}
   escalaTexto: 1.2
   alineacion: 1

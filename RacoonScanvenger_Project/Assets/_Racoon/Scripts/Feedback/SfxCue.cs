@@ -8,8 +8,6 @@ namespace Racoon.Feedback
     /// Hueco para un efecto de sonido. Todavía NO hay sonidos en el juego: cada script que necesita uno
     /// declara un SfxCue con un Tooltip que explica qué debe sonar, y mientras no tenga clips no hace nada.
     /// Cuando lleguen los audios basta con arrastrarlos al campo en el inspector (sin tocar código).
-    ///
-    /// La lista completa de huecos está en Docs/Items_Polish.md («Sonidos pendientes»).
     /// </summary>
     [Serializable]
     public class SfxCue

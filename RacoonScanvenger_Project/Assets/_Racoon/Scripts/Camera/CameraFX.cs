@@ -522,7 +522,7 @@ namespace Racoon.Cameras
         // Altura (fracción de pantalla, desde donde nace) a la que ya se han difuminado del todo.
         const float LinesFadeHeight = 0.6f;
         const float BoltsFadeHeight = 0.45f;
-        // Flipbooks horneados (Tools/CameraFX/bake_camera_fx.py): 4x4 fotogramas.
+        // Flipbooks horneados: 4x4 fotogramas.
         const int FlipbookGrid = 4;
         const int FlipbookFrames = FlipbookGrid * FlipbookGrid;
         const float FireFps = 14f;
@@ -1051,7 +1051,7 @@ namespace Racoon.Cameras
     }
 
     /// <summary>
-    /// Texturas de las capas. Llamas, rayo, viruta y destello están horneados (Tools/CameraFX/bake_camera_fx.py) en
+    /// Texturas de las capas. Llamas, rayo, viruta y destello están horneados en
     /// Visuals/VFX/CameraFX/Resources/CameraFX; el resto se genera al arrancar (planas, a juego con el estilo toon).
     /// </summary>
     static class CameraFXTextures
@@ -1085,8 +1085,8 @@ namespace Racoon.Cameras
             rampShader = Resources.Load<Shader>(Folder + "CameraFXRamp");
             wavesShader = Resources.Load<Shader>(Folder + "CameraFXWaves");
             if (fire == null || bolt == null || ember == null || sparkle == null || rampShader == null || wavesShader == null)
-                Debug.LogWarning("CameraFX: faltan texturas horneadas o el shader en Resources/CameraFX " +
-                                 "(Tools/CameraFX/bake_camera_fx.py). Las llamas, virutas, rayos o el aura no se verán.");
+                Debug.LogWarning("CameraFX: faltan texturas horneadas o el shader en Resources/CameraFX. " +
+                                 "Las llamas, virutas, rayos o el aura no se verán.");
         }
 
         // Transparente en el centro, opaco en los bordes (rectángulo redondeado).

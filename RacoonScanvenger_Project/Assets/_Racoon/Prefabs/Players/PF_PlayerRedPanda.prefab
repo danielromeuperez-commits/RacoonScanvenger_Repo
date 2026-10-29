@@ -1459,6 +1459,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: PF_HUD_AvisoMachacar
       objectReference: {fileID: 0}
+    - target: {fileID: 4574468659412294459, guid: 13410abf5f0b3ae49854a674b9b4776c, type: 3}
+      propertyPath: controller
+      value: 
+      objectReference: {fileID: 6147228204243766040}
+    - target: {fileID: 6219421304162880060, guid: 13410abf5f0b3ae49854a674b9b4776c, type: 3}
+      propertyPath: m_AdditionalShaderChannelsFlag
+      value: 25
+      objectReference: {fileID: 0}
     - target: {fileID: 8403064495570174756, guid: 13410abf5f0b3ae49854a674b9b4776c, type: 3}
       propertyPath: m_Pivot.x
       value: 0
@@ -1648,10 +1656,18 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1039402550963891426}
     m_Modifications:
+    - target: {fileID: 2075871865537132925, guid: 828b9a0a28132d04d8a8c0519ed140ba, type: 3}
+      propertyPath: m_AdditionalShaderChannelsFlag
+      value: 25
+      objectReference: {fileID: 0}
     - target: {fileID: 3973147972086338505, guid: 828b9a0a28132d04d8a8c0519ed140ba, type: 3}
       propertyPath: m_Name
       value: PF_HUD_EstadoJugador
       objectReference: {fileID: 0}
+    - target: {fileID: 6478941970946331572, guid: 828b9a0a28132d04d8a8c0519ed140ba, type: 3}
+      propertyPath: controller
+      value: 
+      objectReference: {fileID: 6147228204243766040}
     - target: {fileID: 7649125831300164129, guid: 828b9a0a28132d04d8a8c0519ed140ba, type: 3}
       propertyPath: m_Pivot.x
       value: 0
