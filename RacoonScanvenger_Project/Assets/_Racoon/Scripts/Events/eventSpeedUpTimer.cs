@@ -4,9 +4,9 @@ using TMPro;
 
 public class eventSpeedUpTimer : NetworkBehaviour, IGameEvent
 {
-    [Header("Configuración del Evento")]
-    [Tooltip("Segundos exactos que se restarán del reloj de la partida cuando salte el evento.")]
-    [SerializeField] float secondsToCut = 60f;
+    [Header("Configuración del Evento de Velocidad")]
+    [Tooltip("Multiplicador de velocidad permanente (ej: 2 para el doble de rápido, 3 para el triple).")]
+    [SerializeField] float speedMultiplier = 2f;
 
     [Header("Configuración de UI")]
     [SerializeField] GameObject PopUpPanel;
@@ -32,21 +32,21 @@ public class eventSpeedUpTimer : NetworkBehaviour, IGameEvent
 
         if (matchTimer != null)
         {
-            // Aplicamos el recorte usando directamente el valor configurado en el Inspector
-            matchTimer.ApplyCustomTimeReduction(secondsToCut);
+            // Aplica la velocidad permanente en el MatchTimer
+            matchTimer.ApplyTimeMultiplier(speedMultiplier);
         }
         else
         {
-            Debug.LogError("eventSpeedUpTimer: No se encontró ningún MatchTimer para recortar tiempo.");
+            Debug.LogError("eventSpeedUpTimer: No se encontró ningún MatchTimer para acelerar.");
         }
 
-        TriggerSpeedUpClientRpc(Mathf.RoundToInt(secondsToCut));
+        TriggerSpeedUpClientRpc(speedMultiplier);
 
-        Debug.Log($"¡TIEMPO ACELERADO! Se han recortado exactamente {secondsToCut} segundos configurados en el Inspector.");
+        Debug.Log($"¡EVENTO DE VELOCIDAD PERMANENTE! El cronómetro irá a x{speedMultiplier} hasta el final de la partida.");
     }
 
     [ClientRpc]
-    void TriggerSpeedUpClientRpc(int secondsCut)
+    void TriggerSpeedUpClientRpc(float multiplier)
     {
         if (PopUpPanel != null)
         {
@@ -61,7 +61,7 @@ public class eventSpeedUpTimer : NetworkBehaviour, IGameEvent
 
         if (PopUpText != null)
         {
-            PopUpText.text = $"¡TIEMPO ACELERADO!\n¡Se han recortado {secondsCut} segundos!";
+            PopUpText.text = $"¡RITMO ACELERADO (x{multiplier})!\n¡El tiempo irá más rápido el resto de la partida!";
         }
     }
 
