@@ -8,7 +8,7 @@ public class VibrationManager : MonoBehaviour
 
     private void Awake()
     {
-        // Opcional: Patrón Singleton rápido para llamarlo desde cualquier script
+        // Opcional: PatrÃ³n Singleton rÃ¡pido para llamarlo desde cualquier script
         if (Instance == null)
         {
             Instance = this;
@@ -20,11 +20,11 @@ public class VibrationManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Activa la vibración del mando.
+    /// Activa la vibraciÃ³n del mando.
     /// </summary>
     /// <param "lowFrequency">Motor izquierdo (graves/pesado). Valores de 0.0 a 1.0</param>
     /// <param "highFrequency">Motor derecho (agudos/suave). Valores de 0.0 a 1.0</param>
-    /// <param "duration">Duración en segundos que durará la vibración</param>
+    /// <param "duration">DuraciÃ³n en segundos que durarÃ¡ la vibraciÃ³n</param>
     public void Rumble(float lowFrequency, float highFrequency, float duration)
     {
         StartCoroutine(RumbleRoutine(lowFrequency, highFrequency, duration));
@@ -33,24 +33,12 @@ public class VibrationManager : MonoBehaviour
     private IEnumerator RumbleRoutine(float lowFrequency, float highFrequency, float duration)
     {
         // Comprobamos si hay mandos conectados en general
+        // Sin mando (jugando con teclado) simplemente no vibra; antes llenaba la consola de avisos.
         if (Gamepad.all.Count == 0)
-        {
-            Debug.LogWarning("¡Unity no detecta ningún mando conectado!");
             yield break;
-        }
 
-        Gamepad gamepad = Gamepad.current;
-
-        if (gamepad == null)
-        {
-            // Si Gamepad.current es null pero hay mandos, cogemos el primero de la lista
-            gamepad = Gamepad.all[0];
-            Debug.Log("Gamepad.current era nulo, usando el primer mando disponible: " + gamepad.name);
-        }
-        else
-        {
-            Debug.Log("Mando detectado correctamente: " + gamepad.name);
-        }
+        // Si Gamepad.current es null pero hay mandos, cogemos el primero de la lista
+        Gamepad gamepad = Gamepad.current ?? Gamepad.all[0];
 
         // Aplica la velocidad
         gamepad.SetMotorSpeeds(lowFrequency, highFrequency);
@@ -61,7 +49,7 @@ public class VibrationManager : MonoBehaviour
         gamepad.SetMotorSpeeds(0f, 0f);
     }
 
-    // Método de ejemplo para apagar la vibración de golpe si el jugador pausa o muere
+    // MÃ©todo de ejemplo para apagar la vibraciÃ³n de golpe si el jugador pausa o muere
     public void StopRumble()
     {
         Gamepad gamepad = Gamepad.current;

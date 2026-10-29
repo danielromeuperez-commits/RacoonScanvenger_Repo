@@ -4,35 +4,40 @@ using Unity.Netcode;
 namespace Racoon.Player
 {
     /// <summary>
-    /// Gestiona el uso de los objetos del jugador.
-    /// No modifica PlayerController.
+    /// Parte visual del uso de objetos: el modelo en la mano y la flecha de apuntado.
+    /// Cuándo se usa el objeto lo decide PlayerController (mantener Usar = apuntar, soltar = usar);
+    /// aquí solo se lee <see cref="PlayerController.IsAimingItem"/>.
     /// </summary>
     public class PlayerItemHandler : NetworkBehaviour
     {
         [Header("Referencias")]
         [SerializeField] PlayerInventory inventory;
-        [SerializeField] PlayerInputHandler inputHandler;
+        [SerializeField] PlayerController controller;
 
         [Header("Puntos del jugador")]
-        [Tooltip("Punto donde se ver� el objeto equipado.")]
+        [Tooltip("Punto donde se verá el objeto equipado.")]
         [SerializeField] Transform itemHoldPoint;
 
-        [Tooltip("Punto desde donde se lanzar�n los objetos.")]
+        [Tooltip("Punto desde donde se lanzarán los objetos.")]
         [SerializeField] Transform throwPoint;
 
         [Header("Apuntado")]
-        [Tooltip("Flecha que aparece mientras mantenemos pulsado Use.")]
+        [Tooltip("Flecha que aparece mientras mantenemos pulsado Use con un objeto.")]
         [SerializeField] GameObject aimArrow;
 
+        [Tooltip("Segundos manteniendo Use antes de enseñar la flecha. Así un toque rápido no la hace parpadear.")]
+        [SerializeField, Min(0f)] float aimArrowDelay = 0.12f;
+
         GameObject currentHeldVisual;
+        float aimHeldTime;
 
         void Awake()
         {
             if (inventory == null)
                 inventory = GetComponent<PlayerInventory>();
 
-            if (inputHandler == null)
-                inputHandler = GetComponent<PlayerInputHandler>();
+            if (controller == null)
+                controller = GetComponent<PlayerController>();
 
             if (aimArrow != null)
                 aimArrow.SetActive(false);
@@ -41,8 +46,6 @@ namespace Racoon.Player
         public override void OnNetworkSpawn()
         {
             inventory.EquippedItemChanged += OnEquippedItemChanged;
-            inputHandler.UseStarted += OnUseStarted;
-            inputHandler.UseReleased += OnUseReleased;
 
             OnEquippedItemChanged(inventory.EquippedItem);
         }
@@ -50,8 +53,6 @@ namespace Racoon.Player
         public override void OnNetworkDespawn()
         {
             inventory.EquippedItemChanged -= OnEquippedItemChanged;
-            inputHandler.UseStarted -= OnUseStarted;
-            inputHandler.UseReleased -= OnUseReleased;
         }
 
         void OnEquippedItemChanged(Items.ItemData item)
@@ -73,32 +74,6 @@ namespace Racoon.Player
             currentHeldVisual.transform.localRotation = Quaternion.identity;
         }
 
-        void OnUseStarted()
-        {
-            if (!IsOwner)
-                return;
-
-            if (inventory == null || !inventory.HasEquipped)
-                return;
-
-            if (aimArrow != null)
-                aimArrow.SetActive(true);
-        }
-
-        void OnUseReleased()
-        {
-            if (!IsOwner)
-                return;
-
-            if (!inventory.HasEquipped)
-                return;
-
-            if (aimArrow != null)
-                aimArrow.SetActive(false);
-
-            // El lanzamiento lo a�adiremos en el siguiente paso.
-        }
-
         void Update()
         {
             if (!IsOwner)
@@ -109,10 +84,17 @@ namespace Racoon.Player
 
         void UpdateAimArrow()
         {
-            if (aimArrow == null || !aimArrow.activeSelf)
+            if (aimArrow == null)
                 return;
 
-            if (throwPoint == null)
+            bool aiming = controller != null && controller.IsAimingItem;
+            aimHeldTime = aiming ? aimHeldTime + Time.deltaTime : 0f;
+
+            bool show = aiming && aimHeldTime >= aimArrowDelay && throwPoint != null;
+            if (aimArrow.activeSelf != show)
+                aimArrow.SetActive(show);
+
+            if (!show)
                 return;
 
             aimArrow.transform.position = throwPoint.position;

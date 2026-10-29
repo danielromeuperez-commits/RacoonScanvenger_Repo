@@ -1,4 +1,5 @@
 using System;
+using Racoon.Feedback;
 using Racoon.UI.P5;
 using TMPro;
 using UnityEngine;
@@ -27,6 +28,8 @@ namespace Racoon.UI.HUD
             public Image staminaTrail;
             [Tooltip("Ilustración del personaje (recortada por la máscara del fondo). Vacía hasta tener los dibujos.")]
             public Image illustration;
+            [Tooltip("Retrato en vivo (RenderTexture de la cámara grúa de HUDLivePortraits), encima de la ilustración.")]
+            public RawImage liveIllustration;
 
             [Header("Racha y liderato (desactivados por defecto)")]
             public GameObject fire;
@@ -120,6 +123,13 @@ namespace Racoon.UI.HUD
         public PlayerView player1 = new();
         public PlayerView player2 = new();
         public TimerView timer = new();
+
+        [Header("Sonido (pendiente: arrastra los clips cuando los haya)")]
+        [Tooltip("SFX en cada cambio de icono de la ruleta de ítems: «tic» seco de ruleta de feria. " +
+                 "Suena cada vez más espaciado (la ruleta frena) y un poco más grave. Muy corto (< 0,1 s).")]
+        public SfxCue rouletteTickSfx = new();
+        [Tooltip("SFX cuando la ruleta se para en el ítem que te toca: «ding» / campanita alegre.")]
+        public SfxCue rouletteStopSfx = new();
 
         public PlayerView Player(int player) => player == 1 ? player1 : player2;
 

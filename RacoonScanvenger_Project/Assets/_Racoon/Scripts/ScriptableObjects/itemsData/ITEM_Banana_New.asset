@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Racoon.Items.ItemData
   displayName: Banana
   icon: {fileID: 21300000, guid: 8ccdbbdbefe41ae41bf3dc964497185d, type: 3}
-  heldVisualPrefab: {fileID: 7539349397903705958, guid: c19c29208d89b11448eb004b27bafca9, type: 3}
+  heldVisualPrefab: {fileID: 7539349397903705958, guid: a28c837f3ac6b604eae73a58dfd1e924, type: 3}
   effect:
     rid: 7253194387461521408
   references:
@@ -28,3 +28,4 @@ MonoBehaviour:
         spawnHeight: 0.8
         throwSpeed: 6
         upwardSpeed: 2
+        spinTurnsPerSecond: 2.5

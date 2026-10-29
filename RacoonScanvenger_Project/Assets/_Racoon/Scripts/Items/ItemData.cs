@@ -1,3 +1,4 @@
+using Racoon.Feedback;
 using Racoon.Player;
 using UnityEngine;
 
@@ -17,6 +18,11 @@ namespace Racoon.Items
 
         [Tooltip("Qué hace el objeto al usarse.")]
         [SerializeReference, SubclassSelector] ItemEffect effect;
+
+        [Header("Sonido (pendiente: arrastra los clips cuando los haya)")]
+        [Tooltip("SFX al USAR este objeto. Lo oyen todos, sale del jugador. " +
+                 "Plátano: «fiu» de lanzamiento. Bebida energética: lata que se abre «pssst» + trago.")]
+        public SfxCue useSfx = new();
 
         public ItemEffect Effect => effect;
 

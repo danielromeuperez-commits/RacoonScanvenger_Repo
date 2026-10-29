@@ -33,6 +33,13 @@ namespace Racoon.VFX
         [Tooltip("Luz de borde en la silueta (alfa = intensidad).")]
         [SerializeField] Color rimColor = new(1f, 1f, 0.9f, 0.8f);
 
+        [Header("Golpe cargado (más anaranjado y más grande)")]
+        [SerializeField] Color chargedArcColor = new(1f, 0.78f, 0.45f);
+        [SerializeField] Color chargedArcEdgeColor = new(1f, 0.45f, 0.08f);
+        [SerializeField] Color chargedOutlineColor = new(0.75f, 0.25f, 0.04f);
+        [Tooltip("Escala del radio, ancho y grosor del tajo cargado.")]
+        [SerializeField] float chargedScale = 1.25f;
+
         [Header("Forma")]
         [Tooltip("Radio del barrido (metros).")]
         [SerializeField] float radius = 0.65f;
@@ -69,6 +76,7 @@ namespace Racoon.VFX
         Smear blade;
         Smear[] strandSmears;
         float time = -1f;
+        float scale = 1f;
 
         void Awake()
         {
@@ -81,18 +89,29 @@ namespace Racoon.VFX
             }
 
             blade = new Smear("SwingBlade", transform, material, 0.012f, startAngle, endAngle);
-            Style(blade.Piece).Colors(arcColor, arcEdgeColor, outlineColor);
+            Style(blade.Piece);
             if (strands)
             {
                 strandSmears = new Smear[StrandRadius.Length];
                 for (int i = 0; i < strandSmears.Length; i++)
                 {
                     strandSmears[i] = new Smear($"SwingStrand{i}", transform, material, 0.006f, startAngle, endAngle);
-                    Style(strandSmears[i].Piece).Colors(arcEdgeColor, arcEdgeColor, outlineColor);
+                    Style(strandSmears[i].Piece);
                 }
             }
+            SetColors(false);
 
             FlatPiece Style(FlatPiece piece) => piece.Cel(1f, shadowTint).Shine(highlightColor, rimColor);
+        }
+
+        void SetColors(bool charged)
+        {
+            Color face = charged ? chargedArcColor : arcColor;
+            Color edge = charged ? chargedArcEdgeColor : arcEdgeColor;
+            Color outline = charged ? chargedOutlineColor : outlineColor;
+            blade.Piece.Colors(face, edge, outline);
+            if (strandSmears != null)
+                foreach (Smear strand in strandSmears) strand.Piece.Colors(edge, edge, outline);
         }
 
         void OnDisable() => Hide();
@@ -105,10 +124,13 @@ namespace Racoon.VFX
 
         // ---------------- API ----------------
 
-        public void Play()
+        /// <param name="charged">Golpe cargado: colores naranjas (charged*) y tajo más grande (chargedScale).</param>
+        public void Play(bool charged = false)
         {
             if (blade == null) return;
             Hide();
+            SetColors(charged);
+            scale = charged ? chargedScale : 1f;
             // El plano del barrido, inclinado: la derecha (+X) más alta.
             Quaternion plane = Quaternion.Euler(0f, 0f, tilt);
             blade.Piece.Transform.SetLocalPositionAndRotation(new Vector3(0f, 0f, forwardOffset), plane);
@@ -120,6 +142,9 @@ namespace Racoon.VFX
 
         [VfxTest("Test golpe al aire")]
         void Test() => Play();
+
+        [VfxTest("Test golpe cargado")]
+        void TestCharged() => Play(true);
 
         // ---------------- Animación ----------------
 
@@ -135,10 +160,11 @@ namespace Racoon.VFX
             }
             if (t < 0f) return;
 
-            Sweep(blade, t / d, radius, width * 0.5f, thickness * 0.5f);
+            float r = radius * scale, w = width * 0.5f * scale, h = thickness * 0.5f * scale;
+            Sweep(blade, t / d, r, w, h);
             if (strandSmears != null)
                 for (int i = 0; i < strandSmears.Length; i++)
-                    Sweep(strandSmears[i], t / d - StrandLag[i], radius * StrandRadius[i], width * 0.5f * StrandWidth[i], thickness * 0.5f * StrandThickness[i]);
+                    Sweep(strandSmears[i], t / d - StrandLag[i], r * StrandRadius[i], w * StrandWidth[i], h * StrandThickness[i]);
         }
 
         // x = tiempo normalizado (0 → 0.7 la cabeza llega a endAngle; luego sigue un poco, frenando, mientras la cola

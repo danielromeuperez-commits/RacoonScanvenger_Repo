@@ -164,6 +164,7 @@ namespace Racoon.EditorTools
         ///  - El HUD: la variante seleccionada en el Project o, si no hay, la P5 pastel reactiva con apodos y P1/P2. Es su propio
         ///    Canvas y busca solo el MatchTimer y a los jugadores: no hay que conectar nada.
         ///  - El MatchManager (PF_MNG_MatchManager con el MatchTimer): sin él el tiempo y su barra no corren.
+        ///  - El manager de efectos de cámara (MatchCameraFX), para ajustarlos desde la jerarquía.
         /// </summary>
         [MenuItem("Racoon/HUD/Preparar escena abierta (HUD + tiempo)")]
         public static void PrepareOpenScene()
@@ -197,9 +198,12 @@ namespace Racoon.EditorTools
                 else Debug.LogWarning("HUD: no encuentro PF_MNG_MatchManager (con MatchTimer); sin él el tiempo no corre.");
             }
 
+            var cameraFX = CameraFXManagerMenu.Ensure();
+            if (cameraFX) added.Add(cameraFX);
+
             if (added.Count == 0)
             {
-                EditorUtility.DisplayDialog("HUD", "La escena ya tiene el HUD y el MatchTimer: no falta nada.", "Vale");
+                EditorUtility.DisplayDialog("HUD", "La escena ya tiene el HUD, el MatchTimer y los efectos de cámara: no falta nada.", "Vale");
                 return;
             }
             EditorSceneManager.MarkSceneDirty(scene);
@@ -558,7 +562,9 @@ namespace Racoon.EditorTools
         {
             var go = new GameObject("Canvas HUD", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster)) { layer = UILayer };
             var canvas = go.GetComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            // Todos los Canvas en Screen Space - Camera; la cámara se la pone CanvasCameraBinder en runtime.
+            canvas.renderMode = RenderMode.ScreenSpaceCamera;
+            canvas.planeDistance = 1f;
             var scaler = go.GetComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(2560f, 1440f);
@@ -580,7 +586,8 @@ namespace Racoon.EditorTools
             var root = NewObject("PF_HUD_" + m.name, builderCanvas);
             Stretch(root);
             var canvas = root.AddComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.renderMode = RenderMode.ScreenSpaceCamera;
+            canvas.planeDistance = 1f;
             canvas.sortingOrder = 10;
             var scaler = root.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
@@ -697,6 +704,7 @@ namespace Racoon.EditorTools
             }
             GroupTimeDigits(view.timer);
 
+            root.AddComponent<HUDLivePortraits>();
             var controller = root.AddComponent<HUDController>();
             SetReference(controller, "view", view);
             foreach (var character in kit.characters)
@@ -787,6 +795,14 @@ namespace Racoon.EditorTools
             image.raycastTarget = false;
             image.enabled = false; // sin ilustración todavía
             pv.illustration = image;
+
+            // Encima, el retrato en vivo de la cámara grúa (HUDLivePortraits)
+            var live = NewObject("Retrato en vivo", background.transform);
+            Stretch(live);
+            var raw = live.AddComponent<RawImage>();
+            raw.raycastTarget = false;
+            raw.enabled = false;
+            pv.liveIllustration = raw;
         }
 
         static void BuildTimeText(GameObject go, Node n, Look look, HUDView view)
@@ -989,10 +1005,12 @@ namespace Racoon.EditorTools
             text.alineacion = p2 ? P5Text.Alignment.Derecha : P5Text.Alignment.Izquierda;
             if (look.bolsaChapa)
             {
-                // «BOLSA» en su chapa por el lado del retrato y el número, grande, hacia el centro de la pantalla
+                // Compacta: «BOLSA» en su chapa encima del número, montada un poco sobre él
                 text.chapa = "BOLSA";
                 text.estiloChapa = look.bolsaChapa;
-                text.chapaAlFinal = p2;
+                text.chapaArriba = true;
+                text.separacionChapa = -6f;
+                text.alineacion = P5Text.Alignment.Centro;
                 text.SetText("+40");
             }
             else
@@ -1186,7 +1204,8 @@ namespace Racoon.EditorTools
             }
             finally
             {
-                canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+                canvas.worldCamera = null;
+                canvas.planeDistance = 1f;
                 Object.DestroyImmediate(cameraObject);
                 target.Release();
                 Object.DestroyImmediate(target);

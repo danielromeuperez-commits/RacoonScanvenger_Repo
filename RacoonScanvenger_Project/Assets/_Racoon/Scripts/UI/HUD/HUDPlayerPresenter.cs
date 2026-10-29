@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using Racoon.Items;
+using Racoon.UI.P5;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -19,7 +20,9 @@ namespace Racoon.UI.HUD
     {
         const float ReelTime = .75f, HopTime = .45f, BobPeriod = 1.6f, PopTime = 1f;
         const float FadeTime = .25f, BadgeTime = .35f, TopHideTime = .2f, FireFrameTime = .12f, LowBlinkTime = .175f;
-        const float FloatPeriod = 2.2f, EntryTime = .5f, RouletteTime = 1.3f, RouletteStep = .07f, UseTime = .32f, FlyTime = .3f;
+        const float FloatPeriod = 2.2f, EntryTime = .5f, RouletteTime = 1.3f, UseTime = .32f, FlyTime = .3f;
+        // Ruleta: empieza rápida y frena (paso entre iconos de Fast a Slow); cada icono da un saltito
+        const float RouletteStepFast = .04f, RouletteStepSlow = .2f, RouletteBump = .18f, RouletteBumpTime = .1f;
         const float BagFadeTime = .2f, BagBumpTime = .3f, BankTime = .35f, BagShakeTime = .35f;
         // Caja de reserva: flota a su aire (otro periodo y desfase) y algo menos que la principal
         const float ReserveFloatPeriod = 2.6f, ReserveFloatDelay = -1.1f, ReserveFloatAmount = .7f;
@@ -33,6 +36,10 @@ namespace Racoon.UI.HUD
         const float BagWigglePeriod = 1.1f, BagWiggleDegrees = 3f;
         // Reacciones: golpe, golpe fuerte, resbalón (plátano), voltereta y puñetazo; correr y mareo se funden
         const float HitTime = .4f, HeavyTime = .75f, SlipTime = .9f, RollTime = .5f, PunchTime = .25f, RunBlendSpeed = 8f;
+        // Estela de la estamina gastada: el color del jugador aclarado hacia el blanco
+        const float TrailLighten = .55f;
+        // Cajas de ítems: halo que late detrás, icono que respira y se menea cada poco, «?» que se balancea
+        const float HaloPeriod = 1.4f, IconWigglePeriod = 3.2f, IconWiggleTime = .45f, EmptyTiltPeriod = 2f;
 
         static float Now => Time.unscaledTime;
 
@@ -58,6 +65,10 @@ namespace Racoon.UI.HUD
         Quaternion panelRestRot = Quaternion.identity;
         float panelHit = -99f;
 
+        // Ruleta: icono que está dando saltitos y su escala de reposo
+        RectTransform rouletteIcon;
+        Vector3 rouletteIconRest = Vector3.one;
+
         // «+N»
         readonly List<(RectTransform rect, CanvasGroup group, float start, Vector2 rest)> pops = new();
         Vector2 popRest;
@@ -74,9 +85,11 @@ namespace Racoon.UI.HUD
         float refillStart = -99f, emptyStart = -99f;
         RectTransform portrait;
         Vector2 portraitRest;
+        Vector3 portraitRestLocal;
 
         // Racha, llama y TOP
         CanvasGroup fireGroup, streakGroup;
+        Vector3 fireRest;
         bool fireOn, topOn;
         int streakShown = -1;
         float fireChange = -99f, counterBump = -99f, topChange = -99f;
@@ -95,6 +108,9 @@ namespace Racoon.UI.HUD
         Vector2 mainRestPos, reserveRestPos;
         Quaternion mainRestRot = Quaternion.identity, reserveRestRot = Quaternion.identity;
         float mainEntry = -99f, reserveEntry = -99f;
+        Image mainHalo, reserveHalo;
+        Quaternion mainIconRest = Quaternion.identity, reserveIconRest = Quaternion.identity;
+        Quaternion mainEmptyRest = Quaternion.identity, reserveEmptyRest = Quaternion.identity;
         ItemData shownMain, shownReserve, wantMain, wantReserve;
         IReadOnlyList<ItemData> pool;
         bool itemsBusy, itemsDirty;
@@ -134,6 +150,13 @@ namespace Racoon.UI.HUD
             }
             if (pv.bag)
             {
+                // Bolsa compacta: la chapa «BOLSA» encima del número, montada un poco sobre él (también en prefabs antiguos)
+                if (!string.IsNullOrEmpty(pv.bag.chapa))
+                {
+                    pv.bag.chapaArriba = true;
+                    pv.bag.separacionChapa = -6f;
+                    pv.bag.alineacion = P5Text.Alignment.Centro;
+                }
                 bagGroup = Group(pv.bag.gameObject);
                 bagRest = pv.bag.transform.localPosition;
                 pv.bag.gameObject.SetActive(false);
@@ -141,6 +164,7 @@ namespace Racoon.UI.HUD
             if (pv.fire)
             {
                 fireGroup = Group(pv.fire);
+                fireRest = pv.fire.transform.localPosition;
                 pv.fire.SetActive(false);
             }
             if (pv.streak)
@@ -166,9 +190,19 @@ namespace Racoon.UI.HUD
             if (pv.staminaFill)
             {
                 portrait = pv.staminaFill.rectTransform.parent as RectTransform;
-                if (portrait) portraitRest = portrait.anchoredPosition;
+                if (portrait)
+                {
+                    portraitRest = portrait.anchoredPosition;
+                    portraitRestLocal = portrait.localPosition;
+                }
             }
             if (pv.root) rootRest = pv.root.anchoredPosition;
+            mainHalo = BuildHalo(pv.mainItemBox, pv.mainSlot);
+            reserveHalo = BuildHalo(pv.reserveItemBox, pv.reserveSlot);
+            if (pv.mainItemIcon) mainIconRest = pv.mainItemIcon.rectTransform.localRotation;
+            if (pv.reserveItemIcon) reserveIconRest = pv.reserveItemIcon.rectTransform.localRotation;
+            if (pv.mainItemEmpty) mainEmptyRest = pv.mainItemEmpty.transform.localRotation;
+            if (pv.reserveItemEmpty) reserveEmptyRest = pv.reserveItemEmpty.transform.localRotation;
             if (pv.speedLines.Length > 0 && pv.speedLines[0]) pv.speedLines[0].parent.gameObject.SetActive(false);
             if (pv.dizzyStars.Length > 0 && pv.dizzyStars[0]) pv.dizzyStars[0].parent.gameObject.SetActive(false);
         }
@@ -176,6 +210,35 @@ namespace Racoon.UI.HUD
         RectTransform Reel(int i) => pv.reels != null && i < pv.reels.Length ? pv.reels[i] : null;
         RectTransform Strip(int i) => pv.reelStrips != null && i < pv.reelStrips.Length ? pv.reelStrips[i] : null;
         Color PlayerColor => view.colors ? view.colors.Get(number) : Color.white;
+        // Lo que se ha movido el retrato (reacciones, temblores): la llama y la corona van pegadas a él
+        Vector3 PortraitDelta(Transform sibling) =>
+            portrait && sibling.parent == portrait.parent ? portrait.localPosition - portraitRestLocal : Vector3.zero;
+
+        // Halo: copia de la base de la caja, detrás de todo el hueco, que el presentador tiñe y hace latir
+        static Image BuildHalo(RectTransform box, RectTransform slot)
+        {
+            if (!box || !slot) return null;
+            Image source = null;
+            foreach (var image in box.GetComponentsInChildren<Image>(true))
+                if (image.sprite && (source == null || image.name == "Base")) source = image;
+            if (!source) return null;
+            var go = new GameObject("Halo", typeof(RectTransform)) { layer = slot.gameObject.layer };
+            var rect = (RectTransform)go.transform;
+            rect.SetParent(slot, false);
+            rect.SetAsFirstSibling();
+            var from = source.rectTransform;
+            rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(.5f, .5f);
+            rect.sizeDelta = from.rect.size;
+            rect.localPosition = slot.InverseTransformPoint(from.TransformPoint(from.rect.center));
+            rect.localRotation = Quaternion.Inverse(slot.rotation) * from.rotation;
+            var halo = go.AddComponent<Image>();
+            halo.sprite = source.sprite;
+            halo.type = source.type;
+            halo.pixelsPerUnitMultiplier = source.pixelsPerUnitMultiplier;
+            halo.preserveAspect = source.preserveAspect;
+            halo.raycastTarget = false;
+            return halo;
+        }
 
         static CanvasGroup Group(GameObject go) =>
             go.TryGetComponent(out CanvasGroup group) ? group : go.AddComponent<CanvasGroup>();
@@ -388,6 +451,8 @@ namespace Racoon.UI.HUD
             TickTop();
             TickSlot(pv.mainSlot, mainRestPos, mainRestRot, mainEntry, FloatPeriod, 0f, 1f, floatSign);
             TickSlot(pv.reserveSlot, reserveRestPos, reserveRestRot, reserveEntry, ReserveFloatPeriod, ReserveFloatDelay, ReserveFloatAmount, -floatSign);
+            TickItemFx(mainHalo, pv.mainItemIcon, mainIconRest, pv.mainItemEmpty, mainEmptyRest, mainEntry, 1f, 0f);
+            TickItemFx(reserveHalo, pv.reserveItemIcon, reserveIconRest, pv.reserveItemEmpty, reserveEmptyRest, reserveEntry, .75f, .9f);
         }
 
         /// <summary>Después de Tick: arranca la siguiente transición de ítems si hay una pendiente.</summary>
@@ -604,7 +669,7 @@ namespace Racoon.UI.HUD
             staminaShown = Mathf.Lerp(staminaShown, staminaTarget, 1f - Mathf.Exp(-StaminaSmoothing * deltaTime));
             var color = PlayerColor;
 
-            // Estela blanca: aguanta un momento lo que acabas de gastar y luego lo alcanza
+            // Estela (color del jugador aclarado): aguanta un momento lo que acabas de gastar y luego lo alcanza
             if (staminaShown >= trailValue)
             {
                 trailValue = staminaShown;
@@ -616,6 +681,7 @@ namespace Racoon.UI.HUD
                 bool visible = trailValue - staminaShown > .002f;
                 if (pv.staminaTrail.enabled != visible) pv.staminaTrail.enabled = visible;
                 pv.staminaTrail.fillAmount = trailValue;
+                pv.staminaTrail.color = Color.Lerp(color, Color.white, TrailLighten);
             }
 
             float refill = (Now - refillStart) / RefillTime;
@@ -650,6 +716,8 @@ namespace Racoon.UI.HUD
                 float shake = (Now - emptyStart) / EmptyShakeTime;
                 portrait.anchoredPosition = portraitRest + reactOffset + (shake < 1f ? new Vector2(9f * Mathf.Sin(shake * 50f) * (1f - shake), 0f) : Vector2.zero);
                 if (view.reactions) portrait.localRotation = Quaternion.Euler(0f, 0f, reactDegrees);
+                // El retrato en vivo no rueda con el círculo: se queda derecho
+                if (pv.liveIllustration) pv.liveIllustration.rectTransform.rotation = portrait.parent.rotation;
             }
         }
 
@@ -784,6 +852,7 @@ namespace Racoon.UI.HUD
             }
             fireGroup.alpha = alpha;
             pv.fire.transform.localScale = new Vector3(scale, scale, 1f);
+            pv.fire.transform.localPosition = fireRest + PortraitDelta(pv.fire.transform);
 
             // Fotogramas 1 → 2 → 3, 0,12 s cada uno
             int frame = Mathf.FloorToInt(Now / FireFrameTime) % 3;
@@ -861,7 +930,7 @@ namespace Racoon.UI.HUD
                 float sway = Mathf.Clamp01(u / CrownLandTime);
                 degrees += sway * 3.5f * Mathf.Sin(2f * Mathf.PI * u / CrownSwayPeriod) * lean;
             }
-            crown.anchoredPosition = crownRestPos + new Vector2(x, y);
+            crown.anchoredPosition = crownRestPos + new Vector2(x, y) + (Vector2)PortraitDelta(crown);
             crown.localRotation = crownRestRot * Quaternion.Euler(0f, 0f, degrees);
             crown.localScale = new Vector3(sx, sy, 1f);
             crownGroup.alpha = alpha;
@@ -884,6 +953,34 @@ namespace Racoon.UI.HUD
             slot.anchoredPosition = restPos + new Vector2(0f, rise);
             slot.localRotation = restRot * Quaternion.Euler(0f, 0f, degrees);
             slot.localScale = new Vector3(scale, scale, 1f);
+        }
+
+        // Cajas llamativas: halo del color del jugador que late detrás (más fuerte y con destello al entrar un ítem),
+        // icono que respira y da un meneo cada poco, y «?» que se balancea mientras está vacía
+        void TickItemFx(Image halo, Image icon, Quaternion iconRest, GameObject empty, Quaternion emptyRest, float entry, float amount, float delay)
+        {
+            bool has = icon && icon.enabled && icon.sprite;
+            float beat = .5f - .5f * Mathf.Cos(2f * Mathf.PI * (Now + delay) / HaloPeriod);
+            if (halo)
+            {
+                float flash = Mathf.Clamp01(1f - (Now - entry) / .6f);
+                float scale = 1.1f + .07f * beat * amount + .25f * flash;
+                halo.rectTransform.localScale = new Vector3(scale, scale, 1f);
+                var color = Color.Lerp(PlayerColor, Color.white, .3f + .5f * flash);
+                color.a = (has ? .75f + .25f * beat : .35f + .2f * beat) * Mathf.Lerp(.8f, 1f, amount);
+                halo.color = color;
+            }
+            if (has && !itemsBusy)
+            {
+                // Respira y, cada «IconWigglePeriod», un meneo rápido
+                float s = 1f + .05f * beat * amount;
+                icon.rectTransform.localScale = new Vector3(s, s, 1f);
+                float w = Mathf.Repeat(Now + delay, IconWigglePeriod) / IconWiggleTime;
+                float degrees = w < 1f ? 12f * amount * Mathf.Sin(w * Mathf.PI * 4f) * (1f - w) : 0f;
+                icon.rectTransform.localRotation = iconRest * Quaternion.Euler(0f, 0f, degrees);
+            }
+            if (empty && empty.activeSelf)
+                empty.transform.localRotation = emptyRest * Quaternion.Euler(0f, 0f, 8f * Mathf.Sin(2f * Mathf.PI * (Now + delay) / EmptyTiltPeriod));
         }
 
         // ---------------- Ítems ----------------
@@ -949,6 +1046,7 @@ namespace Racoon.UI.HUD
             itemsRoutine = null;
             itemsBusy = false;
             itemsDirty = false;
+            ResetRouletteIcon();
             foreach (var go in flying)
                 if (go) Object.Destroy(go);
             flying.Clear();
@@ -984,16 +1082,38 @@ namespace Racoon.UI.HUD
             {
                 if (empty) empty.SetActive(false);
                 icon.enabled = true;
+                var rect = icon.rectTransform;
+                rouletteIcon = rect;
+                rouletteIconRest = rect.localScale;
                 int k = Random.Range(0, pool.Count);
-                float end = Now + RouletteTime;
-                while (Now < end)
+                float start = Now, next = Now, lastTick = -99f;
+                while (Now - start < RouletteTime)
                 {
-                    var item = pool[k++ % pool.Count];
-                    if (item && item.icon) icon.sprite = item.icon;
-                    yield return new WaitForSecondsRealtime(RouletteStep);
+                    if (Now >= next)
+                    {
+                        var item = pool[k++ % pool.Count];
+                        if (item && item.icon) icon.sprite = item.icon;
+                        // Frena con ease-in: cada vez más espacio entre iconos, y el «tic» algo más grave
+                        float progress = (Now - start) / RouletteTime;
+                        view.rouletteTickSfx.Play2D(Mathf.Lerp(1.15f, .9f, progress));
+                        next = Now + Mathf.Lerp(RouletteStepFast, RouletteStepSlow, progress * progress);
+                        lastTick = Now;
+                    }
+                    float bump = 1f + RouletteBump * (1f - Mathf.Clamp01((Now - lastTick) / RouletteBumpTime));
+                    rect.localScale = rouletteIconRest * bump;
+                    yield return null;
                 }
+                ResetRouletteIcon();
             }
             ShowSlot(main, final);
+            view.rouletteStopSfx.Play2D();
+        }
+
+        // Si se corta la ruleta a medias, el icono no se queda con el saltito a medias
+        void ResetRouletteIcon()
+        {
+            if (rouletteIcon) rouletteIcon.localScale = rouletteIconRest;
+            rouletteIcon = null;
         }
 
         // Copia del icono encima de todo el jugador, para animarla sin tocar las cajas

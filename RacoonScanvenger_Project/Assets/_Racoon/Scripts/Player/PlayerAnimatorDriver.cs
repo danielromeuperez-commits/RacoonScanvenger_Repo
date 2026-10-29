@@ -40,6 +40,19 @@ namespace Racoon.Player
         [Tooltip("Segundos que tarda la capa en entrar o salir.")]
         [SerializeField] float upperBodyFadeTime = 0.1f;
 
+        [Header("Inclinación con la inercia")]
+        [Tooltip("Se inclina hacia delante al acelerar, hacia atrás al frenar y hacia dentro en las curvas. " +
+                 "Vacío = el transform del Animator (el modelo).")]
+        [SerializeField] Transform leanTransform;
+        [Tooltip("Grados por cada m/s² de aceleración.")]
+        [SerializeField] float leanPerAcceleration = 0.45f;
+        [Tooltip("Inclinación máxima (grados).")]
+        [SerializeField] float maxLean = 9f;
+        [Tooltip("Suavizado de la velocidad medida (s): filtra los saltos de la interpolación de red.")]
+        [SerializeField] float leanVelocitySmoothTime = 0.08f;
+        [Tooltip("Suavizado de la inclinación (s).")]
+        [SerializeField] float leanSmoothTime = 0.12f;
+
         [Header("Saco")]
         [SerializeField] string smallSackBlendShape = "Saco_Pequeno";
         [SerializeField] string bigSackBlendShape = "Saco_Grande";
@@ -57,6 +70,10 @@ namespace Racoon.Player
 
         int upperLayerIndex = -1, upperIdleHash;
         float upperWeight;
+
+        Quaternion leanBaseRotation;
+        Vector3 smoothedVelocity, smoothedVelocityRef, previousVelocity;
+        Vector2 lean, leanRef;
 
         SkinnedMeshRenderer sackRenderer;
         int smallSackIndex = -1, bigSackIndex = -1;
@@ -77,6 +94,8 @@ namespace Racoon.Player
             speedHash = Animator.StringToHash(speedParameter);
             sackHash = Animator.StringToHash(sackSizeParameter);
             if (loot == null) loot = controller.GetComponent<PlayerLoot>();
+            if (leanTransform == null && animator != null && animator.transform != controller.transform) leanTransform = animator.transform;
+            if (leanTransform != null) leanBaseRotation = leanTransform.localRotation;
 
             if (animator == null || animator.runtimeAnimatorController == null) return;
             foreach (AnimatorControllerParameter parameter in animator.parameters)
@@ -153,6 +172,7 @@ namespace Racoon.Player
 
             if (hasSpeed && Time.deltaTime > 0f)
                 animator.SetFloat(speedHash, delta.magnitude / Time.deltaTime / fullSpeed, speedDampTime, Time.deltaTime);
+            if (Time.deltaTime > 0f) UpdateLean(delta / Time.deltaTime);
 
             sackSize = Mathf.SmoothDamp(sackSize, TargetSackSize, ref sackVelocity, sackSmoothTime);
             if (hasSack) animator.SetFloat(sackHash, sackSize);
@@ -162,6 +182,26 @@ namespace Racoon.Player
         // Los clips del FBX traen curvas de blend shapes a 0 y el Animator las escribe después de Update:
         // el saco se ajusta aquí, una vez aplicada la animación.
         void LateUpdate() => UpdateSackBlendShapes();
+
+        // Como la velocidad, se mide por desplazamiento: igual en el dueño y en el rival.
+        void UpdateLean(Vector3 velocity)
+        {
+            if (leanTransform == null) return;
+            float dt = Time.deltaTime;
+            smoothedVelocity = Vector3.SmoothDamp(smoothedVelocity, velocity, ref smoothedVelocityRef, leanVelocitySmoothTime);
+            Vector3 acceleration = (smoothedVelocity - previousVelocity) / dt;
+            previousVelocity = smoothedVelocity;
+
+            // En los ejes del jugador: z = acelerar/frenar, x = hacia dónde tira la curva.
+            Vector3 local = controller.transform.InverseTransformDirection(acceleration);
+            Vector2 target = new(
+                Mathf.Clamp(local.z * leanPerAcceleration, -maxLean, maxLean),
+                Mathf.Clamp(-local.x * leanPerAcceleration, -maxLean, maxLean));
+            lean = Vector2.SmoothDamp(lean, target, ref leanRef, leanSmoothTime);
+
+            // Inclinación en el espacio del jugador, encima de la rotación propia del modelo.
+            leanTransform.localRotation = Quaternion.Euler(lean.x, 0f, lean.y) * leanBaseRotation;
+        }
 
         void UpdateUpperBodyWeight()
         {

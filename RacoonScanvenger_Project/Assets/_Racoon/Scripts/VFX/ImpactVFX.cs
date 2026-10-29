@@ -91,6 +91,18 @@ namespace Racoon.VFX
         [SerializeField] Color starShadow = new(1f, 0.72f, 0.55f);
         [SerializeField] Color starOutline = new(0.28f, 0.11f, 0.03f);
 
+        [Header("Golpe cargado (naranja, como su tajo)")]
+        [SerializeField] Color chargedCoreColor = new(1f, 0.86f, 0.62f);
+        [SerializeField] Color chargedCoreTipColor = new(1f, 0.5f, 0.1f);
+        [SerializeField] Color chargedSpikeColor = new(1f, 0.74f, 0.4f);
+        [SerializeField] Color chargedSpikeTipColor = new(1f, 0.38f, 0.05f);
+        [SerializeField] Color chargedAccentColor = new(1f, 0.58f, 0.22f);
+        [SerializeField] Color chargedOutlineColor = new(0.66f, 0.22f, 0.04f);
+        [SerializeField] Color chargedStarColor = new(1f, 0.66f, 0.22f);
+        [SerializeField] Color chargedStarTipColor = new(1f, 0.36f, 0.06f);
+        [Tooltip("Multiplica el tamaño del impacto cargado.")]
+        [SerializeField] float chargedSizeMultiplier = 1.2f;
+
         [Header("Tamaño y ritmo")]
         [Tooltip("Tamaño (metros) del impacto del golpe ligero / fuerte.")]
         [SerializeField] Vector2 size = new(0.55f, 0.85f);
@@ -150,6 +162,8 @@ namespace Racoon.VFX
             public float time = -1f;
             public float scale, roll;
             public bool heavy;
+            // Colores puestos ahora mismo (para no repintar si no cambia).
+            public bool charged;
         }
 
         /// <summary>Color del jugador (lo pone PlayerVFX): destello "Color del golpeado".</summary>
@@ -228,7 +242,9 @@ namespace Racoon.VFX
         /// en la malla y lanza el impacto ahí, con sus impact frames (<paramref name="attackerAnimator"/> también se
         /// congela; <paramref name="attackerColor"/> es el color del destello "Color de quien golpea").
         /// </summary>
-        public void PlayTowards(Vector3 towardAttacker, bool heavy, Animator attackerAnimator = null, Color? attackerColor = null)
+        /// <param name="charged">Puñetazo cargado: el impacto sale naranja (charged*) y algo más grande.</param>
+        public void PlayTowards(Vector3 towardAttacker, bool heavy, Animator attackerAnimator = null, Color? attackerColor = null,
+                                bool charged = false)
         {
             if (bursts == null) return;
             StartImpactFrames(heavy, attackerAnimator, attackerColor ?? PlayerColor);
@@ -243,20 +259,22 @@ namespace Racoon.VFX
                 + Vector3.up * (Random.Range(-1f, 1f) * hitScatter.y * scatter);
             surface.FindEntry(target + towardAttacker * RayStart, -towardAttacker, RayStart * 2f, out Vector3 point, out Vector3 normal,
                 out CharacterSurface.Anchor anchor);
-            Play(point, normal, towardAttacker, heavy, anchor);
+            Play(point, normal, towardAttacker, heavy, anchor, charged);
         }
 
         /// <summary>
         /// Impacto en <paramref name="point"/> de la superficie, saliendo hacia <paramref name="normal"/>. Con
         /// <paramref name="anchor"/> se queda pegado a ese punto de la malla aunque se anime.
         /// </summary>
-        public void Play(Vector3 point, Vector3 normal, Vector3 towardAttacker, bool heavy, CharacterSurface.Anchor? anchor = null)
+        public void Play(Vector3 point, Vector3 normal, Vector3 towardAttacker, bool heavy, CharacterSurface.Anchor? anchor = null,
+                         bool charged = false)
         {
             if (bursts == null) return;
 
             Burst burst = bursts[next];
             next = (next + 1) % bursts.Length;
             Hide(burst);
+            Recolor(burst, charged);
 
             // Entre la normal de la malla y la dirección del golpe: así no sale torcido si toca una oreja o un brazo.
             Vector3 axis = (normal.normalized + towardAttacker.normalized).normalized;
@@ -265,7 +283,7 @@ namespace Racoon.VFX
             burst.style = style;
             burst.time = 0f;
             burst.heavy = heavy;
-            burst.scale = heavy ? size.y : size.x;
+            burst.scale = (heavy ? size.y : size.x) * (charged ? chargedSizeMultiplier : 1f);
             burst.point = point + axis * surfaceOffset;
             burst.roll = Random.Range(0f, 360f);
             burst.rotation = Quaternion.LookRotation(axis, Mathf.Abs(axis.y) > 0.95f ? Vector3.forward : Vector3.up) * Quaternion.Euler(0f, 0f, burst.roll);
@@ -314,6 +332,9 @@ namespace Racoon.VFX
 
         [VfxTest("Test golpe fuerte")]
         void TestHeavy() => PlayTowards(TowardCamera(), true);
+
+        [VfxTest("Test golpe cargado (naranja)")]
+        void TestCharged() => PlayTowards(TowardCamera(), true, null, null, true);
 
         [VfxTest("Variante A · Estallido")]
         void TestBurst() => TestStyle(Style.Burst);
@@ -602,6 +623,25 @@ namespace Racoon.VFX
             visible &= scale.x > 0.0005f;
             piece.Visible = visible;
             if (visible) piece.Transform.localScale = scale;
+        }
+
+        // Paleta normal o la naranja del golpe cargado (las piezas se comparten entre los dos).
+        void Recolor(Burst b, bool charged)
+        {
+            if (b.charged == charged) return;
+            b.charged = charged;
+            Color core = charged ? chargedCoreColor : coreColor, coreTip = charged ? chargedCoreTipColor : coreTipColor;
+            Color spike = charged ? chargedSpikeColor : spikeColor, tip = charged ? chargedSpikeTipColor : spikeTipColor;
+            Color accent = charged ? chargedAccentColor : accentColor, outline = charged ? chargedOutlineColor : outlineColor;
+
+            b.core?.Colors(core, coreTip, outline);
+            foreach (FlatPiece piece in new[] { b.needles, b.crown, b.lances, b.bolts }) piece?.Colors(spike, tip, outline);
+            foreach (FlatPiece piece in new[] { b.needlesAccent, b.crownAccent, b.boltsAccent }) piece?.Colors(accent, tip, outline);
+            if (b.shards != null)
+                for (int i = 0; i < b.shards.Length; i++) b.shards[i].Colors(i % 2 == 0 ? spike : accent, tip, outline);
+            if (b.stars != null)
+                foreach (FlatPiece star in b.stars)
+                    star.Colors(charged ? chargedStarColor : starColor, charged ? chargedStarTipColor : starTipColor, starOutline);
         }
 
         static void Hide(Burst burst)

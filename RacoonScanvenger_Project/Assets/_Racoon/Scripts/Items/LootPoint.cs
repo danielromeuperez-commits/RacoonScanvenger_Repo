@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using Racoon.Player;
 using Unity.Netcode;
 using UnityEngine;
@@ -11,34 +12,37 @@ public class LootPoint : MonoBehaviour, IRepeatableInteractable
     [FormerlySerializedAs("points")]
     [SerializeField, Min(0)] int pointsPerItem = 10;
 
-    [Tooltip("Peso que añade cada objeto recogido.")]
+    [Tooltip("Peso que aÃ±ade cada objeto recogido.")]
     [FormerlySerializedAs("weight")]
     [SerializeField, Min(0f)] float weightPerItem = 1f;
 
     [Header("Cantidad de objetos")]
-    [Tooltip("Número mínimo de objetos que puede contener esta estantería.")]
+    [Tooltip("NÃºmero mÃ­nimo de objetos que puede contener esta estanterÃ­a.")]
     [SerializeField, Min(1)] int minItems = 4;
 
-    [Tooltip("Número máximo de objetos que puede contener esta estantería.")]
+    [Tooltip("NÃºmero mÃ¡ximo de objetos que puede contener esta estanterÃ­a.")]
     [SerializeField, Min(1)] int maxItems = 7;
 
     [Header("Respawn")]
-    [Tooltip("Segundos hasta rellenarse. 0 = una vez vacía, no reaparece.")]
+    [Tooltip("Segundos hasta rellenarse. 0 = una vez vacÃ­a, no reaparece.")]
     [SerializeField, Min(0f)] float respawnTime = 0f;
 
-    [Header("Configuración del Evento X2 y Tiempos")]
-    [Tooltip("Número de recolecciones permitidas antes de que expire el evento x2.")]
+    [Header("ConfiguraciÃ³n del Evento X2 y Tiempos")]
+    [Tooltip("NÃºmero de recolecciones permitidas antes de que expire el evento x2.")]
     [SerializeField, Min(1)] int maxDoublePointsCollections = 10;
 
-    [Tooltip("Tiempo de espera entre recolecciones cuando está en estado normal (segundos).")]
+    [Tooltip("Tiempo de espera entre recolecciones de un mismo jugador en estado normal (segundos). " +
+             "Cada jugador lleva su propia espera: uno saqueando no bloquea a los demÃ¡s.")]
     [SerializeField, Min(0f)] float normalCooldown = 0f;
 
-    [Tooltip("Tiempo de espera entre recolecciones cuando el evento x2 está activo (segundos).")]
+    [Tooltip("Tiempo de espera entre recolecciones de un mismo jugador cuando el evento x2 estÃ¡ activo (segundos).")]
     [SerializeField, Min(0f)] float doublePointsCooldown = 2f;
 
     bool isDoublePoints = false;
     int currentDoublePointsCollections = 0;
-    float nextInteractTime = 0f;
+
+    // Siguiente momento en que puede saquear cada jugador (por NetworkObjectId). Solo servidor.
+    readonly Dictionary<ulong, float> nextInteractTimeByPlayer = new();
 
     int itemsRemaining;
     bool available;
@@ -87,8 +91,9 @@ public class LootPoint : MonoBehaviour, IRepeatableInteractable
             player == null)
             return false;
 
-        // Comprobar si está en tiempo de espera (cooldown)
-        if (Time.time < nextInteractTime)
+        // Comprobar si este jugador estÃ¡ en tiempo de espera (cooldown)
+        if (nextInteractTimeByPlayer.TryGetValue(player.NetworkObjectId, out float nextTime) &&
+            Time.time < nextTime)
             return false;
 
         return player.TryGetComponent(out PlayerLoot _);
@@ -103,23 +108,27 @@ public class LootPoint : MonoBehaviour, IRepeatableInteractable
 
         PlayerLoot playerLoot = player.GetComponent<PlayerLoot>();
 
-        // Calcular puntos según si el evento x2 está activo
-        int finalPoints = isDoublePoints ? pointsPerItem * 2 : pointsPerItem;
+        // Calcular puntos segÃºn si el evento x2 estÃ¡ activo
+        bool doubled = isDoublePoints;
+        int finalPoints = doubled ? pointsPerItem * 2 : pointsPerItem;
 
         if (!playerLoot.ServerAddLoot(finalPoints, weightPerItem))
             return;
 
-        // Aplicar el tiempo de espera (cooldown) correspondiente
-        float activeCooldown = isDoublePoints ? doublePointsCooldown : normalCooldown;
-        nextInteractTime = Time.time + activeCooldown;
+        // Sonido de saquear, en todos los clientes.
+        playerLoot.ServerNotifyLootGrabbed(doubled, transform.position);
 
-        // Si el x2 está activo, sumamos una recolección al contador del evento
-        if (isDoublePoints)
+        // Aplicar el tiempo de espera (cooldown) correspondiente a este jugador
+        float activeCooldown = doubled ? doublePointsCooldown : normalCooldown;
+        nextInteractTimeByPlayer[player.NetworkObjectId] = Time.time + activeCooldown;
+
+        // Si el x2 estÃ¡ activo, sumamos una recolecciÃ³n al contador del evento
+        if (doubled)
         {
             currentDoublePointsCollections++;
             if (currentDoublePointsCollections >= maxDoublePointsCollections)
             {
-                SetDoublePoints(false); // Desactiva el x2 al alcanzar el límite de recolecciones
+                SetDoublePoints(false); // Desactiva el x2 al alcanzar el lÃ­mite de recolecciones
             }
         }
 

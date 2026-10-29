@@ -14,7 +14,6 @@ namespace Racoon.VFX
     {
         [Tooltip("M_VFX_ToonFlat.")]
         [SerializeField] Material flatMaterial;
-
         [Header("Colores")]
         [SerializeField] Color starColor = new(1f, 0.88f, 0.28f);
         [Tooltip("Color hacia las puntas.")]

@@ -64,19 +64,11 @@ public class Floater : NetworkBehaviour
     {
         floatActive = true;
 
-        Debug.Log(
-            $"[{name}] 🛟 FLOTADOR ACTIVADO"
-        );
-
         yield return new WaitForSeconds(duration);
 
         floatActive = false;
 
         floatCoroutine = null;
-
-        Debug.Log(
-            $"[{name}] 🛟 FLOTADOR TERMINADO"
-        );
     }
 
     // =========================================================
@@ -153,10 +145,6 @@ public class Floater : NetworkBehaviour
 
         ApplyWallBounceClientRpc(
             bounceVelocity
-        );
-
-        Debug.Log(
-            $"[{name}] 🛟 REBOTE CONTRA PARED"
         );
     }
 
@@ -238,10 +226,6 @@ public class Floater : NetworkBehaviour
             myVelocity,
             otherVelocity,
             otherNetworkObject.NetworkObjectId
-        );
-
-        Debug.Log(
-            $"[{name}] 🛟💥 CHOQUE CON PLAYER → REBOTAN LOS DOS"
         );
     }
 

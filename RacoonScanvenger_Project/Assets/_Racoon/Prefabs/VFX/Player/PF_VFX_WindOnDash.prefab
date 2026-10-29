@@ -96,16 +96,16 @@ TrailRenderer:
         outSlope: 0
         tangentMode: 0
         weightedMode: 0
-        inWeight: 0.33333334
-        outWeight: 0.33333334
+        inWeight: 0
+        outWeight: 0
       - serializedVersion: 3
-        time: 0.14999999
+        time: 0.15
         value: 1
-        inSlope: -0.030006712
-        outSlope: -0.030006712
+        inSlope: 0
+        outSlope: 0
         tangentMode: 0
         weightedMode: 0
-        inWeight: 1
+        inWeight: 0
         outWeight: 0
       - serializedVersion: 3
         time: 1
@@ -256,16 +256,16 @@ TrailRenderer:
         outSlope: 0
         tangentMode: 0
         weightedMode: 0
-        inWeight: 0.33333334
-        outWeight: 0.33333334
+        inWeight: 0
+        outWeight: 0
       - serializedVersion: 3
-        time: 0.14999999
+        time: 0.15
         value: 1
-        inSlope: -0.030006712
-        outSlope: -0.030006712
+        inSlope: 0
+        outSlope: 0
         tangentMode: 0
         weightedMode: 0
-        inWeight: 1
+        inWeight: 0
         outWeight: 0
       - serializedVersion: 3
         time: 1
@@ -416,16 +416,16 @@ TrailRenderer:
         outSlope: 0
         tangentMode: 0
         weightedMode: 0
-        inWeight: 0.33333334
-        outWeight: 0.33333334
+        inWeight: 0
+        outWeight: 0
       - serializedVersion: 3
-        time: 0.14999999
+        time: 0.15
         value: 1
-        inSlope: -0.030006712
-        outSlope: -0.030006712
+        inSlope: 0
+        outSlope: 0
         tangentMode: 0
         weightedMode: 0
-        inWeight: 1
+        inWeight: 0
         outWeight: 0
       - serializedVersion: 3
         time: 1
@@ -576,16 +576,16 @@ TrailRenderer:
         outSlope: 0
         tangentMode: 0
         weightedMode: 0
-        inWeight: 0.33333334
-        outWeight: 0.33333334
+        inWeight: 0
+        outWeight: 0
       - serializedVersion: 3
-        time: 0.14999999
+        time: 0.15
         value: 1
-        inSlope: -0.030006712
-        outSlope: -0.030006712
+        inSlope: 0
+        outSlope: 0
         tangentMode: 0
         weightedMode: 0
-        inWeight: 1
+        inWeight: 0
         outWeight: 0
       - serializedVersion: 3
         time: 1
@@ -736,16 +736,16 @@ TrailRenderer:
         outSlope: 0
         tangentMode: 0
         weightedMode: 0
-        inWeight: 0.33333334
-        outWeight: 0.33333334
+        inWeight: 0
+        outWeight: 0
       - serializedVersion: 3
-        time: 0.14999999
+        time: 0.15
         value: 1
-        inSlope: -0.030006712
-        outSlope: -0.030006712
+        inSlope: 0
+        outSlope: 0
         tangentMode: 0
         weightedMode: 0
-        inWeight: 1
+        inWeight: 0
         outWeight: 0
       - serializedVersion: 3
         time: 1
@@ -870,6 +870,32 @@ MonoBehaviour:
     opacity: 1
     wobble: 0.004
   blendSpeed: 12
+  fadeOutDuration: 0.6
+  fadeOutCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  fadeOutOpacityStart: 0.5
   color:
     serializedVersion: 2
     key0: {r: 1, g: 1, b: 1, a: 0.8}
@@ -934,12 +960,17 @@ MonoBehaviour:
     m_PostInfinity: 2
     m_RotationOrder: 4
   tint: {r: 1, g: 1, b: 1, a: 1}
+  bodyRenderer: {fileID: 0}
+  surfaceOffset: 0.02
+  maxForwardFacing: 0.2
+  heightRange: {x: 0.25, y: 1}
+  minSeparation: 0.25
   centerHeight: 0.6
   ellipseRadius: {x: 0.55, y: 0.45}
   radiusRange: {x: 0.55, y: 1}
   depthRange: {x: -0.35, y: 0.15}
-  minSeparation: 0.25
-  wobbleFrequency: 14
+  fullLengthSpeed: 4
+  wobbleWavelength: 4
   testRunSpeed: 6.5
   testRunDuration: 1.2
   testDashDistance: 3
@@ -1040,16 +1071,16 @@ TrailRenderer:
         outSlope: 0
         tangentMode: 0
         weightedMode: 0
-        inWeight: 0.33333334
-        outWeight: 0.33333334
+        inWeight: 0
+        outWeight: 0
       - serializedVersion: 3
-        time: 0.14999999
+        time: 0.15
         value: 1
-        inSlope: -0.030006712
-        outSlope: -0.030006712
+        inSlope: 0
+        outSlope: 0
         tangentMode: 0
         weightedMode: 0
-        inWeight: 1
+        inWeight: 0
         outWeight: 0
       - serializedVersion: 3
         time: 1

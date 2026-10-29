@@ -1,22 +1,28 @@
 using Racoon.Gameplay;
 using System.Collections.Generic;
+using System.Linq;
 using Unity.Netcode;
 using UnityEngine;
 
 namespace Racoon.Network
 {
     /// <summary>
-    /// Lobby de selecciÛn de personaje.
+    /// Lobby de selecci√≥n de personaje.
     ///
     /// Cuando hay 2 jugadores conectados, cada cliente
     /// elige personaje y pulsa READY.
     ///
-    /// Cuando todos est·n READY, el servidor crea
+    /// Cuando todos est√°n READY, el servidor crea
     /// los PlayerObjects y empieza la partida.
+    ///
+    /// Si la escena no tiene este componente, PlayerSpawnManager
+    /// crea a cada jugador al conectarse (escenas de prueba con NetworkTestMenu).
     /// </summary>
-  
     public class CharacterLobbyManager : NetworkBehaviour
     {
+        /// <summary>El lobby de la escena cargada (null si la escena no tiene).</summary>
+        public static CharacterLobbyManager Current { get; private set; }
+
         [SerializeField] PlayerSpawnManager spawnManager;
 
         readonly NetworkVariable<int> connectedCount = new(0);
@@ -33,25 +39,43 @@ namespace Racoon.Network
         public int ConnectedCount => connectedCount.Value;
         public int ReadyCount => readyCount.Value;
         public bool GameStarted => gameStarted.Value;
-        public bool CharacterSelectionActive =>
-    characterSelectionActive.Value;
+        public bool CharacterSelectionActive => characterSelectionActive.Value;
         public bool IsLocalReady => localReady;
+
+        /// <summary>Hay alg√∫n otro jugador READY (aparte de m√≠).</summary>
+        public bool IsRivalReady => readyCount.Value - (localReady ? 1 : 0) > 0;
 
         public int MaxPlayers =>
             spawnManager != null
                 ? spawnManager.MaxPlayers
                 : 2;
 
-        public int LocalSelectedCharacter =>
-            localSelectedCharacter;
+        public int LocalSelectedCharacter => localSelectedCharacter;
+
+        public PlayerCharacterRoster Roster => spawnManager != null ? spawnManager.Roster : null;
+
+        public PlayerCharacterDefinition SelectedCharacter => Roster != null ? Roster.Get(localSelectedCharacter) : null;
+
+        public string SelectedCharacterName =>
+            SelectedCharacter != null ? SelectedCharacter.displayName : "NO CHARACTER";
+
+        public Sprite SelectedCharacterPortrait =>
+            SelectedCharacter != null ? SelectedCharacter.portrait : null;
 
         void Awake()
         {
+            Current = this;
+
             if (spawnManager == null)
-            {
-                spawnManager =
-                    FindFirstObjectByType<PlayerSpawnManager>();
-            }
+                spawnManager = FindFirstObjectByType<PlayerSpawnManager>();
+        }
+
+        public override void OnDestroy()
+        {
+            if (Current == this)
+                Current = null;
+
+            base.OnDestroy();
         }
 
         public override void OnNetworkSpawn()
@@ -62,25 +86,26 @@ namespace Racoon.Network
             if (!IsServer)
                 return;
 
-            NetworkManager.OnClientConnectedCallback +=
-                OnClientConnected;
+            selections.Clear();
+            readyClients.Clear();
+            readyCount.Value = 0;
+            gameStarted.Value = false;
 
-            NetworkManager.OnClientDisconnectCallback +=
-                OnClientDisconnected;
+            NetworkManager.OnClientConnectedCallback += OnClientConnected;
+            NetworkManager.OnClientDisconnectCallback += OnClientDisconnected;
 
-            UpdateConnectedCount();
+            UpdateConnectedCount(null);
         }
 
         public override void OnNetworkDespawn()
         {
+            localReady = false;
+
             if (!IsServer)
                 return;
 
-            NetworkManager.OnClientConnectedCallback -=
-                OnClientConnected;
-
-            NetworkManager.OnClientDisconnectCallback -=
-                OnClientDisconnected;
+            NetworkManager.OnClientConnectedCallback -= OnClientConnected;
+            NetworkManager.OnClientDisconnectCallback -= OnClientDisconnected;
         }
 
         // ============================================================
@@ -89,7 +114,7 @@ namespace Racoon.Network
 
         void OnClientConnected(ulong clientId)
         {
-            UpdateConnectedCount();
+            UpdateConnectedCount(null);
         }
 
         void OnClientDisconnected(ulong clientId)
@@ -97,98 +122,36 @@ namespace Racoon.Network
             selections.Remove(clientId);
             readyClients.Remove(clientId);
 
-            readyCount.Value =
-                readyClients.Count;
+            readyCount.Value = readyClients.Count;
 
-            UpdateConnectedCount();
+            // Durante este callback el cliente que se va puede seguir en la lista: no lo contamos.
+            UpdateConnectedCount(clientId);
         }
 
-        void UpdateConnectedCount()
+        void UpdateConnectedCount(ulong? leaving)
         {
-            connectedCount.Value =
-                NetworkManager.ConnectedClientsIds.Count;
+            connectedCount.Value = NetworkManager.ConnectedClientsIds.Count(id => id != leaving);
 
-            // Cuando est·n todos los jugadores conectados,
-            // el servidor activa la selecciÛn para TODOS.
+            // Cuando est√°n todos los jugadores conectados,
+            // el servidor activa la selecci√≥n para TODOS.
             if (!gameStarted.Value)
-            {
-                characterSelectionActive.Value =
-                    connectedCount.Value >= MaxPlayers;
-            }
+                characterSelectionActive.Value = connectedCount.Value >= MaxPlayers;
         }
 
         // ============================================================
-        // SELECCI”N LOCAL
+        // SELECCI√ìN LOCAL
         // ============================================================
 
-        public void PreviousCharacter()
+        public void PreviousCharacter() => StepCharacter(-1);
+
+        public void NextCharacter() => StepCharacter(1);
+
+        void StepCharacter(int step)
         {
-            if (localReady || spawnManager == null)
+            if (localReady || Roster == null || Roster.Count == 0)
                 return;
 
-            PlayerCharacterRoster roster =
-                spawnManager.Roster;
-
-            if (roster == null || roster.Count == 0)
-                return;
-
-            localSelectedCharacter =
-                (localSelectedCharacter - 1 + roster.Count)
-                % roster.Count;
-        }
-
-        public void NextCharacter()
-        {
-            if (localReady || spawnManager == null)
-                return;
-
-            PlayerCharacterRoster roster =
-                spawnManager.Roster;
-
-            if (roster == null || roster.Count == 0)
-                return;
-
-            localSelectedCharacter =
-                (localSelectedCharacter + 1)
-                % roster.Count;
-        }
-
-        public string SelectedCharacterName
-        {
-            get
-            {
-                if (spawnManager == null ||
-                    spawnManager.Roster == null)
-                    return "NO CHARACTER";
-
-                PlayerCharacterDefinition character =
-                    spawnManager.Roster.Get(
-                        localSelectedCharacter
-                    );
-
-                return character != null
-                    ? character.displayName
-                    : "NO CHARACTER";
-            }
-        }
-
-        public Sprite SelectedCharacterPortrait
-        {
-            get
-            {
-                if (spawnManager == null ||
-                    spawnManager.Roster == null)
-                    return null;
-
-                PlayerCharacterDefinition character =
-                    spawnManager.Roster.Get(
-                        localSelectedCharacter
-                    );
-
-                return character != null
-                    ? character.portrait
-                    : null;
-            }
+            localSelectedCharacter = (localSelectedCharacter + step + Roster.Count) % Roster.Count;
         }
 
         // ============================================================
@@ -202,10 +165,7 @@ namespace Racoon.Network
 
             if (!IsSpawned)
             {
-                Debug.LogWarning(
-                    "CharacterLobbyManager todavÌa no est· conectado."
-                );
-
+                Debug.LogWarning("CharacterLobbyManager todav√≠a no est√° conectado.");
                 return;
             }
 
@@ -214,16 +174,10 @@ namespace Racoon.Network
             ReadyRpc(localSelectedCharacter);
         }
 
-        [Rpc(
-            SendTo.Server,
-            InvokePermission = RpcInvokePermission.Everyone
-        )]
-        void ReadyRpc(
-            int characterIndex,
-            RpcParams rpcParams = default)
+        [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
+        void ReadyRpc(int characterIndex, RpcParams rpcParams = default)
         {
-            ulong clientId =
-                rpcParams.Receive.SenderClientId;
+            ulong clientId = rpcParams.Receive.SenderClientId;
 
             if (gameStarted.Value)
                 return;
@@ -231,38 +185,28 @@ namespace Racoon.Network
             if (readyClients.Contains(clientId))
                 return;
 
-            PlayerCharacterRoster roster =
-                spawnManager.Roster;
-
-            if (roster == null ||
-                roster.Get(characterIndex) == null)
+            if (Roster == null || Roster.Get(characterIndex) == null)
             {
-                Debug.LogWarning(
-                    $"Cliente {clientId} eligiÛ " +
-                    $"un personaje no v·lido."
-                );
-
+                Debug.LogWarning($"Cliente {clientId} eligi√≥ un personaje no v√°lido.");
+                ReadyRejectedRpc(RpcTarget.Single(clientId, RpcTargetUse.Temp));
                 return;
             }
 
-            selections[clientId] =
-                characterIndex;
-
+            selections[clientId] = characterIndex;
             readyClients.Add(clientId);
+            readyCount.Value = readyClients.Count;
 
-            readyCount.Value =
-                readyClients.Count;
+            Debug.Log($"Jugador {clientId} READY. {readyCount.Value}/{MaxPlayers}");
 
-            Debug.Log(
-                $"Jugador {clientId} READY. " +
-                $"{readyCount.Value}/{MaxPlayers}"
-            );
-
-            if (connectedCount.Value >= MaxPlayers &&
-                readyCount.Value >= MaxPlayers)
-            {
+            if (connectedCount.Value >= MaxPlayers && readyCount.Value >= MaxPlayers)
                 StartGameServer();
-            }
+        }
+
+        // Si el servidor no acepta la elecci√≥n, el jugador puede volver a elegir.
+        [Rpc(SendTo.SpecifiedInParams, InvokePermission = RpcInvokePermission.Server)]
+        void ReadyRejectedRpc(RpcParams rpcParams)
+        {
+            localReady = false;
         }
 
         // ============================================================
@@ -274,45 +218,24 @@ namespace Racoon.Network
             if (!IsServer || gameStarted.Value)
                 return;
 
-            foreach (
-                ulong clientId
-                in NetworkManager.ConnectedClientsIds)
+            foreach (ulong clientId in NetworkManager.ConnectedClientsIds)
             {
-                if (!selections.TryGetValue(
-                        clientId,
-                        out int characterIndex))
+                if (!selections.TryGetValue(clientId, out int characterIndex))
                 {
-                    Debug.LogError(
-                        $"No hay selecciÛn para " +
-                        $"el cliente {clientId}."
-                    );
-
+                    Debug.LogError($"No hay selecci√≥n para el cliente {clientId}.");
                     return;
                 }
 
-                bool spawned =
-                    spawnManager.ServerSpawnPlayer(
-                        clientId,
-                        characterIndex
-                    );
-
-                if (!spawned)
+                if (!spawnManager.ServerSpawnPlayer(clientId, characterIndex))
                 {
-                    Debug.LogError(
-                        $"No se pudo crear al jugador " +
-                        $"{clientId}."
-                    );
-
+                    Debug.LogError($"No se pudo crear al jugador {clientId}.");
                     return;
                 }
             }
 
             gameStarted.Value = true;
 
-            Debug.Log(
-                "Todos los jugadores est·n READY. " +
-                "Comienza la partida."
-            );
+            Debug.Log("Todos los jugadores est√°n READY. Comienza la partida.");
         }
     }
 }

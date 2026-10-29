@@ -45,8 +45,8 @@ namespace Racoon.Network
         }
 
         /// <summary>
-        /// Se mantiene por compatibilidad con el NetworkTestMenu antiguo.
-        /// La selección definitiva ahora se hace en CharacterLobbyManager.
+        /// Lo usa el NetworkTestMenu en escenas sin lobby (spawn directo al conectar).
+        /// Si la escena tiene CharacterLobbyManager, la selección se hace allí y esto se ignora.
         /// </summary>
         public void SetLocalSelection(int characterIndex)
         {
@@ -71,11 +71,47 @@ namespace Racoon.Network
                 return;
             }
 
+            // Escenas de prueba sin lobby (NetworkTestMenu): el personaje elegido viene en
+            // ConnectionData y se crea ya en la aprobación, como antes del lobby.
+            if (CharacterLobbyManager.Current == null)
+            {
+                ApproveWithDirectSpawn(request, response);
+                return;
+            }
+
             // Permitimos entrar al cliente...
             response.Approved = true;
 
             // ...pero NO creamos todavía su personaje.
             response.CreatePlayerObject = false;
+        }
+
+        void ApproveWithDirectSpawn(
+            NetworkManager.ConnectionApprovalRequest request,
+            NetworkManager.ConnectionApprovalResponse response)
+        {
+            ConnectionPayload payload = ConnectionPayload.Decode(request.Payload);
+            PlayerCharacterDefinition character =
+                roster != null ? roster.Get(payload.characterIndex) ?? roster.Get(0) : null;
+
+            if (character == null || character.prefab == null)
+            {
+                Reject(response, "Personaje no válido.");
+                return;
+            }
+
+            Pose? spawn = PlayerSpawnPoints.Reserve(request.ClientNetworkId);
+            if (spawn == null)
+            {
+                Reject(response, "No quedan spawn points libres.");
+                return;
+            }
+
+            response.Approved = true;
+            response.CreatePlayerObject = true;
+            response.PlayerPrefabHash = character.prefab.PrefabIdHash;
+            response.Position = spawn.Value.position;
+            response.Rotation = spawn.Value.rotation;
         }
 
         static void Reject(
