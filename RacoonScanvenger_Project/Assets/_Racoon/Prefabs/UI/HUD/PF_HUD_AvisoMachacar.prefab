@@ -192,9 +192,7 @@ MonoBehaviour:
   burstSpin: 25
   burstKick: 0.22
   labelShake: 8
-  screenOffset: {x: 0, y: 210}
-  fallbackHeadHeight: 1.2
-  screenMargin: 170
+  screenPosition: {x: 0.5, y: 0.24}
 --- !u!1 &1728775385141576283
 GameObject:
   m_ObjectHideFlags: 0

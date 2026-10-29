@@ -248,31 +248,31 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 3807860973487371980, guid: be6cbe3a71d631543a3b4d459c476951, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0.98976994
+      value: 0.98976976
       objectReference: {fileID: 0}
     - target: {fileID: 3807860973487371980, guid: be6cbe3a71d631543a3b4d459c476951, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 2.8330765
+      value: 3.3322914
       objectReference: {fileID: 0}
     - target: {fileID: 3807860973487371980, guid: be6cbe3a71d631543a3b4d459c476951, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -1.1646833
+      value: -1.3938823
       objectReference: {fileID: 0}
     - target: {fileID: 3807860973487371980, guid: be6cbe3a71d631543a3b4d459c476951, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0.9805807
+      value: 0.973249
       objectReference: {fileID: 0}
     - target: {fileID: 3807860973487371980, guid: be6cbe3a71d631543a3b4d459c476951, type: 3}
       propertyPath: m_LocalRotation.x
-      value: 0.19611613
+      value: 0.22975296
       objectReference: {fileID: 0}
     - target: {fileID: 3807860973487371980, guid: be6cbe3a71d631543a3b4d459c476951, type: 3}
       propertyPath: m_LocalRotation.y
-      value: -1.7418611e-15
+      value: 0.000000014502543
       objectReference: {fileID: 0}
     - target: {fileID: 3807860973487371980, guid: be6cbe3a71d631543a3b4d459c476951, type: 3}
       propertyPath: m_LocalRotation.z
-      value: 3.4837224e-16
+      value: -0.0000000034235863
       objectReference: {fileID: 0}
     - target: {fileID: 3807860973487371980, guid: be6cbe3a71d631543a3b4d459c476951, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
@@ -298,9 +298,17 @@ PrefabInstance:
       propertyPath: near clip plane
       value: 0.3
       objectReference: {fileID: 0}
+    - target: {fileID: 4761069207807530157, guid: be6cbe3a71d631543a3b4d459c476951, type: 3}
+      propertyPath: m_CullingMask.m_Bits
+      value: 4294967295
+      objectReference: {fileID: 0}
     - target: {fileID: 5200965287805881077, guid: be6cbe3a71d631543a3b4d459c476951, type: 3}
       propertyPath: m_Name
       value: PF_MainCamera
+      objectReference: {fileID: 0}
+    - target: {fileID: 6864983577405321330, guid: be6cbe3a71d631543a3b4d459c476951, type: 3}
+      propertyPath: m_Dithering
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: 7968826034914379386, guid: be6cbe3a71d631543a3b4d459c476951, type: 3}

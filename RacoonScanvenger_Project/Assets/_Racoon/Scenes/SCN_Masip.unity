@@ -14867,6 +14867,10 @@ PrefabInstance:
       propertyPath: FollowOffset.y
       value: 6
       objectReference: {fileID: 0}
+    - target: {fileID: 245516946498981082, guid: 43fcd1bc97b2a0a41af2d6b2d77e2e62, type: 3}
+      propertyPath: Composition.ScreenPosition.y
+      value: 0.2
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []

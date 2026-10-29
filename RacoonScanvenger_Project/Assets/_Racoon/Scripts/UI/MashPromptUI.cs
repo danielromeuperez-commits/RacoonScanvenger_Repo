@@ -14,7 +14,8 @@ namespace Racoon.UI
     /// Montaje: en la raíz de PF_HUD_AvisoMachacar (un Canvas Screen Space - Camera), que va anidado dentro de cada
     /// prefab de jugador (lo monta Racoon > UI > Montar aviso de machacar). Edita PF_HUD_AvisoMachacar y cambia en los
     /// tres: las piezas se pueden mover, escalar y retocar; la animación es relativa a cómo estén colocadas.
-    /// Solo lo ve el jugador local, encima de su cabeza (en los demás clientes no se enciende).
+    /// Solo lo ve el jugador local, fijo en la parte de abajo de la pantalla (arriba está el HUD de la partida y
+    /// encima del personaje lo tapa); en los demás clientes no se enciende.
     /// Datos: PlayerController.ItemRecoveryStarted / ItemRecoveryMashed / ItemRecoveryFinished e ItemRecoveryNormalized.
     /// </summary>
     // Sin [RequireComponent(typeof(Canvas))]: al cargar un MashPromptUI que no estaba en un Canvas, Unity convertía esa
@@ -28,7 +29,7 @@ namespace Racoon.UI
         [SerializeField] string action = "Dash";
 
         [Header("Piezas")]
-        [Tooltip("Todo el aviso: se mueve encima de la cabeza y se enciende / apaga.")]
+        [Tooltip("Todo el aviso: se coloca en Screen Position y se enciende / apaga.")]
         public RectTransform content;
         public CanvasGroup group;
         [Tooltip("Su alto manda; el ancho se ajusta al glifo (las teclas anchas, como ESPACIO, se alargan).")]
@@ -64,23 +65,12 @@ namespace Racoon.UI
         [SerializeField] float labelShake = 8f;
 
         [Header("Posición")]
-        [Tooltip("Desplazamiento en pantalla desde la cabeza (px a 2560×1440).")]
-        [SerializeField] Vector2 screenOffset = new(0f, 210f);
-        [Tooltip("Altura sobre el jugador si no encuentra la cabeza (las estrellas de mareo).")]
-        [SerializeField] float fallbackHeadHeight = 1.2f;
-        [Tooltip("Margen con los bordes de la pantalla (px).")]
-        [SerializeField] float screenMargin = 170f;
-        [Tooltip("Zona de arriba en el centro que no se pisa (el panel del tiempo), en px a 2560×1440: ancho y alto.")]
-        [SerializeField] Vector2 keepOutTop = new(560f, 320f);
-        [Tooltip("Cuánto ocupa el aviso desde su centro (px): medio ancho y lo que sube el rótulo.")]
-        [SerializeField] Vector2 promptExtents = new(190f, 280f);
-        [Tooltip("Si encima de la cabeza pisaría el tiempo, se pone debajo: desplazamiento desde la cabeza (px).")]
-        [SerializeField] Vector2 belowOffset = new(0f, -230f);
+        [Tooltip("Dónde va en pantalla (0-1, como el viewport): centrado y en la parte de abajo, lejos del HUD de arriba.")]
+        [SerializeField] Vector2 screenPosition = new(0.5f, 0.24f);
 
         Canvas canvas;
         RectTransform canvasRect, glyphRect, burstRect, labelRect;
         PlayerInputHandler input;
-        Transform head;
 
         // Cómo está colocado en el prefab: la animación va encima.
         Vector3 contentScale, glyphScale, burstScale, labelScale;
@@ -90,7 +80,7 @@ namespace Racoon.UI
         Color burstColor;
 
         float showTime = -1f, hideTime = -1f, lastMash = -10f, punch, shownFill;
-        bool visible, placedBelow;
+        bool visible;
 
         void Awake()
         {
@@ -163,17 +153,11 @@ namespace Racoon.UI
         void OnStarted()
         {
             if (content == null) return;
-            if (head == null)
-            {
-                DizzyStarsVFX stars = controller.GetComponentInChildren<DizzyStarsVFX>(true);
-                head = stars != null ? stars.transform : null;
-            }
             if (labelText != null)
             {
-                // Las fichas «del color del jugador» usan el suyo (el mismo que el HUD).
-                PlayerVFX vfx = controller.GetComponentInChildren<PlayerVFX>();
+                // Las fichas «del color del jugador» usan el de su P1 / P2 en el HUD de la partida.
                 labelText.player = 0;
-                if (vfx != null) labelText.colorJugador = vfx.WindTint;
+                if (PlayerHudColor.TryGet(controller, out Color color)) labelText.colorJugador = color;
             }
 
             // Delante del HUD (el tiempo, los retratos...), lo hayan montado con el orden que sea.
@@ -236,7 +220,7 @@ namespace Racoon.UI
             if (group != null) group.alpha = 1f - FlatFx.InCubic(leave);
             content.localScale = contentScale * (appear * (1f + 0.25f * FlatFx.OutCubic(leave)));
 
-            FollowHead();
+            Place();
 
             punch = Mathf.MoveTowards(punch, 0f, dt / 0.18f);
             float kick = FlatFx.OutCubic(punch);
@@ -281,31 +265,10 @@ namespace Racoon.UI
             }
         }
 
-        void FollowHead()
+        void Place()
         {
-            Camera cam = canvas.worldCamera != null ? canvas.worldCamera : Camera.main;
-            if (cam == null) return;
-            if (canvas.worldCamera == null) canvas.worldCamera = cam;
-            Vector3 world = head != null ? head.position : controller.transform.position + Vector3.up * fallbackHeadHeight;
-            Vector3 screen = cam.WorldToScreenPoint(world);
-            if (screen.z < 0f) return;
-            if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(canvasRect, screen, cam, out Vector2 local)) return;
-            Vector2 half = canvasRect.rect.size * 0.5f;
-            Vector2 target = Clamp(local + screenOffset, half);
-            // Encima de la cabeza pisaría el panel del tiempo: debajo de la cabeza. Para volver arriba pide algo de
-            // holgura, así no salta de un lado a otro en el borde.
-            placedBelow = OverlapsKeepOut(target, half, placedBelow ? 60f : 0f);
-            if (placedBelow) target = Clamp(local + belowOffset, half);
-            content.anchoredPosition = target;
+            // Relativo al tamaño del canvas: el mismo sitio con cualquier resolución.
+            content.anchoredPosition = Vector2.Scale(screenPosition - new Vector2(0.5f, 0.5f), canvasRect.rect.size);
         }
-
-        // Sin salirse de la pantalla.
-        Vector2 Clamp(Vector2 target, Vector2 half) => new(
-            Mathf.Clamp(target.x, -half.x + screenMargin, half.x - screenMargin),
-            Mathf.Clamp(target.y, -half.y + screenMargin, half.y - screenMargin - 120f));
-
-        bool OverlapsKeepOut(Vector2 position, Vector2 half, float slack) =>
-            Mathf.Abs(position.x) < keepOutTop.x * 0.5f + promptExtents.x + slack &&
-            position.y + promptExtents.y > half.y - keepOutTop.y - slack;
     }
 }
