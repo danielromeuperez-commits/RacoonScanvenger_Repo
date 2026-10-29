@@ -107,6 +107,8 @@ public class ConnectionMenu : MonoBehaviour
     [SerializeField] GameObject localPanel;
     [SerializeField] GameObject onlinePanel;
 
+    [Header("Gameplay UI")]
+    [SerializeField] GameObject gameplayUI;
     // ============================================================
     // MENSAJES
     // ============================================================
@@ -151,6 +153,9 @@ public class ConnectionMenu : MonoBehaviour
                 this
             );
         }
+
+        if (gameplayUI != null)
+            gameplayUI.SetActive(false);
 
         SetMenuVisible(true);
 
@@ -917,7 +922,12 @@ public class ConnectionMenu : MonoBehaviour
 
         shownPanel = null;
 
+        // Ocultamos todos los menús de conexión.
         SetMenuVisible(false);
+
+        // Mostramos la UI del gameplay.
+        if (gameplayUI != null)
+            gameplayUI.SetActive(true);
 
         Debug.Log(
             "Todos los jugadores están READY. Comienza la partida."
