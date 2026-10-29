@@ -14,6 +14,7 @@ using UnityEngine.UI;
 ///  - Conectando o esperando rival: panel de espera (IP o código, jugadores, cancelar).
 ///  - Todos conectados (CharacterLobbyManager.CharacterSelectionActive): selección de personaje.
 ///  - Partida empezada: se oculta. Si la red se cae, vuelve a aparecer con el motivo.
+///
 /// Así da igual quién arranque la red (este menú o el NetworkTestMenu con F1) y una desconexión
 /// nunca deja el menú colgado.
 ///
@@ -23,7 +24,12 @@ using UnityEngine.UI;
 /// </summary>
 public class ConnectionMenu : MonoBehaviour
 {
-    enum Page { Mode, Local, Online }
+    enum Page
+    {
+        Mode,
+        Local,
+        Online
+    }
 
     [Header("Menú completo")]
     [SerializeField] GameObject connectionMenu;
@@ -32,30 +38,58 @@ public class ConnectionMenu : MonoBehaviour
     [SerializeField] NetworkTestMenu networkTestMenu;
     [SerializeField] CharacterLobbyManager characterLobbyManager;
 
+    // ============================================================
+    // LOCAL
+    // ============================================================
+
     [Header("Local")]
     [SerializeField] TMP_InputField ipInputField;
     [SerializeField] GameObject waitingPlayerText;
     [SerializeField] TMP_Text hostIPAddressText;
     [SerializeField] TMP_Text playerCountText;
 
+    // ============================================================
+    // ONLINE
+    // ============================================================
+
     [Header("Online (opcional)")]
     [SerializeField] TMP_InputField joinCodeInputField;
 
-    [Header("Espera (opcional: sin él, la espera se ve dentro del panel local)")]
+    [Tooltip("Texto WAITING FOR PLAYER... del OnlinePanel.")]
+    [SerializeField] GameObject onlineWaitingPlayerText;
+
+    [Tooltip("Texto donde se muestra el código generado por Relay.")]
+    [SerializeField] TMP_Text onlineSessionCodeText;
+
+    [Tooltip("Texto PLAYERS: 1/2 del OnlinePanel.")]
+    [SerializeField] TMP_Text onlinePlayerCountText;
+
+    // ============================================================
+    // ESPERA
+    // ============================================================
+
+    [Header("Espera (opcional: sin él, la espera se ve dentro del panel local/online)")]
     [SerializeField] GameObject waitingPanel;
     [SerializeField] TMP_Text waitingTitleText;
     [SerializeField] TMP_Text sessionCodeText;
     [SerializeField] GameObject copyCodeButton;
+
+    // ============================================================
+    // SELECCIÓN DE PERSONAJE
+    // ============================================================
 
     [Header("Selección de personaje")]
     [SerializeField] GameObject characterSelectionPanel;
     [SerializeField] TMP_Text characterNameText;
     [SerializeField] Image characterPortraitImage;
     [SerializeField] TMP_Text readyStatusText;
+
     [Tooltip("Opcional: aro del retrato, se tiñe con el color del personaje.")]
     [SerializeField] Image characterRingImage;
+
     [Tooltip("Opcional: color de cada personaje del roster, en el mismo orden.")]
     [SerializeField] Color[] characterColors;
+
     [SerializeField] TMP_Text localReadyText;
     [SerializeField] TMP_Text rivalReadyText;
 
@@ -64,22 +98,38 @@ public class ConnectionMenu : MonoBehaviour
     [SerializeField] Button nextCharacterButton;
     [SerializeField] Button readyButton;
 
+    // ============================================================
+    // PANELES
+    // ============================================================
+
     [Header("Paneles")]
     [SerializeField] GameObject modeSelectionPanel;
     [SerializeField] GameObject localPanel;
     [SerializeField] GameObject onlinePanel;
 
+    // ============================================================
+    // MENSAJES
+    // ============================================================
+
     [Header("Mensajes (opcional)")]
     [SerializeField] TMP_Text statusText;
+
+    // ============================================================
+    // ESCENAS
+    // ============================================================
 
     [Header("Escenas")]
     [SerializeField] string mainMenuSceneName = "SCN_MainMenu";
 
     Page page = Page.Mode;
+
     GameObject shownPanel;
+
     bool gameplayStarted;
     bool wasConnected;
-    // Mensaje que ya estaba al navegar: no se repite en la página nueva.
+
+    // Mensaje que ya estaba al navegar:
+    // no se repite en la página nueva.
     string dismissedStatus;
 
     // ============================================================
@@ -89,34 +139,65 @@ public class ConnectionMenu : MonoBehaviour
     void Start()
     {
         if (networkTestMenu == null)
-            networkTestMenu = FindFirstObjectByType<NetworkTestMenu>();
+        {
+            networkTestMenu =
+                FindFirstObjectByType<NetworkTestMenu>();
+        }
 
         if (networkTestMenu == null)
-            Debug.LogError("ConnectionMenu: no hay NetworkTestMenu en la escena (va en el NetworkManager).", this);
+        {
+            Debug.LogError(
+                "ConnectionMenu: no hay NetworkTestMenu en la escena (va en el NetworkManager).",
+                this
+            );
+        }
 
         SetMenuVisible(true);
+
+        // Ocultamos los textos de espera al empezar.
+        SetLocalWaitingUI(false);
+
         Refresh();
     }
 
-    void Update() => Refresh();
+    void Update()
+    {
+        Refresh();
+    }
 
     CharacterLobbyManager Lobby =>
-        characterLobbyManager != null ? characterLobbyManager : CharacterLobbyManager.Current;
+        characterLobbyManager != null
+            ? characterLobbyManager
+            : CharacterLobbyManager.Current;
 
     // ============================================================
     // NAVEGACIÓN (botones)
     // ============================================================
 
-    public void OpenMainSelection() => OpenPage(Page.Mode);
+    public void OpenMainSelection()
+    {
+        OpenPage(Page.Mode);
+    }
 
-    public void OpenLocal() => OpenPage(Page.Local);
+    public void OpenLocal()
+    {
+        OpenPage(Page.Local);
+    }
 
-    public void OpenOnline() => OpenPage(Page.Online);
+    public void OpenOnline()
+    {
+        OpenPage(Page.Online);
+    }
 
     void OpenPage(Page target)
     {
         page = target;
-        dismissedStatus = networkTestMenu != null ? networkTestMenu.Status : null;
+
+        dismissedStatus =
+            networkTestMenu != null
+                ? networkTestMenu.Status
+                : null;
+
         Refresh();
     }
 
@@ -137,10 +218,19 @@ public class ConnectionMenu : MonoBehaviour
         if (!CanStartNetwork())
             return;
 
-        string address = ipInputField != null ? ipInputField.text.Trim() : "";
+        string address =
+            ipInputField != null
+                ? ipInputField.text.Trim()
+                : "";
 
-        // Sin IP escrita: este mismo PC (lo normal al probar con dos ventanas).
-        networkTestMenu.SetJoinAddress(string.IsNullOrEmpty(address) ? "127.0.0.1" : address);
+        // Sin IP escrita:
+        // este mismo PC (lo normal al probar con dos ventanas).
+        networkTestMenu.SetJoinAddress(
+            string.IsNullOrEmpty(address)
+                ? "127.0.0.1"
+                : address
+        );
+
         networkTestMenu.StartLocalClient();
     }
 
@@ -161,35 +251,75 @@ public class ConnectionMenu : MonoBehaviour
         if (!CanStartNetwork())
             return;
 
-        networkTestMenu.SetJoinCode(joinCodeInputField != null ? joinCodeInputField.text : "");
+        string code =
+            joinCodeInputField != null
+                ? joinCodeInputField.text.Trim()
+                : "";
+
+        if (string.IsNullOrEmpty(code))
+        {
+            Debug.LogWarning(
+                "Introduce el código de la partida Online.",
+                this
+            );
+
+            return;
+        }
+
+        networkTestMenu.SetJoinCode(
+            code.ToUpperInvariant()
+        );
+
         networkTestMenu.JoinOnlineGame();
     }
 
     public void CopySessionCode()
     {
-        if (networkTestMenu != null && !string.IsNullOrEmpty(networkTestMenu.SessionCode))
-            GUIUtility.systemCopyBuffer = networkTestMenu.SessionCode;
+        if (networkTestMenu != null &&
+            !string.IsNullOrEmpty(networkTestMenu.SessionCode))
+        {
+            GUIUtility.systemCopyBuffer =
+                networkTestMenu.SessionCode;
+        }
     }
 
-    /// <summary>Cancela la espera o sale de la partida y vuelve a la página en la que estaba.</summary>
+    /// <summary>
+    /// Cancela la espera o sale de la partida
+    /// y vuelve a la página en la que estaba.
+    /// </summary>
     public void CancelConnection()
     {
         if (networkTestMenu != null)
+        {
             networkTestMenu.LeaveGame();
-        else if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening)
+        }
+        else if (
+            NetworkManager.Singleton != null &&
+            NetworkManager.Singleton.IsListening)
+        {
             NetworkManager.Singleton.Shutdown();
+        }
     }
 
     bool CanStartNetwork()
     {
         if (networkTestMenu == null)
         {
-            Debug.LogError("No hay NetworkTestMenu asignado.", this);
+            Debug.LogError(
+                "No hay NetworkTestMenu asignado.",
+                this
+            );
+
             return false;
         }
 
-        NetworkManager manager = NetworkManager.Singleton;
-        return !networkTestMenu.IsBusy && (manager == null || !manager.IsListening);
+        NetworkManager manager =
+            NetworkManager.Singleton;
+
+        return
+            !networkTestMenu.IsBusy &&
+            (manager == null ||
+             !manager.IsListening);
     }
 
     // ============================================================
@@ -226,12 +356,23 @@ public class ConnectionMenu : MonoBehaviour
 
     void Refresh()
     {
-        NetworkManager manager = NetworkManager.Singleton;
-        CharacterLobbyManager lobby = Lobby;
-        bool listening = manager != null && manager.IsListening;
-        bool busy = networkTestMenu != null && networkTestMenu.IsBusy;
+        NetworkManager manager =
+            NetworkManager.Singleton;
 
-        // La red se ha caído (host cerrado, timeout, cancelar...): de vuelta al menú con el motivo.
+        CharacterLobbyManager lobby =
+            Lobby;
+
+        bool listening =
+            manager != null &&
+            manager.IsListening;
+
+        bool busy =
+            networkTestMenu != null &&
+            networkTestMenu.IsBusy;
+
+        // La red se ha caído
+        // (host cerrado, timeout, cancelar...):
+        // de vuelta al menú con el motivo.
         if (wasConnected && !listening)
         {
             dismissedStatus = null;
@@ -239,6 +380,7 @@ public class ConnectionMenu : MonoBehaviour
             if (gameplayStarted)
             {
                 gameplayStarted = false;
+
                 SetMenuVisible(true);
             }
         }
@@ -248,167 +390,520 @@ public class ConnectionMenu : MonoBehaviour
         if (gameplayStarted)
             return;
 
-        if (listening && lobby != null && lobby.IsSpawned && lobby.GameStarted)
+        // ========================================================
+        // PARTIDA EMPEZADA
+        // ========================================================
+
+        if (listening &&
+            lobby != null &&
+            lobby.IsSpawned &&
+            lobby.GameStarted)
         {
             BeginGameplay();
             return;
         }
 
-        bool selecting = listening && lobby != null && lobby.IsSpawned && lobby.CharacterSelectionActive;
-        bool waiting = !selecting && (listening || busy);
+        // ========================================================
+        // SELECCIÓN DE PERSONAJE
+        // ========================================================
+
+        bool selecting =
+            listening &&
+            lobby != null &&
+            lobby.IsSpawned &&
+            lobby.CharacterSelectionActive;
+
+        // ========================================================
+        // ESPERANDO
+        // ========================================================
+
+        bool waiting =
+            !selecting &&
+            (listening || busy);
 
         GameObject target;
 
         if (selecting)
         {
-            target = characterSelectionPanel;
+            target =
+                characterSelectionPanel;
+
             RefreshCharacterUI(lobby);
         }
-        else if (waiting && waitingPanel != null)
+        else if (
+            waiting &&
+            waitingPanel != null)
         {
-            target = waitingPanel;
+            // Si tenemos un panel de espera independiente.
+            target =
+                waitingPanel;
         }
         else
         {
-            // Sin panel de espera propio, la espera local se enseña dentro del panel local (montaje antiguo).
-            target = waiting && waitingPanel == null ? localPanel :
-                page == Page.Local ? localPanel :
-                page == Page.Online ? onlinePanel : modeSelectionPanel;
+            // Si NO tenemos un WaitingPanel separado,
+            // la espera se queda dentro del panel
+            // Local u Online correspondiente.
+
+            target =
+                waiting &&
+                waitingPanel == null
+                    ? (
+                        page == Page.Online
+                            ? onlinePanel
+                            : localPanel
+                      )
+                    : page == Page.Local
+                        ? localPanel
+                        : page == Page.Online
+                            ? onlinePanel
+                            : modeSelectionPanel;
         }
 
         ShowOnly(target);
 
         if (waiting)
+        {
             RefreshWaitingUI(manager);
+        }
 
-        SetLocalWaitingUI(waiting && waitingPanel == null);
-        RefreshStatus(selecting, waiting);
+        // Controla los textos de espera dentro
+        // de LocalPanel / OnlinePanel.
+        SetLocalWaitingUI(
+            waiting &&
+            waitingPanel == null
+        );
+
+        RefreshStatus(
+            selecting,
+            waiting
+        );
     }
+
+    // ============================================================
+    // MOSTRAR SOLO UN PANEL
+    // ============================================================
 
     void ShowOnly(GameObject target)
     {
-        SetActive(modeSelectionPanel, target == modeSelectionPanel);
-        SetActive(localPanel, target == localPanel);
-        SetActive(onlinePanel, target == onlinePanel);
-        SetActive(waitingPanel, target == waitingPanel);
-        SetActive(characterSelectionPanel, target == characterSelectionPanel);
+        SetActive(
+            modeSelectionPanel,
+            target == modeSelectionPanel
+        );
+
+        SetActive(
+            localPanel,
+            target == localPanel
+        );
+
+        SetActive(
+            onlinePanel,
+            target == onlinePanel
+        );
+
+        SetActive(
+            waitingPanel,
+            target == waitingPanel
+        );
+
+        SetActive(
+            characterSelectionPanel,
+            target == characterSelectionPanel
+        );
 
         if (target == shownPanel)
             return;
 
-        shownPanel = target;
+        shownPanel =
+            target;
+
         SelectFirstButton(target);
     }
 
-    // Para poder moverse con mando o teclado: al cambiar de panel se selecciona su primer botón.
-    static void SelectFirstButton(GameObject panel)
+    // Para poder moverse con mando o teclado:
+    // al cambiar de panel se selecciona
+    // su primer botón.
+    static void SelectFirstButton(
+        GameObject panel)
     {
-        if (panel == null || EventSystem.current == null)
+        if (panel == null ||
+            EventSystem.current == null)
             return;
 
-        foreach (Selectable selectable in panel.GetComponentsInChildren<Selectable>())
+        foreach (
+            Selectable selectable
+            in panel.GetComponentsInChildren<Selectable>())
         {
-            if (selectable.interactable && selectable is Button)
+            if (selectable.interactable &&
+                selectable is Button)
             {
-                EventSystem.current.SetSelectedGameObject(selectable.gameObject);
+                EventSystem.current
+                    .SetSelectedGameObject(
+                        selectable.gameObject
+                    );
+
                 return;
             }
         }
     }
 
-    void RefreshWaitingUI(NetworkManager manager)
+    // ============================================================
+    // UI DE ESPERA
+    // ============================================================
+
+    void RefreshWaitingUI(
+        NetworkManager manager)
     {
-        bool connected = manager != null && manager.IsListening && (manager.IsServer || manager.IsConnectedClient);
-        bool isHost = manager != null && manager.IsServer;
-        string code = networkTestMenu != null ? networkTestMenu.SessionCode : null;
-        bool online = !string.IsNullOrEmpty(code);
-        int maxPlayers = networkTestMenu != null ? networkTestMenu.MaxPlayerCount : 2;
-        int players = Lobby != null && Lobby.IsSpawned ? Lobby.ConnectedCount :
-            networkTestMenu != null ? networkTestMenu.ConnectedPlayerCount : 0;
+        bool connected =
+            manager != null &&
+            manager.IsListening &&
+            (
+                manager.IsServer ||
+                manager.IsConnectedClient
+            );
+
+        bool isHost =
+            manager != null &&
+            manager.IsServer;
+
+        string code =
+            networkTestMenu != null
+                ? networkTestMenu.SessionCode
+                : null;
+
+        // Antes solo comprobábamos si había código.
+        // Ahora también miramos si estamos
+        // dentro de la página Online.
+        //
+        // Esto es importante porque mientras
+        // Relay está creando la sesión todavía
+        // no tenemos código.
+        bool online =
+            page == Page.Online ||
+            !string.IsNullOrEmpty(code);
+
+        int maxPlayers =
+            networkTestMenu != null
+                ? networkTestMenu.MaxPlayerCount
+                : 2;
+
+        int players =
+            Lobby != null &&
+            Lobby.IsSpawned
+                ? Lobby.ConnectedCount
+                : networkTestMenu != null
+                    ? networkTestMenu.ConnectedPlayerCount
+                    : 0;
+
+        // ========================================================
+        // WAITING PANEL INDEPENDIENTE
+        // ========================================================
 
         if (waitingTitleText != null)
-            waitingTitleText.text = !connected ? "CONECTANDO..." : isHost ? "ESPERANDO RIVAL" : "ESPERANDO AL HOST";
+        {
+            waitingTitleText.text =
+                !connected
+                    ? "CONECTANDO..."
+                    : isHost
+                        ? "ESPERANDO RIVAL"
+                        : "ESPERANDO AL HOST";
+        }
 
         if (sessionCodeText != null)
-            sessionCodeText.text = online ? code : "";
+        {
+            sessionCodeText.text =
+                online
+                    ? code
+                    : "";
+        }
 
-        SetActive(sessionCodeText != null ? sessionCodeText.gameObject : null, online);
-        SetActive(copyCodeButton, online);
+        SetActive(
+            sessionCodeText != null
+                ? sessionCodeText.gameObject
+                : null,
+            online &&
+            !string.IsNullOrEmpty(code)
+        );
+
+        SetActive(
+            copyCodeButton,
+            online &&
+            isHost &&
+            !string.IsNullOrEmpty(code)
+        );
+
+        // ========================================================
+        // LOCAL
+        // ========================================================
 
         if (hostIPAddressText != null)
         {
-            hostIPAddressText.text = isHost && !online ? $"TU IP: {networkTestMenu?.LocalIPAddress}" : "";
-            hostIPAddressText.gameObject.SetActive(isHost && !online);
+            hostIPAddressText.text =
+                isHost && !online
+                    ? $"TU IP: {networkTestMenu?.LocalIPAddress}"
+                    : "";
+
+            hostIPAddressText
+                .gameObject
+                .SetActive(
+                    isHost &&
+                    !online
+                );
         }
 
-        if (playerCountText != null)
-            playerCountText.text = $"JUGADORES: {(connected ? Mathf.Max(players, 1) : 0)}/{maxPlayers}";
+        if (playerCountText != null &&
+            !online)
+        {
+            playerCountText.text =
+                $"JUGADORES: " +
+                $"{(connected ? Mathf.Max(players, 1) : 0)}/" +
+                $"{maxPlayers}";
+        }
+
+        // ========================================================
+        // ONLINE
+        // ========================================================
+
+        if (online)
+        {
+            if (onlineWaitingPlayerText != null)
+            {
+                onlineWaitingPlayerText
+                    .SetActive(true);
+            }
+
+            if (onlineSessionCodeText != null)
+            {
+                // Mientras Unity Services / Relay
+                // está creando la partida.
+                if (networkTestMenu != null &&
+                    networkTestMenu.IsBusy &&
+                    string.IsNullOrEmpty(code))
+                {
+                    onlineSessionCodeText.text =
+                        "CREATING GAME...";
+                }
+
+                // Cuando Relay ya ha generado
+                // el código de la sesión.
+                else if (
+                    !string.IsNullOrEmpty(code))
+                {
+                    onlineSessionCodeText.text =
+                        $"CODE: {code}";
+                }
+
+                // Cliente intentando conectarse.
+                else
+                {
+                    onlineSessionCodeText.text =
+                        "CONNECTING...";
+                }
+            }
+
+            if (onlinePlayerCountText != null)
+            {
+                onlinePlayerCountText.text =
+                    $"PLAYERS: " +
+                    $"{(connected ? Mathf.Max(players, 1) : 0)}/" +
+                    $"{maxPlayers}";
+            }
+        }
     }
 
-    // Textos de espera del montaje antiguo (dentro del panel local).
+    // ============================================================
+    // TEXTOS DE ESPERA DENTRO DE LOCAL / ONLINE
+    // ============================================================
+
     void SetLocalWaitingUI(bool active)
     {
         if (waitingPanel != null)
             return;
 
-        SetActive(waitingPlayerText, active);
-        SetActive(hostIPAddressText != null ? hostIPAddressText.gameObject : null, active);
-        SetActive(playerCountText != null ? playerCountText.gameObject : null, active);
+        bool localWaiting =
+            active &&
+            page == Page.Local;
+
+        bool onlineWaiting =
+            active &&
+            page == Page.Online;
+
+        // ========================================================
+        // LOCAL
+        // ========================================================
+
+        SetActive(
+            waitingPlayerText,
+            localWaiting
+        );
+
+        SetActive(
+            hostIPAddressText != null
+                ? hostIPAddressText.gameObject
+                : null,
+            localWaiting
+        );
+
+        SetActive(
+            playerCountText != null
+                ? playerCountText.gameObject
+                : null,
+            localWaiting
+        );
+
+        // ========================================================
+        // ONLINE
+        // ========================================================
+
+        SetActive(
+            onlineWaitingPlayerText,
+            onlineWaiting
+        );
+
+        SetActive(
+            onlineSessionCodeText != null
+                ? onlineSessionCodeText.gameObject
+                : null,
+            onlineWaiting
+        );
+
+        SetActive(
+            onlinePlayerCountText != null
+                ? onlinePlayerCountText.gameObject
+                : null,
+            onlineWaiting
+        );
     }
 
-    void RefreshStatus(bool selecting, bool waiting)
+    // ============================================================
+    // MENSAJES
+    // ============================================================
+
+    void RefreshStatus(
+        bool selecting,
+        bool waiting)
     {
         if (statusText == null)
             return;
 
-        string status = networkTestMenu != null ? networkTestMenu.Status : null;
-        string message = selecting ? "" :
-            waiting || status != dismissedStatus ? status : "";
+        string status =
+            networkTestMenu != null
+                ? networkTestMenu.Status
+                : null;
 
-        statusText.text = message ?? "";
-        statusText.gameObject.SetActive(!string.IsNullOrEmpty(message));
+        string message =
+            selecting
+                ? ""
+                : waiting ||
+                  status != dismissedStatus
+                    ? status
+                    : "";
+
+        statusText.text =
+            message ?? "";
+
+        statusText
+            .gameObject
+            .SetActive(
+                !string.IsNullOrEmpty(message)
+            );
     }
 
-    void RefreshCharacterUI(CharacterLobbyManager lobby)
+    // ============================================================
+    // UI DE PERSONAJES
+    // ============================================================
+
+    void RefreshCharacterUI(
+        CharacterLobbyManager lobby)
     {
         if (characterNameText != null)
-            characterNameText.text = lobby.SelectedCharacterName;
+        {
+            characterNameText.text =
+                lobby.SelectedCharacterName;
+        }
 
         if (characterPortraitImage != null)
         {
-            Sprite portrait = lobby.SelectedCharacterPortrait;
-            characterPortraitImage.sprite = portrait;
-            characterPortraitImage.enabled = portrait != null;
+            Sprite portrait =
+                lobby.SelectedCharacterPortrait;
+
+            characterPortraitImage.sprite =
+                portrait;
+
+            characterPortraitImage.enabled =
+                portrait != null;
         }
 
-        if (characterRingImage != null && characterColors != null && characterColors.Length > 0)
-            characterRingImage.color = characterColors[Mathf.Clamp(lobby.LocalSelectedCharacter, 0, characterColors.Length - 1)];
+        if (characterRingImage != null &&
+            characterColors != null &&
+            characterColors.Length > 0)
+        {
+            characterRingImage.color =
+                characterColors[
+                    Mathf.Clamp(
+                        lobby.LocalSelectedCharacter,
+                        0,
+                        characterColors.Length - 1
+                    )
+                ];
+        }
 
         if (readyStatusText != null)
-            readyStatusText.text = $"PLAYERS READY: {lobby.ReadyCount}/{lobby.MaxPlayers}";
+        {
+            readyStatusText.text =
+                $"PLAYERS READY: " +
+                $"{lobby.ReadyCount}/" +
+                $"{lobby.MaxPlayers}";
+        }
 
         if (localReadyText != null)
-            localReadyText.text = lobby.IsLocalReady ? "TÚ · ¡LISTO!" : "TÚ · ELIGIENDO";
+        {
+            localReadyText.text =
+                lobby.IsLocalReady
+                    ? "TÚ · ¡LISTO!"
+                    : "TÚ · ELIGIENDO";
+        }
 
         if (rivalReadyText != null)
-            rivalReadyText.text = lobby.IsRivalReady ? "RIVAL · ¡LISTO!" : "RIVAL · ELIGIENDO";
+        {
+            rivalReadyText.text =
+                lobby.IsRivalReady
+                    ? "RIVAL · ¡LISTO!"
+                    : "RIVAL · ELIGIENDO";
+        }
 
-        bool canChange = !lobby.IsLocalReady;
+        bool canChange =
+            !lobby.IsLocalReady;
 
         if (previousCharacterButton != null)
-            previousCharacterButton.interactable = canChange;
+        {
+            previousCharacterButton
+                .interactable =
+                canChange;
+        }
 
         if (nextCharacterButton != null)
-            nextCharacterButton.interactable = canChange;
+        {
+            nextCharacterButton
+                .interactable =
+                canChange;
+        }
 
         if (readyButton != null)
         {
-            readyButton.interactable = canChange;
+            readyButton.interactable =
+                canChange;
 
-            TMP_Text buttonText = readyButton.GetComponentInChildren<TMP_Text>();
+            TMP_Text buttonText =
+                readyButton
+                    .GetComponentInChildren<TMP_Text>();
 
             if (buttonText != null)
-                buttonText.text = lobby.IsLocalReady ? "READY!" : "READY";
+            {
+                buttonText.text =
+                    lobby.IsLocalReady
+                        ? "READY!"
+                        : "READY";
+            }
         }
     }
 
@@ -419,31 +914,49 @@ public class ConnectionMenu : MonoBehaviour
     void BeginGameplay()
     {
         gameplayStarted = true;
+
         shownPanel = null;
 
         SetMenuVisible(false);
 
-        Debug.Log("Todos los jugadores están READY. Comienza la partida.");
+        Debug.Log(
+            "Todos los jugadores están READY. Comienza la partida."
+        );
     }
 
     void SetMenuVisible(bool visible)
     {
         if (connectionMenu != null)
         {
-            // Si el menú es este mismo objeto, no se desactiva (dejaría de vigilar la red): se apagan sus Canvas.
+            // Si el menú es este mismo objeto,
+            // no se desactiva porque dejaría
+            // de vigilar la red:
+            // se apagan sus Canvas.
             if (connectionMenu == gameObject)
             {
-                foreach (Canvas canvas in GetComponentsInChildren<Canvas>(true))
-                    canvas.enabled = visible;
+                foreach (
+                    Canvas canvas
+                    in GetComponentsInChildren<Canvas>(true))
+                {
+                    canvas.enabled =
+                        visible;
+                }
             }
             else
             {
-                connectionMenu.SetActive(visible);
+                connectionMenu.SetActive(
+                    visible
+                );
             }
         }
 
-        Cursor.visible = visible;
-        Cursor.lockState = visible ? CursorLockMode.None : CursorLockMode.Locked;
+        Cursor.visible =
+            visible;
+
+        Cursor.lockState =
+            visible
+                ? CursorLockMode.None
+                : CursorLockMode.Locked;
     }
 
     // ============================================================
@@ -453,20 +966,31 @@ public class ConnectionMenu : MonoBehaviour
     public void CloseConnectionMenu()
     {
         gameplayStarted = true;
+
         SetMenuVisible(false);
     }
 
     public void BackToMainMenu()
     {
-        if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening)
+        if (NetworkManager.Singleton != null &&
+            NetworkManager.Singleton.IsListening)
+        {
             NetworkManager.Singleton.Shutdown();
+        }
 
-        SceneManager.LoadScene(mainMenuSceneName);
+        SceneManager.LoadScene(
+            mainMenuSceneName
+        );
     }
 
-    static void SetActive(GameObject target, bool active)
+    static void SetActive(
+        GameObject target,
+        bool active)
     {
-        if (target != null && target.activeSelf != active)
+        if (target != null &&
+            target.activeSelf != active)
+        {
             target.SetActive(active);
+        }
     }
 }

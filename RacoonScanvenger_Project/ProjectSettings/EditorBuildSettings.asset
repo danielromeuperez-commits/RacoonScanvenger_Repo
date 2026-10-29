@@ -32,6 +32,9 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/_Racoon/Scenes/SCN_Danielevents.unity
     guid: 9bd224ef3bbdf0148a7b8f9705fac7e4
+  - enabled: 1
+    path: Assets/_Racoon/Scenes/SCN_Level_Polish.unity
+    guid: b3bd5bd6018d4bd4ab473b67d5350178
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   m_UseUCBPForAssetBundles: 0

@@ -15,11 +15,14 @@ public class MatchTimer : NetworkBehaviour
     readonly NetworkVariable<bool> matchRunning = new(false);
     readonly NetworkVariable<bool> matchFinished = new(false);
 
+    // Multiplicador de velocidad permanente para el resto de la partida
+    readonly NetworkVariable<float> timeScale = new(1f);
+    double lastServerTime = 0;
+
     public event Action MatchEnded;
 
     public bool IsRunning => matchRunning.Value;
     public bool IsFinished => matchFinished.Value;
-    /// <summary>Duracion total de la partida (s).</summary>
     public float Duration => matchDuration;
 
     public float TimeRemaining
@@ -45,6 +48,7 @@ public class MatchTimer : NetworkBehaviour
     public override void OnNetworkSpawn()
     {
         matchFinished.OnValueChanged += OnMatchFinishedChanged;
+        lastServerTime = NetworkManager.ServerTime.Time;
 
         if (IsServer && autoStart)
             ServerStartMatch();
@@ -57,18 +61,25 @@ public class MatchTimer : NetworkBehaviour
 
     void Update()
     {
-        if (!IsServer ||
-            !matchRunning.Value ||
-            matchFinished.Value)
+        if (!IsServer || !matchRunning.Value || matchFinished.Value)
             return;
+
+        double currentServerTime = NetworkManager.ServerTime.Time;
+        double deltaTime = currentServerTime - lastServerTime;
+        lastServerTime = currentServerTime;
+
+        // Si la escala de tiempo cambió (ej: x2 o x3), consumimos el tiempo restante más rápido de forma permanente
+        if (timeScale.Value != 1f && deltaTime > 0)
+        {
+            double extraTimePassed = deltaTime * (timeScale.Value - 1.0);
+            matchEndTime.Value -= extraTimePassed;
+        }
 
         if (NetworkManager.ServerTime.Time < matchEndTime.Value)
             return;
 
         matchRunning.Value = false;
-
         DetermineWinner();
-
         matchFinished.Value = true;
     }
 
@@ -79,9 +90,21 @@ public class MatchTimer : NetworkBehaviour
 
         matchFinished.Value = false;
         matchRunning.Value = true;
+        timeScale.Value = 1f;
+        lastServerTime = NetworkManager.ServerTime.Time;
 
         matchEndTime.Value =
             NetworkManager.ServerTime.Time + matchDuration;
+    }
+
+    // Aplica el multiplicador de forma permanente para el resto de la partida
+    public void ApplyTimeMultiplier(float multiplier)
+    {
+        if (!IsServer || !matchRunning.Value)
+            return;
+
+        timeScale.Value = Mathf.Max(0.1f, multiplier);
+        Debug.Log($"MatchTimer: ¡El cronómetro correrá a x{timeScale.Value} durante el resto de la partida!");
     }
 
     void DetermineWinner()
@@ -100,8 +123,6 @@ public class MatchTimer : NetworkBehaviour
             return;
         }
 
-        // Los ordenamos por OwnerClientId para que el orden sea
-        // siempre el mismo en todas las partidas.
         System.Array.Sort(players, (a, b) =>
             a.OwnerClientId.CompareTo(b.OwnerClientId)
         );
@@ -118,33 +139,21 @@ public class MatchTimer : NetworkBehaviour
             $"Jugador {player2.OwnerClientId}: {player2Points} puntos"
         );
 
-        // JUGADOR 1 GANA
         if (player1Points > player2Points)
         {
-            Debug.Log(
-                $"Ganador: jugador {player1.OwnerClientId}"
-            );
-
+            Debug.Log($"Ganador: jugador {player1.OwnerClientId}");
             player1.ServerSendMatchResult(true);
             player2.ServerSendMatchResult(false);
         }
-
-        // JUGADOR 2 GANA
         else if (player2Points > player1Points)
         {
-            Debug.Log(
-                $"Ganador: jugador {player2.OwnerClientId}"
-            );
-
+            Debug.Log($"Ganador: jugador {player2.OwnerClientId}");
             player1.ServerSendMatchResult(false);
             player2.ServerSendMatchResult(true);
         }
-
-        // EMPATE
         else
         {
             Debug.Log("La partida ha terminado en empate.");
-
             player1.ServerSendDrawResult();
             player2.ServerSendDrawResult();
         }
