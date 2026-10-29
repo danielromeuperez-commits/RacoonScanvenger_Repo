@@ -22,7 +22,7 @@ namespace Racoon.UI.HUD
         const float FadeTime = .25f, BadgeTime = .35f, TopHideTime = .2f, FireFrameTime = .12f, LowBlinkTime = .175f;
         const float FloatPeriod = 2.2f, EntryTime = .5f, RouletteTime = 1.3f, UseTime = .32f, FlyTime = .3f;
         // Ruleta: empieza rápida y frena (paso entre iconos de Fast a Slow); cada icono da un saltito
-        const float RouletteStepFast = .04f, RouletteStepSlow = .2f, RouletteBump = .18f, RouletteBumpTime = .1f;
+        const float RouletteStepFast = .04f, RouletteStepSlow = .2f, RouletteBump = .18f, RouletteBumpTime = .1f, RouletteFlashTime = .4f;
         const float BagFadeTime = .2f, BagBumpTime = .3f, BankTime = .35f, BagShakeTime = .35f;
         // Caja de reserva: flota a su aire (otro periodo y desfase) y algo menos que la principal
         const float ReserveFloatPeriod = 2.6f, ReserveFloatDelay = -1.1f, ReserveFloatAmount = .7f;
@@ -38,8 +38,8 @@ namespace Racoon.UI.HUD
         const float HitTime = .4f, HeavyTime = .75f, SlipTime = .9f, RollTime = .5f, PunchTime = .25f, RunBlendSpeed = 8f;
         // Estela de la estamina gastada: el color del jugador aclarado hacia el blanco
         const float TrailLighten = .55f;
-        // Cajas de ítems: halo que late detrás, icono que respira y se menea cada poco, «?» que se balancea
-        const float HaloPeriod = 1.4f, IconWigglePeriod = 3.2f, IconWiggleTime = .45f, EmptyTiltPeriod = 2f;
+        // Cajas de ítems: icono que respira y se menea cada poco, «?» que se balancea
+        const float BreathPeriod = 1.4f, IconWigglePeriod = 3.2f, IconWiggleTime = .45f, EmptyTiltPeriod = 2f;
 
         static float Now => Time.unscaledTime;
 
@@ -65,9 +65,16 @@ namespace Racoon.UI.HUD
         Quaternion panelRestRot = Quaternion.identity;
         float panelHit = -99f;
 
-        // Ruleta: icono que está dando saltitos y su escala de reposo
+        // Ruleta: icono que está dando saltitos, su escala y color de reposo, y si hay que saltarla
         RectTransform rouletteIcon;
+        Image rouletteImage;
         Vector3 rouletteIconRest = Vector3.one;
+        Color rouletteIconColor = Color.white;
+        bool skipRoulette;
+        static readonly Color RouletteSilhouette = new(.12f, .1f, .2f, 1f);
+
+        /// <summary>La ruleta de ítems se ha parado (también si se ha saltado). Para vibrar el mando, etc.</summary>
+        public event System.Action RouletteStopped;
 
         // «+N»
         readonly List<(RectTransform rect, CanvasGroup group, float start, Vector2 rest)> pops = new();
@@ -108,7 +115,6 @@ namespace Racoon.UI.HUD
         Vector2 mainRestPos, reserveRestPos;
         Quaternion mainRestRot = Quaternion.identity, reserveRestRot = Quaternion.identity;
         float mainEntry = -99f, reserveEntry = -99f;
-        Image mainHalo, reserveHalo;
         Quaternion mainIconRest = Quaternion.identity, reserveIconRest = Quaternion.identity;
         Quaternion mainEmptyRest = Quaternion.identity, reserveEmptyRest = Quaternion.identity;
         ItemData shownMain, shownReserve, wantMain, wantReserve;
@@ -197,8 +203,6 @@ namespace Racoon.UI.HUD
                 }
             }
             if (pv.root) rootRest = pv.root.anchoredPosition;
-            mainHalo = BuildHalo(pv.mainItemBox, pv.mainSlot);
-            reserveHalo = BuildHalo(pv.reserveItemBox, pv.reserveSlot);
             if (pv.mainItemIcon) mainIconRest = pv.mainItemIcon.rectTransform.localRotation;
             if (pv.reserveItemIcon) reserveIconRest = pv.reserveItemIcon.rectTransform.localRotation;
             if (pv.mainItemEmpty) mainEmptyRest = pv.mainItemEmpty.transform.localRotation;
@@ -213,32 +217,6 @@ namespace Racoon.UI.HUD
         // Lo que se ha movido el retrato (reacciones, temblores): la llama y la corona van pegadas a él
         Vector3 PortraitDelta(Transform sibling) =>
             portrait && sibling.parent == portrait.parent ? portrait.localPosition - portraitRestLocal : Vector3.zero;
-
-        // Halo: copia de la base de la caja, detrás de todo el hueco, que el presentador tiñe y hace latir
-        static Image BuildHalo(RectTransform box, RectTransform slot)
-        {
-            if (!box || !slot) return null;
-            Image source = null;
-            foreach (var image in box.GetComponentsInChildren<Image>(true))
-                if (image.sprite && (source == null || image.name == "Base")) source = image;
-            if (!source) return null;
-            var go = new GameObject("Halo", typeof(RectTransform)) { layer = slot.gameObject.layer };
-            var rect = (RectTransform)go.transform;
-            rect.SetParent(slot, false);
-            rect.SetAsFirstSibling();
-            var from = source.rectTransform;
-            rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(.5f, .5f);
-            rect.sizeDelta = from.rect.size;
-            rect.localPosition = slot.InverseTransformPoint(from.TransformPoint(from.rect.center));
-            rect.localRotation = Quaternion.Inverse(slot.rotation) * from.rotation;
-            var halo = go.AddComponent<Image>();
-            halo.sprite = source.sprite;
-            halo.type = source.type;
-            halo.pixelsPerUnitMultiplier = source.pixelsPerUnitMultiplier;
-            halo.preserveAspect = source.preserveAspect;
-            halo.raycastTarget = false;
-            return halo;
-        }
 
         static CanvasGroup Group(GameObject go) =>
             go.TryGetComponent(out CanvasGroup group) ? group : go.AddComponent<CanvasGroup>();
@@ -451,8 +429,8 @@ namespace Racoon.UI.HUD
             TickTop();
             TickSlot(pv.mainSlot, mainRestPos, mainRestRot, mainEntry, FloatPeriod, 0f, 1f, floatSign);
             TickSlot(pv.reserveSlot, reserveRestPos, reserveRestRot, reserveEntry, ReserveFloatPeriod, ReserveFloatDelay, ReserveFloatAmount, -floatSign);
-            TickItemFx(mainHalo, pv.mainItemIcon, mainIconRest, pv.mainItemEmpty, mainEmptyRest, mainEntry, 1f, 0f);
-            TickItemFx(reserveHalo, pv.reserveItemIcon, reserveIconRest, pv.reserveItemEmpty, reserveEmptyRest, reserveEntry, .75f, .9f);
+            TickItemFx(pv.mainItemIcon, mainIconRest, pv.mainItemEmpty, mainEmptyRest, 1f, 0f);
+            TickItemFx(pv.reserveItemIcon, reserveIconRest, pv.reserveItemEmpty, reserveEmptyRest, .75f, .9f);
         }
 
         /// <summary>Después de Tick: arranca la siguiente transición de ítems si hay una pendiente.</summary>
@@ -955,21 +933,11 @@ namespace Racoon.UI.HUD
             slot.localScale = new Vector3(scale, scale, 1f);
         }
 
-        // Cajas llamativas: halo del color del jugador que late detrás (más fuerte y con destello al entrar un ítem),
-        // icono que respira y da un meneo cada poco, y «?» que se balancea mientras está vacía
-        void TickItemFx(Image halo, Image icon, Quaternion iconRest, GameObject empty, Quaternion emptyRest, float entry, float amount, float delay)
+        // Cajas llamativas: icono que respira y da un meneo cada poco, y «?» que se balancea mientras está vacía
+        void TickItemFx(Image icon, Quaternion iconRest, GameObject empty, Quaternion emptyRest, float amount, float delay)
         {
             bool has = icon && icon.enabled && icon.sprite;
-            float beat = .5f - .5f * Mathf.Cos(2f * Mathf.PI * (Now + delay) / HaloPeriod);
-            if (halo)
-            {
-                float flash = Mathf.Clamp01(1f - (Now - entry) / .6f);
-                float scale = 1.1f + .07f * beat * amount + .25f * flash;
-                halo.rectTransform.localScale = new Vector3(scale, scale, 1f);
-                var color = Color.Lerp(PlayerColor, Color.white, .3f + .5f * flash);
-                color.a = (has ? .75f + .25f * beat : .35f + .2f * beat) * Mathf.Lerp(.8f, 1f, amount);
-                halo.color = color;
-            }
+            float beat = .5f - .5f * Mathf.Cos(2f * Mathf.PI * (Now + delay) / BreathPeriod);
             if (has && !itemsBusy)
             {
                 // Respira y, cada «IconWigglePeriod», un meneo rápido
@@ -1078,16 +1046,22 @@ namespace Racoon.UI.HUD
         {
             var icon = main ? pv.mainItemIcon : pv.reserveItemIcon;
             var empty = main ? pv.mainItemEmpty : pv.reserveItemEmpty;
+            skipRoulette = false;
             if (icon && pool != null && pool.Count > 0)
             {
                 if (empty) empty.SetActive(false);
                 icon.enabled = true;
                 var rect = icon.rectTransform;
                 rouletteIcon = rect;
+                rouletteImage = icon;
                 rouletteIconRest = rect.localScale;
+                rouletteIconColor = icon.color;
+                // Mientras gira solo se ven siluetas: el objeto se descubre al pararse
+                icon.color = RouletteSilhouette;
                 int k = Random.Range(0, pool.Count);
                 float start = Now, next = Now, lastTick = -99f;
-                while (Now - start < RouletteTime)
+                // Pulsar Usar la salta (SkipRoulette)
+                while (Now - start < RouletteTime && !skipRoulette)
                 {
                     if (Now >= next)
                     {
@@ -1105,15 +1079,50 @@ namespace Racoon.UI.HUD
                 }
                 ResetRouletteIcon();
             }
+            skipRoulette = false;
             ShowSlot(main, final);
             view.rouletteStopSfx.Play2D();
+
+            // Destello del color del objeto que ha tocado
+            if (final && final.icon)
+            {
+                var flash = Clone(icon);
+                if (flash) host.StartCoroutine(RouletteFlash(flash, final.rarityColor));
+            }
+            RouletteStopped?.Invoke();
         }
 
-        // Si se corta la ruleta a medias, el icono no se queda con el saltito a medias
+        /// <summary>Pulsar Usar durante la ruleta: se para ya en el objeto que ha tocado.</summary>
+        public void SkipRoulette()
+        {
+            if (rouletteIcon) skipRoulette = true;
+        }
+
+        // Si se corta la ruleta a medias, el icono no se queda con el saltito ni la silueta
         void ResetRouletteIcon()
         {
             if (rouletteIcon) rouletteIcon.localScale = rouletteIconRest;
+            if (rouletteImage) rouletteImage.color = rouletteIconColor;
             rouletteIcon = null;
+            rouletteImage = null;
+        }
+
+        // Copia teñida del color del objeto que crece y se desvanece sobre el icono recién descubierto
+        IEnumerator RouletteFlash(RectTransform clone, Color color)
+        {
+            var group = clone.GetComponent<CanvasGroup>();
+            var image = clone.GetComponent<Image>();
+            image.color = color;
+            Vector3 scale = clone.localScale;
+            for (float t = 0f; t < 1f; t += Time.unscaledDeltaTime / RouletteFlashTime)
+            {
+                if (!clone) yield break;
+                float e = HUDAnim.EaseOut.Evaluate(t);
+                clone.localScale = scale * Mathf.Lerp(1f, 2f, e);
+                group.alpha = .9f * (1f - e);
+                yield return null;
+            }
+            Discard(clone);
         }
 
         // Copia del icono encima de todo el jugador, para animarla sin tocar las cajas

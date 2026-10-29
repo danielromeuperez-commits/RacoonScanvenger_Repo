@@ -111,6 +111,12 @@ namespace Racoon.Player
         [Tooltip("Multiplicador de velocidad mientras carga (no puede correr).")]
         [SerializeField, Range(0f, 1f)] float chargeMoveMultiplier = 0.5f;
 
+        [Header("Apuntar objeto (mantener Usar con un objeto)")]
+        [Tooltip("Multiplicador de velocidad mientras apunta.")]
+        [SerializeField, Range(0f, 1f)] float aimMoveMultiplier = 0.6f;
+        [Tooltip("Ángulo (grados) entre el stick y hacia donde mira a partir del cual el objeto se suelta DETRÁS.")]
+        [SerializeField, Range(90f, 180f)] float dropBehindAngle = 120f;
+
         /// <summary>Cómo reacciona el jugador a un tipo de golpe.</summary>
         [Serializable]
         public struct HitReaction
@@ -307,14 +313,25 @@ namespace Racoon.Player
         public float StaminaNormalized => staminaNormalized.Value;
         /// <summary>Solo tiene sentido en el dueño.</summary>
         public bool IsExhausted => exhausted;
-        /// <summary>Bebida energética activa (dash sin cooldown ni estamina). Solo tiene sentido en el dueño.</summary>
+        /// <summary>Bebida energética activa (estamina infinita, dash sin cooldown). Solo tiene sentido en el dueño.</summary>
         public bool IsEnergized => infiniteDashActive;
         /// <summary>Segundos que le quedan a la bebida energética. Solo tiene sentido en el dueño.</summary>
         public float EnergyRemaining => infiniteDashTimer;
+        /// <summary>Lo que dura la bebida energética que se ha tomado. Solo tiene sentido en el dueño.</summary>
+        public float EnergyDuration => infiniteDashDuration;
+        /// <summary>
+        /// Bebida energética activa, válido en el dueño y en el servidor (que lleva su propia cuenta para no dejar
+        /// tomarse otra a la vez). En los demás clientes, false.
+        /// </summary>
+        public bool IsEnergyDrinkActive => IsOwner ? infiniteDashActive : IsServer && Time.time < serverEnergyEndTime;
+        /// <summary>Solo dueño. Ha intentado usar un objeto que ahora no se puede (p. ej. otra bebida con la primera activa).</summary>
+        public event Action<ItemData> ItemUseRefused;
         /// <summary>Propulsado por el extintor. Solo tiene sentido en el dueño.</summary>
         public bool IsExtintorActive => extintorActive;
         /// <summary>Mantiene Usar con un objeto equipado: apuntando, lo usará al soltar. Solo tiene sentido en el dueño.</summary>
         public bool IsAimingItem => aimingItem;
+        /// <summary>Apuntando con el stick hacia atrás: al soltar, el objeto cae detrás. Solo tiene sentido en el dueño.</summary>
+        public bool IsAimingBehind => aimingItem && aimingBehind;
         public PlayerInventory Inventory => inventory;
         public PlayerInputHandler InputHandler => input;
 
@@ -346,6 +363,9 @@ namespace Racoon.Player
         float punchCooldownTimer;
         bool infiniteDashActive;
         float infiniteDashTimer;
+        float infiniteDashDuration;
+        // Solo servidor: hasta cuándo dura la bebida energética.
+        float serverEnergyEndTime = -1f;
 
         bool itemRecoveryRequired;
         float itemRecoveryProgress;
@@ -353,6 +373,7 @@ namespace Racoon.Player
         float slipTimer;
         // Mantiene Usar con un objeto: apunta y lo usa al soltar (dueño).
         bool aimingItem;
+        bool aimingBehind;
 
         // Golpe cargado (dueño).
         bool chargingPunch;
@@ -547,6 +568,14 @@ namespace Racoon.Player
             {
                 if (!hasMoveInput) move = Vector2.zero;
                 desiredDirection = GetCameraRelativeDirection(move);
+                Vector3 moveDirection = desiredDirection;
+
+                // Apuntando un objeto con el stick muy hacia atrás: lo soltará detrás. No se gira hacia el stick
+                // (si se girase, "atrás" pasaría a ser "delante" y se perdería el apuntado).
+                aimingBehind = aimingItem && hasMoveInput &&
+                    Vector3.Angle(Vector3.ProjectOnPlane(transform.forward, Vector3.up), moveDirection) > dropBehindAngle;
+                if (aimingBehind) desiredDirection = Vector3.zero;
+
                 float targetSpeed =
                     (isRunning ? runSpeed : walkSpeed) *
                     move.magnitude *
@@ -554,7 +583,8 @@ namespace Racoon.Player
                 if (upperBodyAction) targetSpeed *= punchMoveMultiplier;
                 else if (IsInAction) targetSpeed *= actionMoveMultiplier;
                 else if (IsChargeSlowing) targetSpeed *= chargeMoveMultiplier;
-                desiredVelocity = desiredDirection * targetSpeed;
+                else if (aimingItem) targetSpeed *= aimMoveMultiplier;
+                desiredVelocity = moveDirection * targetSpeed;
             }
 
             if (!IsInAction && !itemRecoveryRequired)
@@ -563,6 +593,16 @@ namespace Racoon.Player
 
         void UpdateStamina(bool isRunning, float dt)
         {
+            // Bebida energética: estamina infinita, siempre llena.
+            if (infiniteDashActive)
+            {
+                stamina = maxStamina;
+                exhausted = false;
+                staminaRegenTimer = 0f;
+                staminaNormalized.Value = 1f;
+                return;
+            }
+
             if (isRunning)
             {
                 SpendStamina(staminaDrainPerSecond * dt);
@@ -588,12 +628,12 @@ namespace Racoon.Player
         /// <summary>Coste de estamina (fracción de la máxima) ya multiplicado por el peso de la bolsa.</summary>
         float StaminaCost(float fraction) => fraction * maxStamina * WeightLerp(fullBagStaminaCostMultiplier);
 
-        bool HasStaminaFor(float cost) => cost <= 0f || (!exhausted && stamina >= cost);
+        bool HasStaminaFor(float cost) => cost <= 0f || infiniteDashActive || (!exhausted && stamina >= cost);
 
         /// <summary>Gasta estamina (con el multiplicador del peso), retrasa la regeneración y agota al llegar a 0.</summary>
         void SpendStamina(float amount)
         {
-            if (amount <= 0f) return;
+            if (amount <= 0f || infiniteDashActive) return;
             stamina -= amount * WeightLerp(fullBagStaminaCostMultiplier);
             staminaRegenTimer = staminaRegenDelay;
             if (stamina <= 0f)
@@ -713,16 +753,19 @@ namespace Racoon.Player
             if (IsInAction || itemRecoveryRequired || !inventory.HasEquipped)
             {
                 aimingItem = false;
+                aimingBehind = false;
                 return;
             }
 
             // Un toque rápido lo usa al instante (al frame siguiente de soltar).
             if (input.UseHeld) return;
 
+            bool dropBehind = aimingBehind;
             aimingItem = false;
+            aimingBehind = false;
             CancelRecoveryInvulnerability();
             StartAction(PlayerState.UseItem, useItemDuration);
-            UseItemRpc();
+            UseItemRpc(dropBehind);
         }
 
         void UpdateInvulnerability()
@@ -1085,6 +1128,14 @@ namespace Racoon.Player
 
             if (inventory.HasEquipped)
             {
+                // Ahora no se puede usar (otra bebida con la primera activa): no se apunta ni se gasta, se avisa.
+                ItemData equipped = inventory.EquippedItem;
+                if (equipped != null && !equipped.CanUse(this))
+                {
+                    ItemUseRefused?.Invoke(equipped);
+                    return;
+                }
+
                 // Mientras mantiene se ve la flecha (PlayerItemHandler); el objeto se usa al soltar (UpdateItemAim).
                 aimingItem = true;
             }
@@ -1236,14 +1287,25 @@ namespace Racoon.Player
         void SwitchItemRpc() => inventory.ServerTrySwitch();
 
         [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Owner)]
-        void UseItemRpc()
+        void UseItemRpc(bool dropBehind)
         {
+            // El dueño ya lo comprueba; esto es por si llega justo al acabar (no se gasta).
+            ItemData equipped = inventory.EquippedItem;
+            if (equipped != null && !equipped.CanUse(this))
+            {
+                ItemUseRefusedRpc(inventory.Database.GetId(equipped));
+                return;
+            }
+
             ItemData item = inventory.ServerConsumeEquipped();
             if (item == null) return;
 
-            item.ServerUse(this);
+            item.ServerUse(this, dropBehind);
             ItemUsedRpc(inventory.Database.GetId(item));
         }
+
+        [Rpc(SendTo.Owner, InvokePermission = RpcInvokePermission.Server)]
+        void ItemUseRefusedRpc(int itemId) => ItemUseRefused?.Invoke(inventory.Database.Get(itemId));
 
         [Rpc(SendTo.Everyone, InvokePermission = RpcInvokePermission.Server)]
         void ItemUsedRpc(int itemId)
@@ -1263,18 +1325,48 @@ namespace Racoon.Player
             lastPunchCheckTime = Time.time;
             lastPunchConnected = false;
             int count = Physics.OverlapSphereNonAlloc(PunchCenter, punchRadius, overlapBuffer, hitMask, QueryTriggerInteraction.Ignore);
+            bool playerChecked = false, bananaKicked = false;
 
             for (int i = 0; i < count; i++)
             {
+                // Un plátano en el suelo al alcance: sale volando (como mucho uno por golpe).
+                if (!bananaKicked)
+                {
+                    BananaTrap banana = overlapBuffer[i].GetComponentInParent<BananaTrap>();
+                    if (banana != null && banana.IsSpawned)
+                    {
+                        bananaKicked = true;
+                        KickBananaRpc(banana.NetworkObject);
+                        continue;
+                    }
+                }
+
+                if (playerChecked) continue;
                 PlayerController victim = overlapBuffer[i].GetComponentInParent<PlayerController>();
                 if (victim == null || victim == this) continue;
+                playerChecked = true;
 
                 // Lo esquivó con un dash: no gastamos un RPC.
-                if (victim.IsInvulnerable) return;
+                if (victim.IsInvulnerable) continue;
                 lastPunchConnected = true;
                 PunchHitRpc(victim.NetworkObject, releasedPunchCharged);
-                return;
             }
+        }
+
+        [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Owner)]
+        void KickBananaRpc(NetworkObjectReference bananaReference)
+        {
+            if (!bananaReference.TryGet(out NetworkObject bananaObject) ||
+                !bananaObject.TryGetComponent(out BananaTrap banana))
+                return;
+
+            // Mismo margen que el golpe a un jugador.
+            Vector3 toBanana = banana.transform.position - transform.position;
+            toBanana.y = 0f;
+            float maxDistance = punchRange + punchRadius + hitValidationTolerance;
+            if (toBanana.magnitude > maxDistance) return;
+
+            banana.ServerKick(Vector3.ProjectOnPlane(transform.forward, Vector3.up).normalized, this);
         }
 
         [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Owner)]
@@ -1372,8 +1464,9 @@ namespace Racoon.Player
         }
 
         /// <summary>
-        /// Solo servidor. Bebida energética: durante <paramref name="duration"/> segundos el dash no tiene
-        /// cooldown ni gasta estamina. Si ya estaba activa, se renueva.
+        /// Solo servidor. Bebida energética: durante <paramref name="duration"/> segundos la estamina es infinita
+        /// (correr, dash y puñetazos no gastan) y el dash no tiene cooldown. No se puede tomar otra mientras dura
+        /// (EnergyDrinkEffect.CanUse); si aun así llega, se renueva.
         /// </summary>
         public void ServerApplyEnergyDrink(float duration)
         {
@@ -1385,6 +1478,7 @@ namespace Racoon.Player
 
             if (duration <= 0f) return;
 
+            serverEnergyEndTime = Mathf.Max(serverEnergyEndTime, Time.time + duration);
             EnergyDrinkRpc(duration);
         }
 
@@ -1393,6 +1487,7 @@ namespace Racoon.Player
         {
             infiniteDashActive = true;
             infiniteDashTimer = Mathf.Max(infiniteDashTimer, duration);
+            infiniteDashDuration = Mathf.Max(infiniteDashTimer, 0.01f);
             dashCooldownTimer = 0f;
         }
 

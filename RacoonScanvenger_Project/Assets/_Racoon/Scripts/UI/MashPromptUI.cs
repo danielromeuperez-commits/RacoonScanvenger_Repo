@@ -70,6 +70,12 @@ namespace Racoon.UI
         [SerializeField] float fallbackHeadHeight = 1.2f;
         [Tooltip("Margen con los bordes de la pantalla (px).")]
         [SerializeField] float screenMargin = 170f;
+        [Tooltip("Zona de arriba en el centro que no se pisa (el panel del tiempo), en px a 2560×1440: ancho y alto.")]
+        [SerializeField] Vector2 keepOutTop = new(560f, 320f);
+        [Tooltip("Cuánto ocupa el aviso desde su centro (px): medio ancho y lo que sube el rótulo.")]
+        [SerializeField] Vector2 promptExtents = new(190f, 280f);
+        [Tooltip("Si encima de la cabeza pisaría el tiempo, se pone debajo: desplazamiento desde la cabeza (px).")]
+        [SerializeField] Vector2 belowOffset = new(0f, -230f);
 
         Canvas canvas;
         RectTransform canvasRect, glyphRect, burstRect, labelRect;
@@ -84,7 +90,7 @@ namespace Racoon.UI
         Color burstColor;
 
         float showTime = -1f, hideTime = -1f, lastMash = -10f, punch, shownFill;
-        bool visible;
+        bool visible, placedBelow;
 
         void Awake()
         {
@@ -169,6 +175,10 @@ namespace Racoon.UI
                 labelText.player = 0;
                 if (vfx != null) labelText.colorJugador = vfx.WindTint;
             }
+
+            // Delante del HUD (el tiempo, los retratos...), lo hayan montado con el orden que sea.
+            if (canvas.worldCamera == null) canvas.worldCamera = Camera.main;
+            CanvasLayering.BringToFront(canvas);
 
             content.gameObject.SetActive(true);
             visible = true;
@@ -280,12 +290,22 @@ namespace Racoon.UI
             Vector3 screen = cam.WorldToScreenPoint(world);
             if (screen.z < 0f) return;
             if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(canvasRect, screen, cam, out Vector2 local)) return;
-            // Sin salirse de la pantalla.
             Vector2 half = canvasRect.rect.size * 0.5f;
-            Vector2 target = local + screenOffset;
-            content.anchoredPosition = new Vector2(
-                Mathf.Clamp(target.x, -half.x + screenMargin, half.x - screenMargin),
-                Mathf.Clamp(target.y, -half.y + screenMargin, half.y - screenMargin - 120f));
+            Vector2 target = Clamp(local + screenOffset, half);
+            // Encima de la cabeza pisaría el panel del tiempo: debajo de la cabeza. Para volver arriba pide algo de
+            // holgura, así no salta de un lado a otro en el borde.
+            placedBelow = OverlapsKeepOut(target, half, placedBelow ? 60f : 0f);
+            if (placedBelow) target = Clamp(local + belowOffset, half);
+            content.anchoredPosition = target;
         }
+
+        // Sin salirse de la pantalla.
+        Vector2 Clamp(Vector2 target, Vector2 half) => new(
+            Mathf.Clamp(target.x, -half.x + screenMargin, half.x - screenMargin),
+            Mathf.Clamp(target.y, -half.y + screenMargin, half.y - screenMargin - 120f));
+
+        bool OverlapsKeepOut(Vector2 position, Vector2 half, float slack) =>
+            Mathf.Abs(position.x) < keepOutTop.x * 0.5f + promptExtents.x + slack &&
+            position.y + promptExtents.y > half.y - keepOutTop.y - slack;
     }
 }

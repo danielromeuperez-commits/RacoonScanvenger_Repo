@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Racoon.Feedback;
 using Racoon.Gameplay;
 using Racoon.Items;
 using Racoon.Network;
@@ -60,6 +61,8 @@ namespace Racoon.UI.HUD
         readonly HUDPlayerPresenter[] presenters = new HUDPlayerPresenter[2];
         readonly MatchStandings.Standing[] bound = new MatchStandings.Standing[2];
         readonly Action[] inventoryHandlers = new Action[2];
+        // Pulsar Usar salta la ruleta de ítems (solo el jugador local)
+        readonly Action[] skipHandlers = new Action[2];
         readonly List<ItemData> itemPool = new();
         // Reacciones del retrato a lo que le pasa a cada jugador (solo en las variantes con HUDView.reactions)
         readonly Action<PlayerState>[] actionHandlers = new Action<PlayerState>[2];
@@ -110,6 +113,12 @@ namespace Racoon.UI.HUD
                     ShowBag = showBag,
                 };
                 inventoryHandlers[i] = () => SyncItems(index, true);
+                skipHandlers[i] = () => presenters[index].SkipRoulette();
+                // Al pararse la ruleta vibra el mando de ese jugador (PlayerRumble ignora a los rivales)
+                presenters[i].RouletteStopped += () =>
+                {
+                    if (bound[index] != null) PlayerRumble.Rumble(bound[index].Controller, .15f, .35f, .1f);
+                };
                 actionHandlers[i] = state => OnAction(index, state);
                 stateHandlers[i] = (_, state) => OnState(index, state);
                 presenters[i].ResetView();
@@ -259,6 +268,7 @@ namespace Racoon.UI.HUD
             {
                 previous.Controller.ActionStarted -= actionHandlers[index];
                 previous.Controller.StateChanged -= stateHandlers[index];
+                if (previous.Controller.InputHandler) previous.Controller.InputHandler.UsePressed -= skipHandlers[index];
             }
             bound[index] = null;
         }
@@ -294,6 +304,9 @@ namespace Racoon.UI.HUD
             {
                 standing.Controller.ActionStarted += actionHandlers[index];
                 standing.Controller.StateChanged += stateHandlers[index];
+                // Solo el jugador de esta máquina puede saltarse su ruleta pulsando Usar
+                if (standing.Controller.IsOwner && standing.Controller.InputHandler)
+                    standing.Controller.InputHandler.UsePressed += skipHandlers[index];
                 OnState(index, standing.Controller.State);
             }
         }

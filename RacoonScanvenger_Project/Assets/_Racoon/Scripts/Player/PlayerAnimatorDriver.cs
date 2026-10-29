@@ -58,9 +58,6 @@ namespace Racoon.Player
         [SerializeField] string bigSackBlendShape = "Saco_Grande";
         [Tooltip("Segundos que tarda el saco (y la cola) en adaptarse al nuevo peso.")]
         [SerializeField] float sackSmoothTime = 0.25f;
-        [Tooltip("Cuánto peso de más (sobre el BagFullWeight de PlayerLoot) hace falta para que el saco se vea lleno del todo. " +
-                 "Solo es visual: la velocidad sigue usando el peso normal.")]
-        [SerializeField, Min(1f)] float sackFullWeightScale = 1.6f;
         [Tooltip("Curva del llenado: >1 hace que el saco crezca despacio al principio y llegue al tope más tarde.")]
         [SerializeField, Min(0.1f)] float sackFillExponent = 1.3f;
 
@@ -134,7 +131,8 @@ namespace Racoon.Player
         void OnDisable() => controller.ActionStarted -= OnActionStarted;
 
         float TargetSackSize => loot != null
-            ? Mathf.Pow(Mathf.Clamp01(loot.CarriedWeight / (loot.BagFullWeight * sackFullWeightScale)), sackFillExponent)
+            // Lleno del todo con la bolsa llena (BagCapacity de PlayerLoot), no con el peso máximo, que llega antes.
+            ? Mathf.Pow(loot.BagFillNormalized, sackFillExponent)
             : 0f;
 
         void OnActionStarted(PlayerState action)

@@ -141,6 +141,7 @@ MonoBehaviour:
   bobHeight: 0.25
   bobSpeed: 0.75
   pickupCollider: {fileID: 0}
+  flatMaterial: {fileID: 2100000, guid: 9e4a6c8d0f2b43c5d7e9f1a3b5c7d9e1, type: 2}
   messageDuration: 0
 --- !u!65 &8089548820868798428
 BoxCollider:

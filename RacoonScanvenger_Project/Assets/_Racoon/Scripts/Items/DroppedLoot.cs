@@ -99,7 +99,12 @@ namespace Racoon.Items
             if (loot == null) return;
             if (loot == droppedBy && age < dropperPickupDelay) return;
 
-            if (!loot.ServerAddLoot(points, weight)) return;
+            // Lo que no cabe en la bolsa se queda en el suelo para otro (o para cuando venda).
+            int accepted = loot.ServerAddLootUpTo(points, weight);
+            if (accepted <= 0) return;
+            weight -= weight * accepted / points;
+            points -= accepted;
+            if (points > 0) return;
 
             consumed = true;
             ServerRemove();

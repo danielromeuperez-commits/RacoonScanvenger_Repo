@@ -167,7 +167,7 @@ namespace Racoon.EditorTools
             }
         }
 
-        static RectTransform Rect(string name, Transform parent, Vector2 position, Vector2 size)
+        internal static RectTransform Rect(string name, Transform parent, Vector2 position, Vector2 size)
         {
             var go = new GameObject(name, typeof(RectTransform)) { layer = UILayer };
             var rect = (RectTransform)go.transform;
@@ -178,7 +178,7 @@ namespace Racoon.EditorTools
             return rect;
         }
 
-        static Image Picture(string name, Transform parent, string sprite, float size)
+        internal static Image Picture(string name, Transform parent, string sprite, float size)
         {
             RectTransform rect = Rect(name, parent, Vector2.zero, new Vector2(size, size));
             var image = rect.gameObject.AddComponent<Image>();
