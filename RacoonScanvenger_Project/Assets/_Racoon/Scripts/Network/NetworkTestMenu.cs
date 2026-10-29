@@ -38,6 +38,8 @@ namespace Racoon.Network
         [Tooltip("Escala de la UI. 0 = automática según la altura de la pantalla.")]
         [SerializeField, Min(0f)] float uiScale;
         [SerializeField] bool startMinimized;
+        [Tooltip("Si la escena tiene lobby (CharacterLobbyManager + ConnectionMenu), empieza oculto para no tapar el menú real. F1 lo muestra.")]
+        [SerializeField] bool hideWhenLobbyPresent = true;
         [SerializeField] KeyCode toggleKey = KeyCode.F1;
 
         NetworkManager networkManager;
@@ -80,6 +82,11 @@ namespace Racoon.Network
             networkManager.OnClientStopped += OnClientStopped;
         }
 
+        void Start()
+        {
+            if (hideWhenLobbyPresent && CharacterLobbyManager.Current != null) hidden = true;
+        }
+
         void OnDestroy()
         {
             if (networkManager != null)
@@ -111,10 +118,45 @@ namespace Racoon.Network
 
         int MaxPlayers => spawnManager.MaxPlayers;
 
+        // Información pública para nuestra nueva UI.
+        public int MaxPlayerCount => MaxPlayers;
+
+        public int ConnectedPlayerCount =>
+            networkManager != null && networkManager.IsListening
+                ? networkManager.ConnectedClientsIds.Count
+                : 0;
+
+        public string LocalIPAddress =>
+            string.IsNullOrEmpty(localAddresses)
+                ? "---"
+                : localAddresses;
+
+        public bool IsNetworkListening =>
+            networkManager != null && networkManager.IsListening;
+
+        /// <summary>Último mensaje de estado o error (el mismo que enseña la ventana de pruebas).</summary>
+        public string Status => status;
+        /// <summary>Hay una operación online en marcha (crear, unirse, buscar, salir).</summary>
+        public bool IsBusy => busy;
+        public bool InOnlineSession => session != null;
+        public string SessionCode => session?.Code;
+        public string SessionName => session?.Name;
+
+        public void SetJoinCode(string code) => joinCode = code ?? "";
+
+        /// <summary>Crea una partida online (Relay) con el nombre por defecto. El código sale en <see cref="SessionCode"/>.</summary>
+        public void CreateOnlineGame() => StartOnlineHost();
+
+        /// <summary>Se une a una partida online con el código puesto en <see cref="SetJoinCode"/>.</summary>
+        public void JoinOnlineGame() => JoinOnline();
+
+        /// <summary>Sale de la partida (local u online) y apaga la red.</summary>
+        public void LeaveGame() => Disconnect();
+
         // El personaje elegido viaja al host dentro de los datos de conexión.
         void ApplySelection() => spawnManager.SetLocalSelection(selectedCharacter);
 
-        void StartLocalHost()
+        public void StartLocalHost()
         {
             ApplySelection();
             // 0.0.0.0 = acepta conexiones de este PC y de otros de la misma red.
@@ -131,7 +173,7 @@ namespace Racoon.Network
             }
         }
 
-        void StartLocalClient()
+        public void StartLocalClient()
         {
             string address = joinAddress.Trim();
             if (!IPAddress.TryParse(address, out _))
@@ -151,6 +193,11 @@ namespace Racoon.Network
             {
                 status = "No se pudo iniciar el cliente.";
             }
+        }
+
+        public void SetJoinAddress(string address)
+        {
+            joinAddress = address;
         }
 
         // Si el host rechaza al cliente con "NetworkConfig mismatch", compara esta línea en las dos consolas:

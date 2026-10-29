@@ -74,6 +74,9 @@ namespace Racoon.Player
         [SerializeField] SwingVFX swing;
         [SerializeField] DizzyStarsVFX dizzyStars;
         [SerializeField] KnockbackDustVFX knockbackDust;
+        [Tooltip("Carga del puñetazo potente: VFX_ChargePunch, hijo de la mano derecha (DEF-hand.R). " +
+                 "Lo monta Racoon > VFX > Montar carga del puñetazo en la mano.")]
+        [SerializeField] ChargeVFX charge;
 
         [Header("Cansancio")]
         [Tooltip("Vacío = el primero que haya en los hijos del jugador.")]
@@ -113,6 +116,7 @@ namespace Racoon.Player
                 FindOwn(ref dizzyStars);
                 FindOwn(ref knockbackDust);
                 FindOwn(ref tired);
+                FindOwn(ref charge);
             }
             if (windTrails != null) windTrails.SetPlayerTint(windTint);
             if (impact != null) impact.PlayerColor = windTint;
@@ -142,6 +146,7 @@ namespace Racoon.Player
             controller.onDash.AddListener(OnDash);
             controller.StateChanged += OnStateChanged;
             controller.ActionStarted += OnActionStarted;
+            controller.ChargingPunchChanged += OnChargingPunchChanged;
             UpdateStateVFX(controller.State);
         }
 
@@ -154,7 +159,9 @@ namespace Racoon.Player
                 controller.onDash.RemoveListener(OnDash);
                 controller.StateChanged -= OnStateChanged;
                 controller.ActionStarted -= OnActionStarted;
+                controller.ChargingPunchChanged -= OnChargingPunchChanged;
             }
+            if (charge != null) charge.End();
             StopBlink();
             if (tired != null) tired.Tired = false;
         }
@@ -237,12 +244,22 @@ namespace Racoon.Player
 
         void OnActionStarted(PlayerState action)
         {
-            if (action == PlayerState.Punch && swing != null) swing.Play();
+            if (action == PlayerState.Punch && swing != null) swing.Play(controller.IsChargedPunch);
+        }
+
+        // Se replica al pasar el toque (un puñetazo rápido no lo enciende): queda lo que falta hasta la carga completa.
+        void OnChargingPunchChanged(bool charging)
+        {
+            if (charge == null) return;
+            if (charging) charge.Begin(controller.PunchChargeTime - controller.PunchChargeThreshold);
+            else charge.End();
         }
 
         void UpdateStateVFX(PlayerState state)
         {
-            if (windTrails != null)
+            // Las acciones de tren superior (puñetazo, coger, lanzar) no cortan el viento de la carrera.
+            bool upperBody = state == PlayerState.Punch || state == PlayerState.Interact || state == PlayerState.UseItem;
+            if (windTrails != null && !upperBody)
             {
                 windTrails.SetMode(state switch
                 {
@@ -288,7 +305,8 @@ namespace Racoon.Player
                 // Impact frames: también se congela quien golpea, y su color vale para el destello.
                 Animator attackerAnimator = attacker != null ? attacker.GetComponentInChildren<Animator>() : null;
                 PlayerVFX attackerVfx = attacker != null ? attacker.GetComponentInChildren<PlayerVFX>() : null;
-                impact.PlayTowards(-away, heavy, attackerAnimator, attackerVfx != null ? attackerVfx.WindTint : windTint);
+                impact.PlayTowards(-away, heavy, attackerAnimator, attackerVfx != null ? attackerVfx.WindTint : windTint,
+                    controller.LastHitWasCharged);
             }
             if (knockbackDust != null) knockbackDust.Play(away, heavy, stunDuration);
         }

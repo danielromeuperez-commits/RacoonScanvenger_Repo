@@ -17,7 +17,7 @@ namespace Racoon.VFX
     ///  - Relámpagos: rayos en zigzag que chispean hacia fuera y esquirlas que saltan con gravedad.
     /// Golpe fuerte: más grande y lento, pinchos de acento y estrellas que salen volando.
     /// Todo tiene volumen (SG_VFX_ToonVolume): luz y sombra en dos tonos, brillo especular, luz de borde y contorno.
-    /// Acompaña al golpeado cuando sale despedido (followTarget).
+    /// Se queda pegado al punto de la malla donde entró (aunque se anime o salga despedido; followTarget).
     ///
     /// Montaje: hijo del personaje a la altura del pecho (es el centro hacia el que se lanza el rayo). Lo lanza
     /// PlayerVFX con <see cref="PlayTowards"/> en todos los clientes.
@@ -91,19 +91,31 @@ namespace Racoon.VFX
         [SerializeField] Color starShadow = new(1f, 0.72f, 0.55f);
         [SerializeField] Color starOutline = new(0.28f, 0.11f, 0.03f);
 
+        [Header("Golpe cargado (naranja, como su tajo)")]
+        [SerializeField] Color chargedCoreColor = new(1f, 0.86f, 0.62f);
+        [SerializeField] Color chargedCoreTipColor = new(1f, 0.5f, 0.1f);
+        [SerializeField] Color chargedSpikeColor = new(1f, 0.74f, 0.4f);
+        [SerializeField] Color chargedSpikeTipColor = new(1f, 0.38f, 0.05f);
+        [SerializeField] Color chargedAccentColor = new(1f, 0.58f, 0.22f);
+        [SerializeField] Color chargedOutlineColor = new(0.66f, 0.22f, 0.04f);
+        [SerializeField] Color chargedStarColor = new(1f, 0.66f, 0.22f);
+        [SerializeField] Color chargedStarTipColor = new(1f, 0.36f, 0.06f);
+        [Tooltip("Multiplica el tamaño del impacto cargado.")]
+        [SerializeField] float chargedSizeMultiplier = 1.2f;
+
         [Header("Tamaño y ritmo")]
         [Tooltip("Tamaño (metros) del impacto del golpe ligero / fuerte.")]
         [SerializeField] Vector2 size = new(0.55f, 0.85f);
-        [Tooltip("Cuánto acompaña el impacto al golpeado al salir despedido (0 = se queda donde fue el golpe, 1 = pegado a él).")]
-        [SerializeField, Range(0f, 1f)] float followTarget = 0.8f;
+        [Tooltip("Cuánto se queda pegado al punto de la malla donde entró el golpe, aunque se anime o salga despedido (0 = se queda en el aire donde fue el golpe, 1 = pegado).")]
+        [SerializeField, Range(0f, 1f)] float followTarget = 1f;
         [Tooltip("Variación del punto de entrada entre golpes (metros: a los lados, en altura), para que cada golpe del combo entre por un sitio. El fuerte, más centrado.")]
         [SerializeField] Vector2 hitScatter = new(0.1f, 0.12f);
         [Tooltip("Sacudida del impacto al nacer (metros, por tamaño 1).")]
         [SerializeField] float shake = 0.05f;
         [Tooltip("Segundos que tarda cada pieza en crecer desde el punto del impacto hasta su tamaño.")]
         [SerializeField] float birthTime = 0.07f;
-        [Tooltip("Distancia (metros) por fuera de la superficie a la que nace: para que no se meta en la malla.")]
-        [SerializeField] float surfaceOffset = 0.03f;
+        [Tooltip("Distancia (metros) a la superficie a la que nace (0 = pegado; negativo = un poco hundido en la malla).")]
+        [SerializeField, Range(-0.05f, 0.1f)] float surfaceOffset = 0f;
         [Tooltip("Multiplica la duración de todo (1 = normal; menos = más seco; más = más lento).")]
         [SerializeField] float timeScale = 1f;
         [Tooltip("Golpes a la vez como máximo.")]
@@ -141,10 +153,17 @@ namespace Racoon.VFX
             public Vector3[] starVelocity;
             public float[] starSpin;
             public Style style;
-            public Vector3 point, targetStart, coreAxis, shakeDir;
+            public Vector3 point, coreAxis, shakeDir;
+            public Quaternion rotation;
+            // Seguir a la malla.
+            public CharacterSurface.Anchor anchor;
+            public Vector3 normalStart, localPoint;
+            public Quaternion localRotation;
             public float time = -1f;
             public float scale, roll;
             public bool heavy;
+            // Colores puestos ahora mismo (para no repintar si no cambia).
+            public bool charged;
         }
 
         /// <summary>Color del jugador (lo pone PlayerVFX): destello "Color del golpeado".</summary>
@@ -223,7 +242,9 @@ namespace Racoon.VFX
         /// en la malla y lanza el impacto ahí, con sus impact frames (<paramref name="attackerAnimator"/> también se
         /// congela; <paramref name="attackerColor"/> es el color del destello "Color de quien golpea").
         /// </summary>
-        public void PlayTowards(Vector3 towardAttacker, bool heavy, Animator attackerAnimator = null, Color? attackerColor = null)
+        /// <param name="charged">Puñetazo cargado: el impacto sale naranja (charged*) y algo más grande.</param>
+        public void PlayTowards(Vector3 towardAttacker, bool heavy, Animator attackerAnimator = null, Color? attackerColor = null,
+                                bool charged = false)
         {
             if (bursts == null) return;
             StartImpactFrames(heavy, attackerAnimator, attackerColor ?? PlayerColor);
@@ -236,18 +257,24 @@ namespace Racoon.VFX
             Vector3 target = transform.position
                 + side * (Random.Range(-1f, 1f) * hitScatter.x * scatter)
                 + Vector3.up * (Random.Range(-1f, 1f) * hitScatter.y * scatter);
-            surface.FindEntry(target + towardAttacker * RayStart, -towardAttacker, RayStart * 2f, out Vector3 point, out Vector3 normal);
-            Play(point, normal, towardAttacker, heavy);
+            surface.FindEntry(target + towardAttacker * RayStart, -towardAttacker, RayStart * 2f, out Vector3 point, out Vector3 normal,
+                out CharacterSurface.Anchor anchor);
+            Play(point, normal, towardAttacker, heavy, anchor, charged);
         }
 
-        /// <summary>Impacto en <paramref name="point"/> de la superficie, saliendo hacia <paramref name="normal"/>.</summary>
-        public void Play(Vector3 point, Vector3 normal, Vector3 towardAttacker, bool heavy)
+        /// <summary>
+        /// Impacto en <paramref name="point"/> de la superficie, saliendo hacia <paramref name="normal"/>. Con
+        /// <paramref name="anchor"/> se queda pegado a ese punto de la malla aunque se anime.
+        /// </summary>
+        public void Play(Vector3 point, Vector3 normal, Vector3 towardAttacker, bool heavy, CharacterSurface.Anchor? anchor = null,
+                         bool charged = false)
         {
             if (bursts == null) return;
 
             Burst burst = bursts[next];
             next = (next + 1) % bursts.Length;
             Hide(burst);
+            Recolor(burst, charged);
 
             // Entre la normal de la malla y la dirección del golpe: así no sale torcido si toca una oreja o un brazo.
             Vector3 axis = (normal.normalized + towardAttacker.normalized).normalized;
@@ -256,12 +283,16 @@ namespace Racoon.VFX
             burst.style = style;
             burst.time = 0f;
             burst.heavy = heavy;
-            burst.scale = heavy ? size.y : size.x;
+            burst.scale = (heavy ? size.y : size.x) * (charged ? chargedSizeMultiplier : 1f);
             burst.point = point + axis * surfaceOffset;
-            burst.targetStart = character.position;
             burst.roll = Random.Range(0f, 360f);
-            burst.root.SetPositionAndRotation(burst.point,
-                Quaternion.LookRotation(axis, Mathf.Abs(axis.y) > 0.95f ? Vector3.forward : Vector3.up) * Quaternion.Euler(0f, 0f, burst.roll));
+            burst.rotation = Quaternion.LookRotation(axis, Mathf.Abs(axis.y) > 0.95f ? Vector3.forward : Vector3.up) * Quaternion.Euler(0f, 0f, burst.roll);
+            burst.root.SetPositionAndRotation(burst.point, burst.rotation);
+            // Para seguir a la malla: el punto de la malla y su normal ahora, o (sin malla) en el espacio del personaje.
+            burst.anchor = anchor ?? CharacterSurface.Anchor.None;
+            burst.normalStart = normal.normalized;
+            burst.localPoint = character.InverseTransformPoint(burst.point);
+            burst.localRotation = Quaternion.Inverse(character.rotation) * burst.rotation;
             // La sacudida va en la dirección del golpe (hacia dentro y fuera), con algo de lado.
             burst.shakeDir = (-axis + Random.insideUnitSphere * 0.5f).normalized;
 
@@ -301,6 +332,9 @@ namespace Racoon.VFX
 
         [VfxTest("Test golpe fuerte")]
         void TestHeavy() => PlayTowards(TowardCamera(), true);
+
+        [VfxTest("Test golpe cargado (naranja)")]
+        void TestCharged() => PlayTowards(TowardCamera(), true, null, null, true);
 
         [VfxTest("Variante A · Estallido")]
         void TestBurst() => TestStyle(Style.Burst);
@@ -346,10 +380,29 @@ namespace Racoon.VFX
                 // Sacudida seca que se apaga enseguida (va y viene).
                 float t = burst.time;
                 float jolt = Mathf.Sin(t * 110f) * (1f - FlatFx.Phase(t, 0f, burst.heavy ? 0.14f : 0.09f));
-                burst.root.position = burst.point + (character.position - burst.targetStart) * followTarget
-                    + burst.shakeDir * (shake * burst.scale * jolt);
+                Follow(burst, out Vector3 position, out Quaternion rotation);
+                burst.root.SetPositionAndRotation(position + burst.shakeDir * (shake * burst.scale * jolt), rotation);
                 Animate(burst, dt);
             }
+        }
+
+        // Pegado al punto de la malla donde entró el golpe (sigue a la malla animada y al golpeado al salir despedido),
+        // mezclado con quedarse donde fue el golpe según followTarget.
+        void Follow(Burst b, out Vector3 position, out Quaternion rotation)
+        {
+            if (b.anchor.Valid && surface.Evaluate(b.anchor, out Vector3 point, out Vector3 normal))
+            {
+                // Gira lo que haya girado la superficie desde el golpe.
+                rotation = Quaternion.FromToRotation(b.normalStart, normal) * b.rotation;
+                position = point + rotation * Vector3.forward * surfaceOffset;
+            }
+            else
+            {
+                position = character.TransformPoint(b.localPoint);
+                rotation = character.rotation * b.localRotation;
+            }
+            position = Vector3.Lerp(b.point, position, followTarget);
+            rotation = Quaternion.Slerp(b.rotation, rotation, followTarget);
         }
 
         void Animate(Burst b, float dt)
@@ -572,6 +625,25 @@ namespace Racoon.VFX
             if (visible) piece.Transform.localScale = scale;
         }
 
+        // Paleta normal o la naranja del golpe cargado (las piezas se comparten entre los dos).
+        void Recolor(Burst b, bool charged)
+        {
+            if (b.charged == charged) return;
+            b.charged = charged;
+            Color core = charged ? chargedCoreColor : coreColor, coreTip = charged ? chargedCoreTipColor : coreTipColor;
+            Color spike = charged ? chargedSpikeColor : spikeColor, tip = charged ? chargedSpikeTipColor : spikeTipColor;
+            Color accent = charged ? chargedAccentColor : accentColor, outline = charged ? chargedOutlineColor : outlineColor;
+
+            b.core?.Colors(core, coreTip, outline);
+            foreach (FlatPiece piece in new[] { b.needles, b.crown, b.lances, b.bolts }) piece?.Colors(spike, tip, outline);
+            foreach (FlatPiece piece in new[] { b.needlesAccent, b.crownAccent, b.boltsAccent }) piece?.Colors(accent, tip, outline);
+            if (b.shards != null)
+                for (int i = 0; i < b.shards.Length; i++) b.shards[i].Colors(i % 2 == 0 ? spike : accent, tip, outline);
+            if (b.stars != null)
+                foreach (FlatPiece star in b.stars)
+                    star.Colors(charged ? chargedStarColor : starColor, charged ? chargedStarTipColor : starTipColor, starOutline);
+        }
+
         static void Hide(Burst burst)
         {
             burst.time = -1f;
@@ -584,36 +656,37 @@ namespace Racoon.VFX
         {
             int seed = 101 + index * 37;
             Burst b = new();
-            // Fuera del personaje: el impacto se mueve por su cuenta (followTarget).
+            // Fuera del personaje: se pega a su malla por código (followTarget).
             b.root = new GameObject($"Impact_{character.name}_{index}").transform;
 
             b.core = Volume("Core", coreMesh, coreColor, coreTipColor);
 
+            // Todo nace a ras de la superficie (sin distancia hacia fuera), alrededor del hueco.
             // A · Estallido: agujas finas (en punta desde la base) por casi media esfera.
             b.needles = Volume("Needles",
-                FlatMeshes.Spikes(seed, 13, 12f, 70f, 0.05f, new Vector2(0.5f, 1f), new Vector2(0.045f, 0.065f), 0.035f, 0.1f, 1f, 4, false, hollow),
+                FlatMeshes.Spikes(seed, 13, 12f, 70f, 0f, new Vector2(0.5f, 1f), new Vector2(0.045f, 0.065f), 0.035f, 0.1f, 1f, 4, false, hollow),
                 spikeColor, spikeTipColor).Spread(0.35f);
             b.needlesAccent = Volume("NeedlesAccent",
-                FlatMeshes.Spikes(seed + 1, 9, 25f, 85f, 0.08f, new Vector2(0.45f, 0.8f), new Vector2(0.04f, 0.055f), 0.035f, 0.1f, 1f, 4, false, hollow),
+                FlatMeshes.Spikes(seed + 1, 9, 25f, 85f, 0.01f, new Vector2(0.45f, 0.8f), new Vector2(0.04f, 0.055f), 0.035f, 0.1f, 1f, 4, false, hollow),
                 accentColor, spikeTipColor).Spread(0.35f);
 
             // B · Estrella: corona de cuchillas planas casi tumbadas (una larga, otra corta) y lanzas hacia fuera.
             b.crown = Volume("Crown",
-                FlatMeshes.Spikes(seed + 2, 10, 58f, 80f, 0.07f, new Vector2(0.85f, 1f), new Vector2(0.1f, 0.12f), 0.035f, 0.16f, 0.45f, 4, true, hollow),
+                FlatMeshes.Spikes(seed + 2, 10, 58f, 80f, 0f, new Vector2(0.85f, 1f), new Vector2(0.1f, 0.12f), 0.035f, 0.16f, 0.45f, 4, true, hollow),
                 spikeColor, spikeTipColor);
             b.crownAccent = Volume("CrownAccent",
-                FlatMeshes.Spikes(seed + 3, 8, 65f, 85f, 0.09f, new Vector2(0.8f, 1f), new Vector2(0.085f, 0.1f), 0.035f, 0.16f, 0.45f, 4, true, hollow),
+                FlatMeshes.Spikes(seed + 3, 8, 65f, 85f, 0.01f, new Vector2(0.8f, 1f), new Vector2(0.085f, 0.1f), 0.035f, 0.16f, 0.45f, 4, true, hollow),
                 accentColor, spikeTipColor);
             b.lances = Volume("Lances",
-                FlatMeshes.Spikes(seed + 4, 3, 0f, 18f, 0.04f, new Vector2(0.95f, 1.2f), new Vector2(0.05f, 0.06f), 0.035f, 0.12f, 1f, 4, false, hollow),
+                FlatMeshes.Spikes(seed + 4, 3, 0f, 18f, 0f, new Vector2(0.95f, 1.2f), new Vector2(0.05f, 0.06f), 0.035f, 0.12f, 1f, 4, false, hollow),
                 spikeColor, spikeTipColor).Spread(0.25f);
 
             // C · Relámpagos: rayos en zigzag.
             b.bolts = Volume("Bolts",
-                FlatMeshes.Bolts(seed + 5, 6, 70f, 0.05f, new Vector2(0.6f, 1f), 0.05f, 3, 0.16f, 0.03f, hollow),
+                FlatMeshes.Bolts(seed + 5, 6, 70f, 0f, new Vector2(0.6f, 1f), 0.05f, 3, 0.16f, 0.03f, hollow),
                 spikeColor, spikeTipColor).Spread(0.3f);
             b.boltsAccent = Volume("BoltsAccent",
-                FlatMeshes.Bolts(seed + 6, 4, 82f, 0.08f, new Vector2(0.5f, 0.85f), 0.045f, 4, 0.2f, 0.03f, hollow),
+                FlatMeshes.Bolts(seed + 6, 4, 82f, 0.01f, new Vector2(0.5f, 0.85f), 0.045f, 4, 0.2f, 0.03f, hollow),
                 accentColor, spikeTipColor).Spread(0.3f);
 
             if (shardMeshes.Length > 0)

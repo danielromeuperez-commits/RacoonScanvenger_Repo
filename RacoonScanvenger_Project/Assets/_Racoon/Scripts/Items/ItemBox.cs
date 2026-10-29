@@ -1,3 +1,5 @@
+using System.Collections;
+using Racoon.Feedback;
 using Racoon.Player;
 using Unity.Netcode;
 using UnityEngine;
@@ -26,7 +28,29 @@ namespace Racoon.Items
         [Header("Pickup")]
         [SerializeField] Collider pickupCollider;
 
-        [SerializeField] float messageDuration = 2f;
+        [Header("Respawn")]
+        [Tooltip("Segundos hasta que la caja vuelve a aparecer tras recogerla. 0 = no vuelve.")]
+        [SerializeField, Min(0f)] float respawnTime = 8f;
+
+        [Header("Pop al recoger / reaparecer")]
+        [Tooltip("Duración del pop al recogerla: se hincha y sale volando hacia el jugador encogiéndose.")]
+        [SerializeField, Min(0.05f)] float pickupPopTime = 0.3f;
+        [Tooltip("Escala máxima del hinchado al recogerla.")]
+        [SerializeField, Min(1f)] float pickupPopScale = 1.35f;
+        [Tooltip("Duración del pop al reaparecer (crece desde 0 con un pequeño rebote).")]
+        [SerializeField, Min(0.05f)] float respawnPopTime = 0.4f;
+        [Tooltip("Opcional: VFX al recogerla (confeti, basurilla...). Se crea en todos los clientes.")]
+        [SerializeField] GameObject pickupVfxPrefab;
+        [Tooltip("Opcional: VFX al reaparecer.")]
+        [SerializeField] GameObject respawnVfxPrefab;
+        [Tooltip("Segundos hasta destruir los VFX instanciados.")]
+        [SerializeField, Min(0.1f)] float vfxLifeTime = 2f;
+
+        [Header("Sonido (pendiente: arrastra los clips cuando los haya)")]
+        [Tooltip("SFX al RECOGER la caja: «pop» de cartón que se abre + brillito corto. Lo oyen todos, sale de la caja.")]
+        [SerializeField] SfxCue pickupSfx = new();
+        [Tooltip("SFX al REAPARECER la caja: «bloop» suave, como algo que se infla. Lo oyen todos, sale de la caja.")]
+        [SerializeField] SfxCue respawnSfx = new();
 
         NetworkVariable<bool> available = new(
             true,
@@ -37,7 +61,13 @@ namespace Racoon.Items
         Renderer[] renderers;
 
         Vector3 initialLocalPosition;
-        float messageTimer;
+        Vector3 initialLocalScale;
+
+        // Lo que se está mostrando ahora mismo (null = aún nada). El estado real es 'available'.
+        bool? shown;
+        Coroutine popRoutine;
+        // Hacia dónde vuela la caja al recogerla (el jugador). Puede llegar después de empezar el pop.
+        Transform popTarget;
 
         void Awake()
         {
@@ -50,6 +80,7 @@ namespace Racoon.Items
                 animatedVisual = transform;
 
             initialLocalPosition = animatedVisual.localPosition;
+            initialLocalScale = animatedVisual.localScale;
         }
 
         void Reset()
@@ -64,7 +95,8 @@ namespace Racoon.Items
         {
             available.OnValueChanged += OnAvailabilityChanged;
 
-            ApplyAvailability(available.Value);
+            // Al entrar a mitad de partida no se anima: se pone tal cual está.
+            SetShown(available.Value, false);
         }
 
         public override void OnNetworkDespawn()
@@ -75,14 +107,11 @@ namespace Racoon.Items
         void Update()
         {
             AnimateBox();
-
-            if (messageTimer > 0f)
-                messageTimer -= Time.deltaTime;
         }
 
         void AnimateBox()
         {
-            if (animatedVisual == null || !available.Value)
+            if (animatedVisual == null || shown != true)
                 return;
 
             // Giro continuo sobre el eje Y.
@@ -136,22 +165,18 @@ namespace Racoon.Items
             if (!player.Inventory.ServerTryAddItem(item))
                 return;
 
-            // La caja desaparece para todos.
+            // La caja desaparece para todos (con su pop hacia quien la ha cogido).
             available.Value = false;
+            PickedUpRpc(player.NetworkObjectId);
 
-            // Ocultar inmediatamente en el host.
-            ApplyAvailability(false);
+            if (respawnTime > 0f)
+                StartCoroutine(RespawnAfterDelay());
+        }
 
-            // Mostrar mensaje solamente al jugador que la ha recogido.
-            ShowMessageClientRpc(
-                new ClientRpcParams
-                {
-                    Send = new ClientRpcSendParams
-                    {
-                        TargetClientIds = new[] { player.OwnerClientId }
-                    }
-                }
-            );
+        IEnumerator RespawnAfterDelay()
+        {
+            yield return new WaitForSeconds(respawnTime);
+            available.Value = true;
         }
 
         ItemData GetRandomItem()
@@ -186,46 +211,145 @@ namespace Racoon.Items
             return null;
         }
 
-        [ClientRpc]
-        void ShowMessageClientRpc(ClientRpcParams rpcParams = default)
+        // Todos los clientes: quién la ha cogido (para que la caja vuele hacia él) + VFX y sonido.
+        // El aviso de "has cogido un objeto" ya lo da la ruleta del HUD.
+        [Rpc(SendTo.Everyone, InvokePermission = RpcInvokePermission.Server)]
+        void PickedUpRpc(ulong pickerObjectId)
         {
-            messageTimer = messageDuration;
+            if (NetworkManager.SpawnManager.SpawnedObjects.TryGetValue(pickerObjectId, out NetworkObject picker))
+                popTarget = picker.transform;
+
+            Vector3 position = animatedVisual.position;
+            SpawnVfx(pickupVfxPrefab, position);
+            pickupSfx.Play(position);
+
+            SetShown(false, true);
         }
 
         void OnAvailabilityChanged(bool previousValue, bool newValue)
         {
-            ApplyAvailability(newValue);
+            SetShown(newValue, true);
+
+            if (newValue)
+            {
+                Vector3 position = transform.TransformPoint(initialLocalPosition);
+                SpawnVfx(respawnVfxPrefab, position);
+                respawnSfx.Play(position);
+            }
         }
 
-        void ApplyAvailability(bool isAvailable)
+        // Puede llegar dos veces (variable de red + RPC): solo actúa si cambia lo que se ve.
+        void SetShown(bool visible, bool animate)
+        {
+            if (shown == visible)
+                return;
+
+            shown = visible;
+
+            // El collider no espera a la animación.
+            if (pickupCollider != null)
+                pickupCollider.enabled = visible;
+
+            if (popRoutine != null)
+            {
+                StopCoroutine(popRoutine);
+                popRoutine = null;
+            }
+
+            ResetVisual();
+
+            if (!animate)
+            {
+                SetRenderersEnabled(visible);
+                return;
+            }
+
+            popRoutine = StartCoroutine(visible ? PopIn() : PopOut());
+        }
+
+        // Se hincha (aplastándose un poco) y sale volando hacia el jugador mientras se encoge.
+        IEnumerator PopOut()
+        {
+            SetRenderersEnabled(true);
+
+            Vector3 startPosition = animatedVisual.position;
+            const float swellPart = 0.35f;
+
+            for (float time = 0f; time < pickupPopTime; time += Time.deltaTime)
+            {
+                float t = time / pickupPopTime;
+
+                if (t < swellPart)
+                {
+                    float k = Mathf.Sin(t / swellPart * Mathf.PI * 0.5f);
+                    float swell = Mathf.Lerp(1f, pickupPopScale, k);
+                    animatedVisual.localScale = Vector3.Scale(
+                        initialLocalScale,
+                        new Vector3(swell, Mathf.Lerp(1f, 0.85f, k) * swell, swell)
+                    );
+                }
+                else
+                {
+                    float k = (t - swellPart) / (1f - swellPart);
+                    float eased = k * k;
+                    animatedVisual.localScale = initialLocalScale * Mathf.Lerp(pickupPopScale, 0f, eased);
+
+                    Vector3 target = popTarget != null
+                        ? popTarget.position + Vector3.up
+                        : startPosition + Vector3.up * 0.75f;
+                    animatedVisual.position = Vector3.Lerp(startPosition, target, eased);
+                }
+
+                yield return null;
+            }
+
+            SetRenderersEnabled(false);
+            ResetVisual();
+            popTarget = null;
+            popRoutine = null;
+        }
+
+        // Crece desde 0 con un rebote al final (ease-out-back).
+        IEnumerator PopIn()
+        {
+            SetRenderersEnabled(true);
+
+            for (float time = 0f; time < respawnPopTime; time += Time.deltaTime)
+            {
+                float t = time / respawnPopTime - 1f;
+                float back = 1f + 2.70158f * t * t * t + 1.70158f * t * t;
+                animatedVisual.localScale = initialLocalScale * back;
+                yield return null;
+            }
+
+            animatedVisual.localScale = initialLocalScale;
+            popRoutine = null;
+        }
+
+        void ResetVisual()
+        {
+            if (animatedVisual == null)
+                return;
+
+            animatedVisual.localPosition = initialLocalPosition;
+            animatedVisual.localScale = initialLocalScale;
+        }
+
+        void SetRenderersEnabled(bool enabled)
         {
             foreach (Renderer renderer in renderers)
             {
                 if (renderer != null)
-                    renderer.enabled = isAvailable;
+                    renderer.enabled = enabled;
             }
-
-            if (pickupCollider != null)
-                pickupCollider.enabled = isAvailable;
         }
 
-        void OnGUI()
+        void SpawnVfx(GameObject prefab, Vector3 position)
         {
-            if (messageTimer <= 0f)
+            if (prefab == null)
                 return;
 
-            GUIStyle style = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 32,
-                alignment = TextAnchor.MiddleCenter,
-                fontStyle = FontStyle.Bold
-            };
-
-            GUI.Label(
-                new Rect(0, 50, Screen.width, 60),
-                "Item box obtenida",
-                style
-            );
+            Destroy(Instantiate(prefab, position, Quaternion.identity), vfxLifeTime);
         }
     }
 }

@@ -41,6 +41,9 @@ namespace Racoon.UI.P5
         public string chapa = "";
         public P5TextStyle estiloChapa;
         public bool chapaAlFinal;
+        [Tooltip("La chapa va en su propia fila, encima del texto (centrada según la alineación). Anula «chapaAlFinal».")]
+        public bool chapaArriba;
+        [Tooltip("Hueco entre la chapa y el texto (en vertical con «chapaArriba»; negativo = se solapan).")]
         public float separacionChapa = 8f;
 
         public string Text => text;
@@ -93,7 +96,7 @@ namespace Racoon.UI.P5
 
             var pieces = new List<Piece>();
             bool hasChip = !string.IsNullOrEmpty(chapa) && estiloChapa != null;
-            if (hasChip && !chapaAlFinal) pieces.Add(MakeBlock(chapa, estiloChapa, chip: true));
+            if (hasChip && (chapaArriba || !chapaAlFinal)) pieces.Add(MakeBlock(chapa, estiloChapa, chip: true));
             if (style != null && !string.IsNullOrEmpty(text))
             {
                 string value = style.mayusculas ? text.ToUpperInvariant() : text;
@@ -111,7 +114,7 @@ namespace Racoon.UI.P5
                         break;
                 }
             }
-            if (hasChip && chapaAlFinal) pieces.Add(MakeBlock(chapa, estiloChapa, chip: true));
+            if (hasChip && chapaAlFinal && !chapaArriba) pieces.Add(MakeBlock(chapa, estiloChapa, chip: true));
             Arrange(pieces);
             ApplyColors();
         }
@@ -122,6 +125,7 @@ namespace Racoon.UI.P5
         {
             public RectTransform rect;
             public float width, height, gapAfter;
+            public bool rowAfter; // lo siguiente empieza fila nueva (chapa arriba)
         }
 
         void Arrange(List<Piece> pieces)
@@ -130,13 +134,16 @@ namespace Racoon.UI.P5
             float rowGap = style != null ? style.separacionFilas : 0f;
             var rows = new List<List<Piece>> { new() };
             var widths = new List<float> { 0f };
+            var gaps = new List<float>(); // hueco bajo cada fila
             for (int i = 0; i < pieces.Count; i++)
             {
                 var piece = pieces[i];
                 int r = rows.Count - 1;
                 float gap = rows[r].Count > 0 ? rows[r][^1].gapAfter : 0f;
-                if (maxWidth > 0f && rows[r].Count > 0 && widths[r] + gap + piece.width > maxWidth)
+                bool forced = rows[r].Count > 0 && rows[r][^1].rowAfter;
+                if (forced || (maxWidth > 0f && rows[r].Count > 0 && widths[r] + gap + piece.width > maxWidth))
                 {
+                    gaps.Add(forced ? rows[r][^1].gapAfter : rowGap);
                     rows.Add(new List<Piece>());
                     widths.Add(0f);
                     r++;
@@ -169,7 +176,7 @@ namespace Racoon.UI.P5
                     p.rect.anchoredPosition = new Vector2(x + p.width / 2f, -(y + rowHeight / 2f));
                     x += p.width;
                 }
-                y += rowHeight + (r < rows.Count - 1 ? rowGap : 0f);
+                y += rowHeight + (r < rows.Count - 1 ? gaps[r] : 0f);
             }
 
             // Las piezas van ancladas a la esquina superior izquierda del rect, así que valen para cualquier pivote
@@ -213,7 +220,11 @@ namespace Racoon.UI.P5
             float border = look.borde != P5Paint.Ninguno ? s.grosorBorde : 0f;
             float w = textWidth + (s.relleno.x + border) * 2f;
             float h = Size(s) * look.escala * s.altoLinea + (s.relleno.y + border) * 2f;
-            return new Piece { rect = (RectTransform)tile.transform, width = w, height = h, gapAfter = chip ? separacionChapa : s.separacionPalabras };
+            return new Piece
+            {
+                rect = (RectTransform)tile.transform, width = w, height = h,
+                gapAfter = chip ? separacionChapa : s.separacionPalabras, rowAfter = chip && chapaArriba,
+            };
         }
 
         Piece MakePlain(string value, P5TextStyle s)

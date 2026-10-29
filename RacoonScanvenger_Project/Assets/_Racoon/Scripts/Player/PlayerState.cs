@@ -20,7 +20,7 @@ namespace Racoon.Player
         HitStun = 14,   // Golpe ligero (1º y 2º del combo): knockback corto + aturdido sin control
         Dash = 15,
         Knockdown = 16, // Golpe fuerte (3º del combo): derribado, invulnerable hasta levantarse
-        Downed = 17,    // Aturdido por un objeto: en el suelo hasta que mantiene Dash para levantarse
+        Downed = 17,    // Aturdido por un objeto: en el suelo hasta que machaca Dash para levantarse
     }
 
     public static class PlayerStateExtensions

@@ -34,7 +34,7 @@ namespace Racoon.EditorTools
         const int ReelCells = 22;
 
         // Orden de dibujo dentro de cada jugador (de abajo arriba): las insignias siempre por encima de los paneles
-        static readonly string[] PlayerOrder = { "Llama (racha)", "Retrato", "Puntos", "Ítems", "Bolsa", "Etiqueta", "Racha", "TOP", "Ejemplos (texto dinámico)" };
+        static readonly string[] PlayerOrder = { "Velocidad", "Llama (racha)", "Retrato", "Puntos", "Ítems", "Bolsa", "Etiqueta", "Racha", "TOP", "Corona (va ganando)", "Mareo", "Ejemplos (texto dinámico)" };
         // Apodos de los personajes en el HUD (por el nombre de su prefab); el resto usa su displayName
         static readonly (string prefab, string nickname)[] Nicknames = { ("Raccoon", "MAPACHE"), ("Racoon", "MAPACHE"), ("Opossum", "ZARIGÜEYA"), ("RedPanda", "PANDA ROJO") };
         // Piezas que se montan aquí (TMP, P5Text, máscaras…) aunque el manifiesto traiga una imagen de muestra
@@ -63,7 +63,7 @@ namespace Racoon.EditorTools
 
         class Kit
         {
-            public TMP_FontAsset dela, lilita, gochi, spaceMono, vt323, sniglet;
+            public TMP_FontAsset dela, lilita, gochi, spaceMono, vt323, sniglet, fredoka, titan, baloo;
             public Material delaOutline;
             public Sprite tile, round;
             public readonly Dictionary<string, Look> looks = new();
@@ -80,6 +80,8 @@ namespace Racoon.EditorTools
         class Look
         {
             public P5TextStyle apodo, chapa, cabecera, insignia, contador, interrogante, pastilla, bolsa;
+            // Opcional: chapa «BOLSA» delante del número de la bolsa (si no, todo va en una ficha: «BOLSA +N»)
+            public P5TextStyle bolsaChapa;
             public TMP_FontAsset timeFont, reelFont, popFont;
             public Material timeMaterial, popMaterial;
             public float timeSize = 120f, timeSpacing = 3.3f, reelSize = 52f, popSize = 60f;
@@ -88,6 +90,11 @@ namespace Racoon.EditorTools
             // Las cifras oscuras y claras de los rodillos (el manifiesto solo distingue negro y blanco)
             public Color reelDark = Color.black, reelLight = Color.white;
             public HUDView.PanelFx panelFx;
+            // Colores de jugador por defecto (null = los de HUDPlayerColors) y cuánto se aclaran hacia el blanco
+            public Color[] playerColors;
+            public float pastel;
+            // El retrato reacciona a lo que le pasa al jugador (HUDView.reactions)
+            public bool reactions;
 
             public Look Copy() => (Look)MemberwiseClone();
         }
@@ -154,9 +161,10 @@ namespace Racoon.EditorTools
 
         /// <summary>
         /// Deja la escena abierta lista para el HUD: añade lo que falte de esto, con deshacer.
-        ///  - El HUD: la variante seleccionada en el Project o, si no hay, la P5 soft con apodos y P1/P2. Es su propio
+        ///  - El HUD: la variante seleccionada en el Project o, si no hay, la P5 pastel reactiva con apodos y P1/P2. Es su propio
         ///    Canvas y busca solo el MatchTimer y a los jugadores: no hay que conectar nada.
         ///  - El MatchManager (PF_MNG_MatchManager con el MatchTimer): sin él el tiempo y su barra no corren.
+        ///  - El manager de efectos de cámara (MatchCameraFX), para ajustarlos desde la jerarquía.
         /// </summary>
         [MenuItem("Racoon/HUD/Preparar escena abierta (HUD + tiempo)")]
         public static void PrepareOpenScene()
@@ -170,7 +178,9 @@ namespace Racoon.EditorTools
                 var selected = Selection.activeObject as GameObject;
                 var prefab = selected && PrefabUtility.IsPartOfPrefabAsset(selected) && selected.GetComponent<HUDController>()
                     ? selected
-                    : AssetDatabase.LoadAssetAtPath<GameObject>($"{PrefabDir}/PF_HUD_P5Soft_ConNick_ConP.prefab");
+                    : AssetDatabase.LoadAssetAtPath<GameObject>($"{PrefabDir}/PF_HUD_P5PastelReactivo_ConNick_ConP.prefab")
+                      ?? AssetDatabase.LoadAssetAtPath<GameObject>($"{PrefabDir}/PF_HUD_P5Pastel_ConNick_ConP.prefab")
+                      ?? AssetDatabase.LoadAssetAtPath<GameObject>($"{PrefabDir}/PF_HUD_P5Soft_ConNick_ConP.prefab");
                 if (!prefab || !prefab.GetComponent<HUDController>())
                 {
                     EditorUtility.DisplayDialog("HUD", "Primero monta las variantes: Racoon → HUD → Montar variantes.", "Vale");
@@ -188,9 +198,12 @@ namespace Racoon.EditorTools
                 else Debug.LogWarning("HUD: no encuentro PF_MNG_MatchManager (con MatchTimer); sin él el tiempo no corre.");
             }
 
+            var cameraFX = CameraFXManagerMenu.Ensure();
+            if (cameraFX) added.Add(cameraFX);
+
             if (added.Count == 0)
             {
-                EditorUtility.DisplayDialog("HUD", "La escena ya tiene el HUD y el MatchTimer: no falta nada.", "Vale");
+                EditorUtility.DisplayDialog("HUD", "La escena ya tiene el HUD, el MatchTimer y los efectos de cámara: no falta nada.", "Vale");
                 return;
             }
             EditorSceneManager.MarkSceneDirty(scene);
@@ -233,6 +246,9 @@ namespace Racoon.EditorTools
             kit.spaceMono = TryFont("SpaceMono-Bold.ttf", "SpaceMono SDF", kit);
             kit.vt323 = TryFont("VT323-Regular.ttf", "VT323 SDF", kit);
             kit.sniglet = TryFont("Sniglet-ExtraBold.ttf", "Sniglet SDF", kit);
+            kit.fredoka = TryFont("Fredoka-Bold.ttf", "Fredoka SDF", kit);
+            kit.titan = TryFont("TitanOne-Regular.ttf", "TitanOne SDF", kit);
+            kit.baloo = TryFont("Baloo2-ExtraBold.ttf", "Baloo2 SDF", kit);
             kit.delaOutline = EnsureEffectMaterial(kit.dela, "DelaGothicOne SDF Contorno", m => Outline(m, .3f, Color.black));
             EnsureStyles(kit);
             kit.characters = AssetDatabase.FindAssets("t:PlayerCharacterDefinition")
@@ -464,6 +480,65 @@ namespace Racoon.EditorTools
                     panelFx = HUDView.PanelFx.Squash,
                 };
             }
+
+            // ----- Familia P5 pastel: el Soft del juego en pastel, sin negro puro (tinta de color), letras redondas, corona y
+            // tiempo de Pegatinas. «accent» es el segundo color de las letras recortadas o el de las píldoras
+            Look Pastel(string prefix, TMP_FontAsset font, string inkHex, string accentHex, string streakHex, bool cutLetters, HUDView.PanelFx fx,
+                        string bagHex = "#ffe08a")
+            {
+                Color ink = Hex(inkHex), accent = Hex(accentHex), cream = Hex("#fff8ec"), coral = Hex("#ff7b86"), peach = Hex("#ffad70");
+                var soft = Drop(ink, .15f, 8f);
+                // Letras recortadas: blanco, el color de acento y el del jugador, siempre con tinta (ningún fondo negro)
+                var letters = new[] { Tile(C, C, C, Color.white, ink, ink), Tile(C, C, C, accent, ink, ink), Tile(J, C, C, null, ink, ink) };
+                P5TextStyle Letters(string name, float size, float maxWidth) => Style(name, kit, s =>
+                {
+                    s.modo = P5TextStyle.Mode.LetraPorFicha; s.fuente = font; s.tamano = size; s.relleno = new Vector2(8f, 0f);
+                    s.altoLinea = 1.3f; s.grosorBorde = 4f; s.radio = 10f; s.secuencia = letters; s.sombras = soft; s.anchoMaximo = maxWidth;
+                    // Letras juntas, casi solapadas como recortes pegados, y las filas del apodo pegadas
+                    s.separacionLetras = -2f; s.separacionPalabras = 8f; s.separacionFilas = 2f;
+                });
+                P5TextStyle Pill(string name, float size, Color background, P5ShadowLook[] shadows) =>
+                    Block(name, font, size, new Vector2(20f, 3f), 5f, 30f, Tile(C, C, C, background, ink, ink), shadows, 1f);
+                return new Look
+                {
+                    cabecera = cutLetters ? Letters(prefix + "_Cabecera", 24f, 0f) : Pill(prefix + "_Cabecera", 26f, accent, noShadows),
+                    apodo = cutLetters ? Letters(prefix + "_Apodo", 28f, 300f) : Pill(prefix + "_Apodo", 30f, Color.white, soft),
+                    chapa = Style(prefix + "_Chapa", kit, s =>
+                    {
+                        s.modo = P5TextStyle.Mode.Bloque; s.fuente = font; s.tamano = cutLetters ? 40f : 34f; s.altoLinea = 1f;
+                        s.relleno = new Vector2(14f, 6f); s.grosorBorde = cutLetters ? 6f : 5f; s.radio = cutLetters ? 18f : 30f;
+                        s.secuencia = new[] { Tile(J, C, C, null, ink, ink) }; s.sombras = soft;
+                    }),
+                    insignia = Block(prefix + "_Insignia", font, 28f, new Vector2(20f, 4f), 6f, 30f, Tile(C, C, C, peach, ink, ink), noShadows),
+                    contador = Block(prefix + "_Contador", font, 26f, new Vector2(16f, 2f), 5f, 30f, Tile(C, C, C, Hex(streakHex), ink, ink), noShadows),
+                    interrogante = Plain(prefix + "_Interrogante", font, 60f, Tile(N, J)),
+                    pastilla = Block(prefix + "_Pastilla", font, 28f, new Vector2(28f, 4f), 6f, 30f, Tile(C, C, C, coral, ink, ink), noShadows),
+                    // Bolsa bien visible: chapa «BOLSA» y el número grande (amarillo, salvo en la variante blanca)
+                    bolsa = Block(prefix + "_Bolsa", font, 44f, new Vector2(18f, 0f), 6f, 30f, Tile(C, C, C, Hex(bagHex), ink, ink), Drop(ink, .2f, 8f)),
+                    bolsaChapa = Block(prefix + "_BolsaChapa", font, 24f, new Vector2(14f, 2f), 5f, 24f, Tile(C, C, C, cream, ink, ink), noShadows, 2f),
+                    timeFont = font, timeSize = 124f, timeItalic = false, timeSpacing = 1.6f, timeShadows = false,
+                    timeColor = ink, urgentTimeColor = Color.white,
+                    reelFont = font, reelSize = 60f, reelDark = ink, reelLight = cream,
+                    popFont = font, popSize = 64f,
+                    popMaterial = EnsureEffectMaterial(font, $"{font.name} Contorno {prefix}", m => Outline(m, .3f, ink)),
+                    panelFx = fx,
+                    playerColors = new[] { Hex("#138266"), Hex("#E02735") }, // los que se pusieron a mano en el P5 soft
+                    pastel = .35f,
+                };
+            }
+            kit.looks["pst"] = Pastel("Pastel", kit.fredoka, "#4b4366", "#ffe08a", "#ff7b86", true, HUDView.PanelFx.Squash);
+            // Chicle: gominola brillante, todo en píldoras (Titan One), tinta ciruela y menta
+            kit.looks["pch"] = Pastel("Chicle", kit.titan, "#5b4163", "#a6ead0", "#a6ead0", false, HUDView.PanelFx.Squash);
+            // Nuki: el azul de los carteles del concept (Baloo 2), tinta azul marino; el panel se balancea como un cartel
+            kit.looks["pnu"] = Pastel("Nuki", kit.baloo, "#33406b", "#8fc7f2", "#8fc7f2", true, HUDView.PanelFx.Swing);
+            // Reactivo: el P5 pastel con el retrato reaccionando a golpes, plátanos, volteretas, puñetazos, carreras y mareos
+            var reactive = kit.looks["pst"].Copy();
+            reactive.reactions = true;
+            kit.looks["prx"] = reactive;
+            // Reactivo blanco: sin amarillo; letras, rodillos y bolsa con el blanco de la UI (la corona y las estrellas siguen doradas)
+            var white = Pastel("PastelBlanco", kit.fredoka, "#4b4366", "#ffffff", "#ff7b86", true, HUDView.PanelFx.Squash, "#ffffff");
+            white.reactions = true;
+            kit.looks["prw"] = white;
         }
 
         static P5TextStyle Style(string name, Kit kit, System.Action<P5TextStyle> setup)
@@ -487,7 +562,9 @@ namespace Racoon.EditorTools
         {
             var go = new GameObject("Canvas HUD", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster)) { layer = UILayer };
             var canvas = go.GetComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            // Todos los Canvas en Screen Space - Camera; la cámara se la pone CanvasCameraBinder en runtime.
+            canvas.renderMode = RenderMode.ScreenSpaceCamera;
+            canvas.planeDistance = 1f;
             var scaler = go.GetComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(2560f, 1440f);
@@ -509,7 +586,8 @@ namespace Racoon.EditorTools
             var root = NewObject("PF_HUD_" + m.name, builderCanvas);
             Stretch(root);
             var canvas = root.AddComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.renderMode = RenderMode.ScreenSpaceCamera;
+            canvas.planeDistance = 1f;
             canvas.sortingOrder = 10;
             var scaler = root.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
@@ -523,6 +601,13 @@ namespace Racoon.EditorTools
             view.scorePanelFx = look.panelFx;
             view.timer.textColor = look.timeColor;
             view.timer.urgentTextColor = look.urgentTimeColor;
+            if (look.playerColors != null)
+            {
+                colors.player1 = look.playerColors[0];
+                colors.player2 = look.playerColors[1];
+            }
+            colors.pastel = look.pastel;
+            view.reactions = look.reactions;
 
             var objects = new GameObject[m.nodes.Length];
             foreach (var n in m.nodes) // los padres siempre van antes que sus hijos
@@ -583,6 +668,17 @@ namespace Racoon.EditorTools
                         AddP5Centered(go, n, parentNode, "★ TOP", look.insignia, n.player, n.rot);
                         pv.top = go;
                         break;
+                    case "crown":
+                    {
+                        // Pivote en su base (donde se apoya en el aro) e inclinada colgando hacia el centro; la anima el presentador
+                        var crown = (RectTransform)go.transform;
+                        crown.pivot = new Vector2(.5f, .1f);
+                        crown.anchoredPosition += new Vector2(0f, -.4f * crown.sizeDelta.y);
+                        crown.localRotation = Quaternion.Euler(0f, 0f, n.rot);
+                        pv.crown = crown;
+                        pv.top = go;
+                        break;
+                    }
                     case "streak":
                         pv.streakCounter = AddP5Centered(go, n, parentNode, "x3", look.contador, n.player, 0f);
                         pv.streak = go;
@@ -603,10 +699,12 @@ namespace Racoon.EditorTools
                 pv.mainSlot = GroupSlot("Principal", pv.mainItemBox, pv.mainItemEmpty, pv.mainItemIcon);
                 pv.reserveSlot = GroupSlot("Reserva", pv.reserveItemBox, pv.reserveItemEmpty, pv.reserveItemIcon);
                 BuildBag(m, look, pv, player);
+                if (look.reactions) BuildReactionExtras(look, kit, pv, player);
                 if (pv.root) SortPlayer(pv.root);
             }
             GroupTimeDigits(view.timer);
 
+            root.AddComponent<HUDLivePortraits>();
             var controller = root.AddComponent<HUDController>();
             SetReference(controller, "view", view);
             foreach (var character in kit.characters)
@@ -697,6 +795,14 @@ namespace Racoon.EditorTools
             image.raycastTarget = false;
             image.enabled = false; // sin ilustración todavía
             pv.illustration = image;
+
+            // Encima, el retrato en vivo de la cámara grúa (HUDLivePortraits)
+            var live = NewObject("Retrato en vivo", background.transform);
+            Stretch(live);
+            var raw = live.AddComponent<RawImage>();
+            raw.raycastTarget = false;
+            raw.enabled = false;
+            pv.liveIllustration = raw;
         }
 
         static void BuildTimeText(GameObject go, Node n, Look look, HUDView view)
@@ -896,11 +1002,74 @@ namespace Racoon.EditorTools
             var text = go.AddComponent<P5Text>();
             text.style = look.bolsa;
             text.player = player;
-            text.escalaTexto = 1.25f;
             text.alineacion = p2 ? P5Text.Alignment.Derecha : P5Text.Alignment.Izquierda;
-            text.SetText("BOLSA +40");
+            if (look.bolsaChapa)
+            {
+                // Compacta: «BOLSA» en su chapa encima del número, montada un poco sobre él
+                text.chapa = "BOLSA";
+                text.estiloChapa = look.bolsaChapa;
+                text.chapaArriba = true;
+                text.separacionChapa = -6f;
+                text.alineacion = P5Text.Alignment.Centro;
+                text.SetText("+40");
+            }
+            else
+            {
+                text.escalaTexto = 1.25f;
+                text.SetText("BOLSA +40");
+            }
             go.SetActive(false);
             pv.bag = text;
+        }
+
+        // Variante reactiva: rayas de velocidad detrás del retrato y estrellas de mareo encima (ocultas; las anima el presentador)
+        static void BuildReactionExtras(Look look, Kit kit, HUDView.PlayerView pv, int player)
+        {
+            var portrait = pv.staminaFill ? pv.staminaFill.rectTransform.parent as RectTransform : null;
+            if (!portrait || !pv.root || portrait.parent != pv.root) return;
+            float lean = player == 1 ? 1f : -1f;
+            RectTransform Group(string name, Vector2 offset)
+            {
+                var rt = (RectTransform)NewObject(name, pv.root).transform;
+                rt.anchorMin = rt.anchorMax = portrait.anchorMin;
+                rt.pivot = new Vector2(.5f, .5f);
+                rt.sizeDelta = Vector2.zero;
+                rt.anchoredPosition = portrait.anchoredPosition + offset;
+                return rt;
+            }
+
+            var speed = Group("Velocidad", Vector2.zero);
+            pv.speedLines = new RectTransform[3];
+            for (int i = 0; i < 3; i++)
+            {
+                var line = (RectTransform)NewObject($"Raya {i + 1}", speed).transform;
+                line.pivot = new Vector2(lean > 0f ? 1f : 0f, .5f); // crece hacia fuera
+                line.sizeDelta = new Vector2(80f - 16f * i, 14f);
+                line.anchoredPosition = new Vector2(-lean * 150f, (i - 1) * 46f);
+                var image = line.gameObject.AddComponent<Image>();
+                image.sprite = kit.round;
+                image.type = Image.Type.Sliced;
+                image.pixelsPerUnitMultiplier = P5TextStyle.SpriteRadius / 7f;
+                image.color = Hex("#fff8ec");
+                image.raycastTarget = false;
+                var outline = line.gameObject.AddComponent<Outline>();
+                outline.effectColor = look.reelDark;
+                outline.effectDistance = new Vector2(3f, -3f);
+                pv.speedLines[i] = line;
+            }
+            speed.gameObject.SetActive(false);
+
+            var dizzy = Group("Mareo", new Vector2(0f, portrait.sizeDelta.y * .4f));
+            pv.dizzyStars = new RectTransform[3];
+            for (int i = 0; i < 3; i++)
+            {
+                var star = NewObject($"Estrella {i + 1}", dizzy);
+                ((RectTransform)star.transform).sizeDelta = new Vector2(60f, 60f);
+                var text = AddText(star, look.popFont, 52f, Hex("#ffd36e"), "★");
+                if (look.popMaterial) text.fontSharedMaterial = look.popMaterial;
+                pv.dizzyStars[i] = (RectTransform)star.transform;
+            }
+            dizzy.gameObject.SetActive(false);
         }
 
         // Texto del tiempo y sus dos sombras en un grupo (de abajo arriba: P2, P1, blanco) que late entero
@@ -1035,7 +1204,8 @@ namespace Racoon.EditorTools
             }
             finally
             {
-                canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+                canvas.worldCamera = null;
+                canvas.planeDistance = 1f;
                 Object.DestroyImmediate(cameraObject);
                 target.Release();
                 Object.DestroyImmediate(target);

@@ -18,7 +18,8 @@ namespace Racoon.UI.HUD
     ///  - Estamina: PlayerController.StaminaNormalized de cada jugador (también la del rival).
     ///  - Ítems: PlayerInventory (ruleta al recoger, usar, intercambiar, entrada y flotar).
     ///  - Racha, llama y TOP: <see cref="MatchStandings"/>.
-    ///  - Color, apodo e ilustración: PlayerVFX.WindTint y el personaje (PlayerCharacterDefinition).
+    ///  - Color: el de HUDPlayerColors (o PlayerVFX.WindTint con «Use Character Colors»); apodo e ilustración: el
+    ///    personaje (PlayerCharacterDefinition); retrato en vivo: <see cref="HUDLivePortraits"/>.
     /// No necesita MatchHUD, ItemUIManager ni StaminaBarUI: pueden convivir con él o quitarse.
     /// </summary>
     [RequireComponent(typeof(HUDView))]
@@ -44,6 +45,8 @@ namespace Racoon.UI.HUD
         [SerializeField] List<CharacterLabel> characters = new();
 
         [Header("Opciones")]
+        [Tooltip("Tiñe el HUD con el color de cada personaje (PlayerVFX.WindTint). Desactivado: los colores de HUDPlayerColors.")]
+        [SerializeField] bool useCharacterColors;
         [Tooltip("Muestra junto a los ítems los puntos que lleva en la bolsa sin vender.")]
         [SerializeField] bool showBag = true;
         [Tooltip("Por debajo de esta estamina el aro parpadea.")]
@@ -58,10 +61,15 @@ namespace Racoon.UI.HUD
         readonly MatchStandings.Standing[] bound = new MatchStandings.Standing[2];
         readonly Action[] inventoryHandlers = new Action[2];
         readonly List<ItemData> itemPool = new();
+        // Reacciones del retrato a lo que le pasa a cada jugador (solo en las variantes con HUDView.reactions)
+        readonly Action<PlayerState>[] actionHandlers = new Action<PlayerState>[2];
+        readonly Action<PlayerState, PlayerState>[] stateHandlers = new Action<PlayerState, PlayerState>[2];
         ItemDatabase poolSource;
         int shownSeconds = -1;
         float nextTimerSearch, sessionStart = -1f;
         bool demoMode, warnedNoTimer, reportedTimer;
+
+        HUDLivePortraits livePortraits;
 
         public HUDView View => view;
         public MatchStandings Standings => standings;
@@ -90,6 +98,8 @@ namespace Racoon.UI.HUD
         void Awake()
         {
             if (!view) view = GetComponent<HUDView>();
+            // Retratos en vivo: el montaje lo pone en el prefab; si falta, uno con los valores por defecto
+            if (!TryGetComponent(out livePortraits)) livePortraits = gameObject.AddComponent<HUDLivePortraits>();
             for (int i = 0; i < 2; i++)
             {
                 int index = i;
@@ -100,6 +110,8 @@ namespace Racoon.UI.HUD
                     ShowBag = showBag,
                 };
                 inventoryHandlers[i] = () => SyncItems(index, true);
+                actionHandlers[i] = state => OnAction(index, state);
+                stateHandlers[i] = (_, state) => OnState(index, state);
                 presenters[i].ResetView();
             }
             ShowTime(defaultDuration, defaultDuration, false, false);
@@ -243,6 +255,11 @@ namespace Racoon.UI.HUD
         {
             var previous = bound[index];
             if (previous != null && previous.Inventory) previous.Inventory.InventoryChanged -= inventoryHandlers[index];
+            if (previous != null && previous.Controller)
+            {
+                previous.Controller.ActionStarted -= actionHandlers[index];
+                previous.Controller.StateChanged -= stateHandlers[index];
+            }
             bound[index] = null;
         }
 
@@ -254,9 +271,10 @@ namespace Racoon.UI.HUD
             var presenter = presenters[index];
             if (presenter == null) return;
             presenter.ResetView();
+            if (livePortraits) livePortraits.SetPlayer(index + 1, standing != null ? standing.Controller : null);
             if (standing == null || !standing.Loot) return;
 
-            var vfx = standing.Loot.GetComponentInChildren<PlayerVFX>(true);
+            var vfx = useCharacterColors ? standing.Loot.GetComponentInChildren<PlayerVFX>(true) : null;
             if (vfx) presenter.SetColor(vfx.WindTint);
             var definition = FindCharacter(standing.Loot.NetworkObject, out var label);
             string nickname = label != null && !string.IsNullOrEmpty(label.nickname) ? label.nickname
@@ -272,6 +290,35 @@ namespace Racoon.UI.HUD
             if (standing.Controller) presenter.SetStamina(standing.Controller.StaminaNormalized);
             if (standing.Inventory) standing.Inventory.InventoryChanged += inventoryHandlers[index];
             SyncItems(index, false);
+            if (standing.Controller)
+            {
+                standing.Controller.ActionStarted += actionHandlers[index];
+                standing.Controller.StateChanged += stateHandlers[index];
+                OnState(index, standing.Controller.State);
+            }
+        }
+
+        // Golpe ligero, golpe fuerte, aturdido por un objeto (plátano), voltereta (dash) y puñetazo
+        void OnAction(int index, PlayerState state)
+        {
+            if (demoMode) return;
+            HUDReaction? reaction = state switch
+            {
+                PlayerState.HitStun => HUDReaction.Hit,
+                PlayerState.Knockdown => HUDReaction.HeavyHit,
+                PlayerState.Downed => HUDReaction.Slip,
+                PlayerState.Dash => HUDReaction.Roll,
+                PlayerState.Punch => HUDReaction.Punch,
+                _ => null,
+            };
+            if (reaction.HasValue) presenters[index].React(reaction.Value);
+        }
+
+        void OnState(int index, PlayerState state)
+        {
+            if (demoMode) return;
+            presenters[index].SetRunning(state == PlayerState.Run);
+            presenters[index].SetDizzy(state.IsGrounded());
         }
 
         bool IsBound(MatchStandings.Standing standing) =>

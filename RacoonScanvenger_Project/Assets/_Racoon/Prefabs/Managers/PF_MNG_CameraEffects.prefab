@@ -1,0 +1,488 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &9086390950613900082
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 126107123434498710}
+  - component: {fileID: 223867393540095663}
+  m_Layer: 0
+  m_Name: PF_MNG_CameraEffects
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &126107123434498710
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9086390950613900082}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &223867393540095663
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9086390950613900082}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1aa93eb773f7fe5488af9593df4dd584, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.Gameplay.MatchCameraFX
+  standings: {fileID: 0}
+  matchTimer: {fileID: 0}
+  intensity: 1
+  ignite:
+    enabled: 1
+    duration: 0.9
+    attack: 0.1
+    decayPower: 2
+    priority: 30
+    duck: 0.3
+    fadeIn: 0
+    fadeOut: 0
+    fov: -0.03
+    dutch: 0
+    dutchWobble: 0
+    vignette: 0
+    vignetteColor: {r: 0, g: 0, b: 0, a: 1}
+    chromatic: 0
+    distortion: 0
+    saturation: 0
+    contrast: 0
+    exposure: 0
+    hueShift: 0
+    tint: {r: 1, g: 1, b: 1, a: 0}
+    flash: 0.1
+    flashColor: {r: 1, g: 1, b: 1, a: 1}
+    speedLines: 0
+    edge: 0
+    edgeColor: {r: 1, g: 1, b: 1, a: 1}
+    fire: 0.9
+    embers: 1
+    fireColor: {r: 1, g: 0.62, b: 0.43, a: 1}
+    aura: 0
+    auraColor: {r: 1, g: 0.827, b: 0.431, a: 1}
+    risingLines: 0
+    risingBolts: 0
+    risingColor: {r: 1, g: 1, b: 1, a: 1}
+    pulseRate: 0
+    pulseDepth: 0
+    flicker: 0
+    hitstop: 0
+    hitstopScale: 0.05
+  onFire:
+    enabled: 1
+    duration: 1
+    attack: 0
+    decayPower: 2
+    priority: 30
+    duck: 0.2
+    fadeIn: 0.6
+    fadeOut: 0.9
+    fov: 0
+    dutch: 0
+    dutchWobble: 0
+    vignette: 0
+    vignetteColor: {r: 0, g: 0, b: 0, a: 1}
+    chromatic: 0
+    distortion: 0
+    saturation: 8
+    contrast: 0
+    exposure: 0
+    hueShift: 0
+    tint: {r: 1, g: 1, b: 1, a: 0}
+    flash: 0
+    flashColor: {r: 1, g: 1, b: 1, a: 1}
+    speedLines: 0
+    edge: 0
+    edgeColor: {r: 1, g: 1, b: 1, a: 1}
+    fire: 0.55
+    embers: 0.6
+    fireColor: {r: 1, g: 0.62, b: 0.43, a: 1}
+    aura: 0
+    auraColor: {r: 1, g: 0.827, b: 0.431, a: 1}
+    risingLines: 0
+    risingBolts: 0
+    risingColor: {r: 1, g: 1, b: 1, a: 1}
+    pulseRate: 0.8
+    pulseDepth: 0.1
+    flicker: 0
+    hitstop: 0
+    hitstopScale: 0.05
+  fireStreakStep: 0.2
+  fireCameraSeconds: 6
+  fireRestartsOnSale: 1
+  extinguish:
+    enabled: 1
+    duration: 0.6
+    attack: 0
+    decayPower: 1.5
+    priority: 30
+    duck: 0.2
+    fadeIn: 0
+    fadeOut: 0
+    fov: 0.015
+    dutch: 0
+    dutchWobble: 0
+    vignette: 0
+    vignetteColor: {r: 0, g: 0, b: 0, a: 1}
+    chromatic: 0
+    distortion: 0
+    saturation: -40
+    contrast: 0
+    exposure: 0
+    hueShift: 0
+    tint: {r: 1, g: 1, b: 1, a: 0}
+    flash: 0
+    flashColor: {r: 1, g: 1, b: 1, a: 1}
+    speedLines: 0
+    edge: 0
+    edgeColor: {r: 1, g: 1, b: 1, a: 1}
+    fire: 0
+    embers: 0.5
+    fireColor: {r: 1, g: 0.62, b: 0.43, a: 1}
+    aura: 0
+    auraColor: {r: 1, g: 0.827, b: 0.431, a: 1}
+    risingLines: 0
+    risingBolts: 0
+    risingColor: {r: 1, g: 1, b: 1, a: 1}
+    pulseRate: 0
+    pulseDepth: 0
+    flicker: 0
+    hitstop: 0
+    hitstopScale: 0.05
+  sell:
+    enabled: 1
+    duration: 0.45
+    attack: 0
+    decayPower: 2
+    priority: 35
+    duck: 0.5
+    fadeIn: 0
+    fadeOut: 0
+    fov: -0.025
+    dutch: 0
+    dutchWobble: 0
+    vignette: 0
+    vignetteColor: {r: 0, g: 0, b: 0, a: 1}
+    chromatic: 0
+    distortion: 0
+    saturation: 0
+    contrast: 0
+    exposure: 0.25
+    hueShift: 0
+    tint: {r: 1, g: 1, b: 1, a: 0}
+    flash: 0.2
+    flashColor: {r: 1, g: 0.85, b: 0.3, a: 1}
+    speedLines: 0
+    edge: 0.5
+    edgeColor: {r: 1, g: 0.8, b: 0.2, a: 1}
+    fire: 0
+    embers: 0
+    fireColor: {r: 1, g: 0.62, b: 0.43, a: 1}
+    aura: 0
+    auraColor: {r: 1, g: 0.827, b: 0.431, a: 1}
+    risingLines: 0
+    risingBolts: 0
+    risingColor: {r: 1, g: 1, b: 1, a: 1}
+    pulseRate: 0
+    pulseDepth: 0
+    flicker: 0
+    hitstop: 0
+    hitstopScale: 0.05
+  bagLost:
+    enabled: 1
+    duration: 0.5
+    attack: 0
+    decayPower: 2
+    priority: 35
+    duck: 0.5
+    fadeIn: 0
+    fadeOut: 0
+    fov: 0
+    dutch: 0
+    dutchWobble: 0
+    vignette: 0.25
+    vignetteColor: {r: 0, g: 0, b: 0, a: 1}
+    chromatic: 0.6
+    distortion: 0
+    saturation: -40
+    contrast: 0
+    exposure: 0
+    hueShift: 0
+    tint: {r: 1, g: 1, b: 1, a: 0}
+    flash: 0
+    flashColor: {r: 1, g: 1, b: 1, a: 1}
+    speedLines: 0
+    edge: 0
+    edgeColor: {r: 1, g: 1, b: 1, a: 1}
+    fire: 0
+    embers: 0
+    fireColor: {r: 1, g: 0.62, b: 0.43, a: 1}
+    aura: 0
+    auraColor: {r: 1, g: 0.827, b: 0.431, a: 1}
+    risingLines: 0
+    risingBolts: 0
+    risingColor: {r: 1, g: 1, b: 1, a: 1}
+    pulseRate: 0
+    pulseDepth: 0
+    flicker: 0
+    hitstop: 0
+    hitstopScale: 0.05
+  leaderChanged:
+    enabled: 1
+    duration: 0.5
+    attack: 0
+    decayPower: 2
+    priority: 35
+    duck: 0.3
+    fadeIn: 0
+    fadeOut: 0
+    fov: 0
+    dutch: 0
+    dutchWobble: 0
+    vignette: 0
+    vignetteColor: {r: 0, g: 0, b: 0, a: 1}
+    chromatic: 0
+    distortion: 0
+    saturation: 0
+    contrast: 0
+    exposure: 0
+    hueShift: 0
+    tint: {r: 1, g: 1, b: 1, a: 0}
+    flash: 0.12
+    flashColor: {r: 1, g: 1, b: 1, a: 1}
+    speedLines: 0
+    edge: 0.6
+    edgeColor: {r: 1, g: 1, b: 1, a: 1}
+    fire: 0
+    embers: 0
+    fireColor: {r: 1, g: 0.62, b: 0.43, a: 1}
+    aura: 0
+    auraColor: {r: 1, g: 0.827, b: 0.431, a: 1}
+    risingLines: 0
+    risingBolts: 0
+    risingColor: {r: 1, g: 1, b: 1, a: 1}
+    pulseRate: 0
+    pulseDepth: 0
+    flicker: 0
+    hitstop: 0
+    hitstopScale: 0.05
+  lowTimeStart: 30
+  lowTime:
+    enabled: 1
+    duration: 1
+    attack: 0
+    decayPower: 2
+    priority: 50
+    duck: 0.3
+    fadeIn: 0.8
+    fadeOut: 0.6
+    fov: 0
+    dutch: 0
+    dutchWobble: 0
+    vignette: 0.35
+    vignetteColor: {r: 0.55, g: 0, b: 0.02, a: 1}
+    chromatic: 0
+    distortion: 0
+    saturation: 0
+    contrast: 12
+    exposure: 0
+    hueShift: 0
+    tint: {r: 1, g: 1, b: 1, a: 0}
+    flash: 0
+    flashColor: {r: 1, g: 1, b: 1, a: 1}
+    speedLines: 0
+    edge: 0
+    edgeColor: {r: 1, g: 1, b: 1, a: 1}
+    fire: 0
+    embers: 0
+    fireColor: {r: 1, g: 0.62, b: 0.43, a: 1}
+    aura: 0
+    auraColor: {r: 1, g: 0.827, b: 0.431, a: 1}
+    risingLines: 0
+    risingBolts: 0
+    risingColor: {r: 1, g: 1, b: 1, a: 1}
+    pulseRate: 1
+    pulseDepth: 0.7
+    flicker: 0
+    hitstop: 0
+    hitstopScale: 0.05
+  lowTimeEndRate: 3
+  tickFrom: 10
+  tick:
+    enabled: 1
+    duration: 0.25
+    attack: 0
+    decayPower: 2.5
+    priority: 50
+    duck: 0.2
+    fadeIn: 0
+    fadeOut: 0
+    fov: -0.02
+    dutch: 0
+    dutchWobble: 0
+    vignette: 0
+    vignetteColor: {r: 0, g: 0, b: 0, a: 1}
+    chromatic: 0.15
+    distortion: 0
+    saturation: 0
+    contrast: 0
+    exposure: 0
+    hueShift: 0
+    tint: {r: 1, g: 1, b: 1, a: 0}
+    flash: 0
+    flashColor: {r: 1, g: 1, b: 1, a: 1}
+    speedLines: 0
+    edge: 0
+    edgeColor: {r: 1, g: 1, b: 1, a: 1}
+    fire: 0
+    embers: 0
+    fireColor: {r: 1, g: 0.62, b: 0.43, a: 1}
+    aura: 0
+    auraColor: {r: 1, g: 0.827, b: 0.431, a: 1}
+    risingLines: 0
+    risingBolts: 0
+    risingColor: {r: 1, g: 1, b: 1, a: 1}
+    pulseRate: 0
+    pulseDepth: 0
+    flicker: 0
+    hitstop: 0
+    hitstopScale: 0.05
+  bigTickFrom: 3
+  bigTick:
+    enabled: 1
+    duration: 0.4
+    attack: 0
+    decayPower: 2
+    priority: 55
+    duck: 0.4
+    fadeIn: 0
+    fadeOut: 0
+    fov: -0.05
+    dutch: 0
+    dutchWobble: 0
+    vignette: 0
+    vignetteColor: {r: 0, g: 0, b: 0, a: 1}
+    chromatic: 0.35
+    distortion: 0
+    saturation: 0
+    contrast: 0
+    exposure: 0
+    hueShift: 0
+    tint: {r: 1, g: 1, b: 1, a: 0}
+    flash: 0.1
+    flashColor: {r: 1, g: 0.2, b: 0.15, a: 1}
+    speedLines: 0
+    edge: 0
+    edgeColor: {r: 1, g: 1, b: 1, a: 1}
+    fire: 0
+    embers: 0
+    fireColor: {r: 1, g: 0.62, b: 0.43, a: 1}
+    aura: 0
+    auraColor: {r: 1, g: 0.827, b: 0.431, a: 1}
+    risingLines: 0
+    risingBolts: 0
+    risingColor: {r: 1, g: 1, b: 1, a: 1}
+    pulseRate: 0
+    pulseDepth: 0
+    flicker: 0
+    hitstop: 0
+    hitstopScale: 0.05
+  matchEnd:
+    enabled: 1
+    duration: 2.5
+    attack: 0.05
+    decayPower: 1.2
+    priority: 100
+    duck: 1
+    fadeIn: 0
+    fadeOut: 0
+    fov: -0.06
+    dutch: 0
+    dutchWobble: 0
+    vignette: 0.3
+    vignetteColor: {r: 0, g: 0, b: 0, a: 1}
+    chromatic: 0
+    distortion: 0
+    saturation: -70
+    contrast: 0
+    exposure: 0
+    hueShift: 0
+    tint: {r: 1, g: 1, b: 1, a: 0}
+    flash: 0.5
+    flashColor: {r: 1, g: 1, b: 1, a: 1}
+    speedLines: 0
+    edge: 0
+    edgeColor: {r: 1, g: 1, b: 1, a: 1}
+    fire: 0
+    embers: 0
+    fireColor: {r: 1, g: 0.62, b: 0.43, a: 1}
+    aura: 0
+    auraColor: {r: 1, g: 0.827, b: 0.431, a: 1}
+    risingLines: 0
+    risingBolts: 0
+    risingColor: {r: 1, g: 1, b: 1, a: 1}
+    pulseRate: 0
+    pulseDepth: 0
+    flicker: 0
+    hitstop: 0
+    hitstopScale: 0.05
+  endSlowMotion: 0.8
+  endSlowMotionScale: 0.25
+  timeJumpThreshold: 2
+  timeCut:
+    enabled: 1
+    duration: 0.6
+    attack: 0
+    decayPower: 2
+    priority: 60
+    duck: 0.6
+    fadeIn: 0
+    fadeOut: 0
+    fov: 0
+    dutch: 0
+    dutchWobble: 0
+    vignette: 0
+    vignetteColor: {r: 0, g: 0, b: 0, a: 1}
+    chromatic: 1
+    distortion: 0.3
+    saturation: 0
+    contrast: 0
+    exposure: 0
+    hueShift: 25
+    tint: {r: 1, g: 1, b: 1, a: 0}
+    flash: 0.25
+    flashColor: {r: 0.7, g: 0.9, b: 1, a: 1}
+    speedLines: 0.8
+    edge: 0
+    edgeColor: {r: 1, g: 1, b: 1, a: 1}
+    fire: 0
+    embers: 0
+    fireColor: {r: 1, g: 0.62, b: 0.43, a: 1}
+    aura: 0
+    auraColor: {r: 1, g: 0.827, b: 0.431, a: 1}
+    risingLines: 0
+    risingBolts: 0
+    risingColor: {r: 1, g: 1, b: 1, a: 1}
+    pulseRate: 0
+    pulseDepth: 0
+    flicker: 0
+    hitstop: 0
+    hitstopScale: 0.05

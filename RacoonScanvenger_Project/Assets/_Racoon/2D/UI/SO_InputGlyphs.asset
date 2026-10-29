@@ -1,0 +1,91 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3be81954903b18cfe7cac15e5f2dd572, type: 3}
+  m_Name: SO_InputGlyphs
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.InputGlyphSet
+  actions:
+  - action: Move
+    keyboard: {fileID: 21300000, guid: 74ed91f809f252a7613ae33ea8d9b1a8, type: 3}
+    keyboardAlt: {fileID: 0}
+    xbox: {fileID: 21300000, guid: 0d94b82fa29c3c4f5b6cc4affec09ecb, type: 3}
+    playStation: {fileID: 21300000, guid: ac2ca7d30c0afd8de16f6c75ed81b63a, type: 3}
+  - action: Run
+    keyboard: {fileID: 21300000, guid: a8f7f3d68b49ec172a93ed31e1dfb62d, type: 3}
+    keyboardAlt: {fileID: 0}
+    xbox: {fileID: 21300000, guid: 51a303a40d7d138c6b1bf540c8549803, type: 3}
+    playStation: {fileID: 21300000, guid: 6bc4417e29c8c3017d09d4095640958e, type: 3}
+  - action: Interact
+    keyboard: {fileID: 21300000, guid: 9e6424da2f685504f4196c300cb6bef3, type: 3}
+    keyboardAlt: {fileID: 0}
+    xbox: {fileID: 21300000, guid: 908d2d3890ebe37b49e5eb28785b6ce5, type: 3}
+    playStation: {fileID: 21300000, guid: 33d8e229908eba49f84b261f94ac12a9, type: 3}
+  - action: SwitchItem
+    keyboard: {fileID: 21300000, guid: 84815b331219148a107b4f0d59e0c211, type: 3}
+    keyboardAlt: {fileID: 0}
+    xbox: {fileID: 21300000, guid: c26c9adb5627dd215037adc2e05c8e6d, type: 3}
+    playStation: {fileID: 21300000, guid: a7ab531bbf709952b6e498e168f332b9, type: 3}
+  - action: Use
+    keyboard: {fileID: 21300000, guid: e014ff101484b5a231f69352b82465be, type: 3}
+    keyboardAlt: {fileID: 21300000, guid: 4e78f59dad688f330a608c827b955a86, type: 3}
+    xbox: {fileID: 21300000, guid: 7c878bbbfa8041311c849b95eedb26fd, type: 3}
+    playStation: {fileID: 21300000, guid: e5852038906afe77a496c00576591000, type: 3}
+  - action: Dash
+    keyboard: {fileID: 21300000, guid: 6c7a859a46ec419c9b639e0a9c594a6b, type: 3}
+    keyboardAlt: {fileID: 0}
+    xbox: {fileID: 21300000, guid: cfdced32664c28cffa84233b60a8dcc4, type: 3}
+    playStation: {fileID: 21300000, guid: 305259b478967fe6c96d6842640318e5, type: 3}
+  - action: Pause
+    keyboard: {fileID: 21300000, guid: 685a40908151df53a21706b6a59af598, type: 3}
+    keyboardAlt: {fileID: 0}
+    xbox: {fileID: 21300000, guid: 6d8b683f27e312881421553fc5149cce, type: 3}
+    playStation: {fileID: 21300000, guid: d15e07647e1d312d431ef2149acbb575, type: 3}
+  playStationButtons:
+  - {fileID: 21300000, guid: 33d8e229908eba49f84b261f94ac12a9, type: 3}
+  - {fileID: 21300000, guid: 305259b478967fe6c96d6842640318e5, type: 3}
+  - {fileID: 21300000, guid: e5852038906afe77a496c00576591000, type: 3}
+  - {fileID: 21300000, guid: a7ab531bbf709952b6e498e168f332b9, type: 3}
+  - {fileID: 21300000, guid: 7da6606fec0b71cb17285a0bc4af7701, type: 3}
+  - {fileID: 21300000, guid: 6ded179864f8f498185c3ad3225c6596, type: 3}
+  - {fileID: 21300000, guid: 0ce2a6cd4bce8d5a71ce67d15303d190, type: 3}
+  - {fileID: 21300000, guid: 6bc4417e29c8c3017d09d4095640958e, type: 3}
+  - {fileID: 21300000, guid: ac2ca7d30c0afd8de16f6c75ed81b63a, type: 3}
+  - {fileID: 21300000, guid: af1d35ee075e2a189590d43ebbda312a, type: 3}
+  - {fileID: 21300000, guid: f86cf9e5e9fce9df7abe0183334163a7, type: 3}
+  - {fileID: 21300000, guid: d15e07647e1d312d431ef2149acbb575, type: 3}
+  - {fileID: 21300000, guid: cf30017a85e01a2e5bfe3f2f35365c80, type: 3}
+  xboxButtons:
+  - {fileID: 21300000, guid: 908d2d3890ebe37b49e5eb28785b6ce5, type: 3}
+  - {fileID: 21300000, guid: cfdced32664c28cffa84233b60a8dcc4, type: 3}
+  - {fileID: 21300000, guid: 7c878bbbfa8041311c849b95eedb26fd, type: 3}
+  - {fileID: 21300000, guid: c26c9adb5627dd215037adc2e05c8e6d, type: 3}
+  - {fileID: 21300000, guid: c5061b257fca866d12e2a3d71c61353d, type: 3}
+  - {fileID: 21300000, guid: d778b24ede121d569ff73a35e2f97bda, type: 3}
+  - {fileID: 21300000, guid: 83493ad1838dfd560e36941eefe0507c, type: 3}
+  - {fileID: 21300000, guid: 51a303a40d7d138c6b1bf540c8549803, type: 3}
+  - {fileID: 21300000, guid: 0d94b82fa29c3c4f5b6cc4affec09ecb, type: 3}
+  - {fileID: 21300000, guid: 3c705922333e52d5d4528faae4e72423, type: 3}
+  - {fileID: 21300000, guid: 1a5935f7778aa14a368f51ca5d74b97e, type: 3}
+  - {fileID: 21300000, guid: 6d8b683f27e312881421553fc5149cce, type: 3}
+  - {fileID: 21300000, guid: 518e5296acd0b8ba2761d795b90c17dc, type: 3}
+  keyboardKeys:
+  - {fileID: 21300000, guid: 74ed91f809f252a7613ae33ea8d9b1a8, type: 3}
+  - {fileID: 21300000, guid: 439210b3e06261388ac76b35f6c53b74, type: 3}
+  - {fileID: 21300000, guid: c9734b711b0dc3a94d3ea07874f1834d, type: 3}
+  - {fileID: 21300000, guid: c903503d122132258ca3072b2f4ecda5, type: 3}
+  - {fileID: 21300000, guid: e063b92f4262d2c8ca59d9e70148e37b, type: 3}
+  - {fileID: 21300000, guid: a8f7f3d68b49ec172a93ed31e1dfb62d, type: 3}
+  - {fileID: 21300000, guid: 9e6424da2f685504f4196c300cb6bef3, type: 3}
+  - {fileID: 21300000, guid: 84815b331219148a107b4f0d59e0c211, type: 3}
+  - {fileID: 21300000, guid: 4e78f59dad688f330a608c827b955a86, type: 3}
+  - {fileID: 21300000, guid: e014ff101484b5a231f69352b82465be, type: 3}
+  - {fileID: 21300000, guid: 6c7a859a46ec419c9b639e0a9c594a6b, type: 3}
+  - {fileID: 21300000, guid: 685a40908151df53a21706b6a59af598, type: 3}

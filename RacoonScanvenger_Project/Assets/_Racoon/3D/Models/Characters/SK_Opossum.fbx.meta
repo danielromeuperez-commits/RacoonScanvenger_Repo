@@ -1,15 +1,11 @@
 fileFormatVersion: 2
-<<<<<<<< HEAD:RacoonScanvenger_Project/Assets/_Racoon/3D/Models/Characters/SK_RedPanda.fbx.meta
-guid: b146de0399e27dc4999201313180b38e
-========
-guid: 243e649bfc0f25448bb1c7d8cd5eb4f1
->>>>>>>> 5a3c666 (SK_Opossum rotado y con piercing):RacoonScanvenger_Project/Assets/_Racoon/3D/Models/Characters/SK_Opossum.fbx.meta
+guid: f34a1837090a2604cb2e66bacae22a0a
 ModelImporter:
   serializedVersion: 24200
   internalIDToNameTable: []
   externalObjects: {}
   materials:
-    materialImportMode: 2
+    materialImportMode: 0
     materialName: 0
     materialSearch: 1
     materialLocation: 1
@@ -45,8 +41,8 @@ ModelImporter:
     importPhysicalCameras: 1
     importVisibility: 1
     importBlendShapes: 1
-    importCameras: 1
-    importLights: 1
+    importCameras: 0
+    importLights: 0
     nodeNameCollisionStrategy: 1
     fileIdsGeneration: 2
     swapUVChannels: 0
@@ -83,7 +79,7 @@ ModelImporter:
     blendShapeNormalImportMode: 1
     normalSmoothingSource: 0
   referencedClips: []
-  importAnimation: 1
+  importAnimation: 0
   humanDescription:
     serializedVersion: 3
     human: []
@@ -104,7 +100,7 @@ ModelImporter:
   autoGenerateAvatarMappingIfUnspecified: 1
   animationType: 2
   humanoidOversampling: 1
-  avatarSetup: 0
+  avatarSetup: 1
   addHumanoidExtraRootOnlyWhenUsingAvatar: 1
   importBlendShapeDeformPercent: 1
   remapMaterialsIfMaterialImportModeIsNone: 0

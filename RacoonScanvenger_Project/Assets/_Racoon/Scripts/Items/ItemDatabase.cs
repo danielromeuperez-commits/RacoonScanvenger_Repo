@@ -17,11 +17,5 @@ namespace Racoon.Items
         public ItemData Get(int id) => id >= 0 && id < items.Count ? items[id] : null;
 
         public int GetId(ItemData item) => items.IndexOf(item);
-
-        void Start()
-        {
-            Cursor.visible = true;
-            Cursor.lockState = CursorLockMode.None;
-        }
     }
 }

@@ -1,4 +1,5 @@
 using System;
+using Racoon.Feedback;
 using Racoon.UI.P5;
 using TMPro;
 using UnityEngine;
@@ -27,6 +28,8 @@ namespace Racoon.UI.HUD
             public Image staminaTrail;
             [Tooltip("Ilustración del personaje (recortada por la máscara del fondo). Vacía hasta tener los dibujos.")]
             public Image illustration;
+            [Tooltip("Retrato en vivo (RenderTexture de la cámara grúa de HUDLivePortraits), encima de la ilustración.")]
+            public RawImage liveIllustration;
 
             [Header("Racha y liderato (desactivados por defecto)")]
             public GameObject fire;
@@ -35,7 +38,10 @@ namespace Racoon.UI.HUD
             public GameObject streak;
             [Tooltip("Contador «xN».")]
             public P5Text streakCounter;
+            [Tooltip("Insignia «TOP» o, si hay corona, la corona.")]
             public GameObject top;
+            [Tooltip("Opcional: corona del que va ganando (en lugar de la insignia). Cae sobre el aro del retrato, aterriza y se queda colgando; pivote en su base.")]
+            public RectTransform crown;
 
             [Header("Puntos (rodillo)")]
             public RectTransform scorePanel;
@@ -62,6 +68,12 @@ namespace Racoon.UI.HUD
             public RectTransform reserveItemBox;
             public Image reserveItemIcon;
             public GameObject reserveItemEmpty;
+
+            [Header("Reacciones (solo con «Reactions»)")]
+            [Tooltip("Rayas de velocidad detrás del retrato: al correr y en la voltereta.")]
+            public RectTransform[] speedLines = new RectTransform[0];
+            [Tooltip("Estrellas que giran sobre el retrato mientras está aturdido en el suelo.")]
+            public RectTransform[] dizzyStars = new RectTransform[0];
 
             [Header("Etiqueta")]
             [Tooltip("Chapa «Pn» y, si la variante lo muestra, el apodo: tag.SetText(apodo).")]
@@ -106,9 +118,18 @@ namespace Racoon.UI.HUD
         [Tooltip("Variante sin inclinaciones (Soft limpio): la caja principal flota sin girar.")]
         public bool calm;
         public PanelFx scorePanelFx;
+        [Tooltip("El retrato reacciona a lo que le pasa al jugador: golpes, plátanos, voltereta, puñetazos, correr y mareo.")]
+        public bool reactions;
         public PlayerView player1 = new();
         public PlayerView player2 = new();
         public TimerView timer = new();
+
+        [Header("Sonido (pendiente: arrastra los clips cuando los haya)")]
+        [Tooltip("SFX en cada cambio de icono de la ruleta de ítems: «tic» seco de ruleta de feria. " +
+                 "Suena cada vez más espaciado (la ruleta frena) y un poco más grave. Muy corto (< 0,1 s).")]
+        public SfxCue rouletteTickSfx = new();
+        [Tooltip("SFX cuando la ruleta se para en el ítem que te toca: «ding» / campanita alegre.")]
+        public SfxCue rouletteStopSfx = new();
 
         public PlayerView Player(int player) => player == 1 ? player1 : player2;
 

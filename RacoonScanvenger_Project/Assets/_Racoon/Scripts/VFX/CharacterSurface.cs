@@ -75,6 +75,30 @@ namespace Racoon.VFX
             }
         }
 
+        /// <summary>
+        /// Un punto pegado a la malla (triángulo + coordenadas dentro de él): sigue a la malla aunque se anime. Ver
+        /// <see cref="Evaluate"/>.
+        /// </summary>
+        public readonly struct Anchor
+        {
+            internal readonly int part, triangle;
+            internal readonly float u, v;
+            // La normal de la malla en ese punto mira hacia dentro: darle la vuelta.
+            internal readonly bool flip;
+
+            internal Anchor(int part, int triangle, float u, float v, bool flip)
+            {
+                this.part = part;
+                this.triangle = triangle;
+                this.u = u;
+                this.v = v;
+                this.flip = flip;
+            }
+
+            public static Anchor None => new(-1, -1, 0f, 0f, false);
+            public bool Valid => part >= 0;
+        }
+
         /// <summary>Hay malla de verdad (si no, todo va con el elipsoide de la caja).</summary>
         public bool HasMesh => parts.Count > 0;
 
@@ -91,17 +115,26 @@ namespace Racoon.VFX
         /// Punto de la malla donde entra un rayo que viene de fuera: el primero que toca o, si no toca nada, el más
         /// cercano al rayo. La normal mira hacia el origen del rayo.
         /// </summary>
-        public void FindEntry(Vector3 origin, Vector3 direction, float maxDistance, out Vector3 point, out Vector3 normal)
+        public void FindEntry(Vector3 origin, Vector3 direction, float maxDistance, out Vector3 point, out Vector3 normal) =>
+            FindEntry(origin, direction, maxDistance, out point, out normal, out _);
+
+        /// <summary>Como el otro FindEntry, y además el punto pegado a la malla (si el rayo la toca).</summary>
+        public void FindEntry(Vector3 origin, Vector3 direction, float maxDistance, out Vector3 point, out Vector3 normal, out Anchor anchor)
         {
-            if (Raycast(origin, direction, maxDistance, out point, out normal)) return;
+            if (Raycast(origin, direction, maxDistance, out point, out normal, out anchor)) return;
+            anchor = Anchor.None;
             if (NearestToRay(origin, direction, out point, out normal)) return;
             EllipsoidEntry(origin, direction, out point, out normal);
         }
 
         /// <summary>Primer punto de la malla en el rayo (dirección en mundo). La normal mira hacia el origen.</summary>
-        public bool Raycast(Vector3 origin, Vector3 direction, float maxDistance, out Vector3 point, out Vector3 normal)
+        public bool Raycast(Vector3 origin, Vector3 direction, float maxDistance, out Vector3 point, out Vector3 normal) =>
+            Raycast(origin, direction, maxDistance, out point, out normal, out _);
+
+        bool Raycast(Vector3 origin, Vector3 direction, float maxDistance, out Vector3 point, out Vector3 normal, out Anchor anchor)
         {
             point = normal = Vector3.zero;
+            anchor = Anchor.None;
             if (direction.sqrMagnitude < 1e-10f) return false;
             direction.Normalize();
 
@@ -134,7 +167,25 @@ namespace Racoon.VFX
 
             point = origin + direction * best;
             normal = TriangleNormal(bestPart, bestTriangle, bestU, bestV);
-            if (Vector3.Dot(normal, direction) > 0f) normal = -normal;
+            bool flip = Vector3.Dot(normal, direction) > 0f;
+            if (flip) normal = -normal;
+            anchor = new Anchor(parts.IndexOf(bestPart), bestTriangle, bestU, bestV, flip);
+            return true;
+        }
+
+        /// <summary>Dónde está ahora (en mundo) un punto pegado a la malla, con su normal hacia fuera.</summary>
+        public bool Evaluate(Anchor anchor, out Vector3 point, out Vector3 normal)
+        {
+            point = normal = Vector3.zero;
+            if (!anchor.Valid || anchor.part >= parts.Count) return false;
+            Part part = parts[anchor.part];
+            MeshData data = Data(part);
+            if (data == null || anchor.triangle + 2 >= data.triangles.Length) return false;
+            int[] tris = data.triangles;
+            Vector3 a = data.vertices[tris[anchor.triangle]], b = data.vertices[tris[anchor.triangle + 1]], c = data.vertices[tris[anchor.triangle + 2]];
+            point = LocalToWorld(part).MultiplyPoint3x4(a * (1f - anchor.u - anchor.v) + b * anchor.u + c * anchor.v);
+            normal = TriangleNormal(part, anchor.triangle, anchor.u, anchor.v);
+            if (anchor.flip) normal = -normal;
             return true;
         }
 
