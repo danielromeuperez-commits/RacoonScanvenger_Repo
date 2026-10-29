@@ -8,7 +8,7 @@ using UnityEngine.UI;
 namespace Racoon.UI.HUD
 {
     /// <summary>
-    /// Referencias de todas las piezas animables del HUD. La rellena HUDVariantBuilder al montar cada variante;
+    /// Referencias de todas las piezas animables del HUD (asignadas en el prefab de cada variante);
     /// <see cref="HUDController"/> las conecta con la partida y las anima.
     /// Medidas en px a escala 2560×1440.
     /// </summary>
