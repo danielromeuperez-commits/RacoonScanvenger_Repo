@@ -3,7 +3,7 @@ using UnityEngine;
 using TMPro;
 using Racoon.Items;
 
-public class eventSpawnItem : NetworkBehaviour, IGameEvent
+public class eventBanana : NetworkBehaviour, IGameEvent
 {
     [Header("Configuración del Evento de Instanciación")]
     [Tooltip("El ItemData del objeto que deseas instanciar (ej: ITEM_Banana_New).")]
