@@ -9,6 +9,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7173165958026516715}
+  - component: {fileID: 457012036593964240}
+  - component: {fileID: 4627681739770462345}
   m_Layer: 0
   m_Name: PF_MNG_ConnectionMenuManager
   m_TagString: Untagged
@@ -24,10 +26,66 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7270331390155505953}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &457012036593964240
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7270331390155505953}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0473991278dd400bbe4bf77256deb818, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Multiplayer.Center.NetcodeForGameObjectsExample::Unity.Multiplayer.Center.NetcodeForGameObjectsExample.DistributedAuthority.ConnectionManager
+  m_MaxPlayers: 2
+--- !u!114 &4627681739770462345
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7270331390155505953}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c8f0e0a0331ea4a41b9158508fe97558, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ConnectionMenu
+  connectionMenu: {fileID: 0}
+  networkTestMenu: {fileID: 0}
+  characterLobbyManager: {fileID: 0}
+  ipInputField: {fileID: 0}
+  waitingPlayerText: {fileID: 0}
+  hostIPAddressText: {fileID: 0}
+  playerCountText: {fileID: 0}
+  joinCodeInputField: {fileID: 0}
+  onlineWaitingPlayerText: {fileID: 0}
+  onlineSessionCodeText: {fileID: 0}
+  onlinePlayerCountText: {fileID: 0}
+  waitingPanel: {fileID: 0}
+  waitingTitleText: {fileID: 0}
+  sessionCodeText: {fileID: 0}
+  copyCodeButton: {fileID: 0}
+  characterSelectionPanel: {fileID: 0}
+  characterNameText: {fileID: 0}
+  characterPortraitImage: {fileID: 0}
+  readyStatusText: {fileID: 0}
+  characterRingImage: {fileID: 0}
+  characterColors: []
+  localReadyText: {fileID: 0}
+  rivalReadyText: {fileID: 0}
+  previousCharacterButton: {fileID: 0}
+  nextCharacterButton: {fileID: 0}
+  readyButton: {fileID: 0}
+  modeSelectionPanel: {fileID: 0}
+  localPanel: {fileID: 0}
+  onlinePanel: {fileID: 0}
+  statusText: {fileID: 0}
+  mainMenuSceneName: SCN_MainMenu

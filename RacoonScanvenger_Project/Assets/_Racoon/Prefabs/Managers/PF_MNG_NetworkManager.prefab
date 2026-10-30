@@ -123,6 +123,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Racoon.Network.NetworkTestMenu
   port: 7777
   uiScale: 0
+  startMinimized: 0
+  hideWhenLobbyPresent: 1
+  toggleKey: 282
 --- !u!114 &582876100012583536
 MonoBehaviour:
   m_ObjectHideFlags: 0
