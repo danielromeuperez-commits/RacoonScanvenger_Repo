@@ -675,6 +675,61 @@ MonoBehaviour:
   strands: 1
   delay: 0.04
   duration: 0.2
+--- !u!1 &5785064992123852581
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7301235368894590004}
+  - component: {fileID: 8579478192243146879}
+  m_Layer: 8
+  m_Name: HitCollider
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7301235368894590004
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5785064992123852581}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1039402550963891426}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!136 &8579478192243146879
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5785064992123852581}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.39838994
+  m_Height: 0.94516283
+  m_Direction: 1
+  m_Center: {x: 0.0016128421, y: 0.38386008, z: 0}
 --- !u!1 &6032796751976412665
 GameObject:
   m_ObjectHideFlags: 0
@@ -794,6 +849,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 4065084738747927296}
+  - {fileID: 7301235368894590004}
   - {fileID: 3746231284464520148}
   - {fileID: 809146151829680577}
   - {fileID: 5538411719726722318}
@@ -908,7 +964,8 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 64
   interactRepeatInterval: 0.25
-  punchHitDelay: 0.15
+  hitCollider: {fileID: 8579478192243146879}
+  punchHitDelay: 0
   punchRange: 0.9
   punchHeight: 0
   punchRadius: 0.6
@@ -941,7 +998,7 @@ MonoBehaviour:
     upwardVelocity: 4
     stunDuration: 1
     invulnerableWhileStunned: 1
-    recoveryInvulnerability: 0.8
+    recoveryInvulnerability: 3
   dashSpeed: 14
   dashDuration: 0.25
   dashSpeedCurve:
@@ -1694,10 +1751,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1039402550963891426}
     m_Modifications:
-    - target: {fileID: 2075871865537132925, guid: 828b9a0a28132d04d8a8c0519ed140ba, type: 3}
-      propertyPath: m_AdditionalShaderChannelsFlag
-      value: 25
-      objectReference: {fileID: 0}
     - target: {fileID: 3973147972086338505, guid: 828b9a0a28132d04d8a8c0519ed140ba, type: 3}
       propertyPath: m_Name
       value: PF_HUD_EstadoJugador

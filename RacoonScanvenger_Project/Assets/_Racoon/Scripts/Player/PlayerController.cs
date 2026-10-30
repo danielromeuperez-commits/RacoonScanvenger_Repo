@@ -79,6 +79,8 @@ namespace Racoon.Player
         float interactRepeatTimer;
 
         [Header("Golpe")]
+        [Tooltip("Usar este collider para recibir el golpe en lugar del de este mismo GameObject")]
+        [SerializeField] Collider hitCollider;
         [Tooltip("Momento del golpe en el que se comprueba el impacto (frame activo).")]
         [SerializeField] float punchHitDelay = 0.15f;
         [SerializeField] float punchRange = 0.9f;
@@ -1342,7 +1344,7 @@ namespace Racoon.Player
                 }
 
                 if (playerChecked) continue;
-                PlayerController victim = overlapBuffer[i].GetComponentInParent<PlayerController>();
+                PlayerController victim = FindPlayerForHitCollider(overlapBuffer[i]);
                 if (victim == null || victim == this) continue;
                 playerChecked = true;
 
@@ -1351,6 +1353,23 @@ namespace Racoon.Player
                 lastPunchConnected = true;
                 PunchHitRpc(victim.NetworkObject, releasedPunchCharged);
             }
+        }
+
+        PlayerController FindPlayerForHitCollider(Collider candidate)
+        {
+            PlayerController victim = candidate.GetComponentInParent<PlayerController>();
+            if (victim != null) return victim;
+
+            if (NetworkManager.Singleton == null || NetworkManager.Singleton.SpawnManager == null)
+                return null;
+
+            foreach (NetworkObject networkObject in NetworkManager.Singleton.SpawnManager.SpawnedObjectsList)
+            {
+                if (networkObject.TryGetComponent(out PlayerController player) && player.hitCollider == candidate)
+                    return player;
+            }
+
+            return null;
         }
 
         [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Owner)]
@@ -1381,9 +1400,13 @@ namespace Racoon.Player
             if (Time.time - lastServerPunchTime < punchDuration * 0.75f) return;
             lastServerPunchTime = Time.time;
 
-            Vector3 toVictim = victim.transform.position - transform.position;
+            Vector3 hitPoint = victim.hitCollider != null
+                ? victim.hitCollider.ClosestPoint(transform.position)
+                : victim.transform.position;
+            Vector3 toVictim = hitPoint - transform.position;
             toVictim.y = 0f;
-            float maxDistance = punchRange + punchRadius + (capsule != null ? capsule.radius * 2f : 1f) + hitValidationTolerance;
+            float maxDistance = punchRange + punchRadius +
+                (victim.hitCollider != null ? 0f : capsule != null ? capsule.radius * 2f : 1f) + hitValidationTolerance;
             if (toVictim.magnitude > maxDistance) return;
 
             Vector3 direction = toVictim.sqrMagnitude > 0.0001f ? toVictim.normalized : transform.forward;
