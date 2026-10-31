@@ -2048,6 +2048,11 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 1224391327917733491, guid: 3ce03ca79877b77438a4e2cdf9cf02ff, type: 3}
   m_PrefabInstance: {fileID: 105892023}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &105892025 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 5986574349129187680, guid: 3ce03ca79877b77438a4e2cdf9cf02ff, type: 3}
+  m_PrefabInstance: {fileID: 105892023}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &121826328 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 254beb049003714428f87782fd6c7f3a, type: 3}
@@ -5667,6 +5672,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 4627681739770462345, guid: 84e253a5a5e3de941b56a26d161ccfea, type: 3}
+      propertyPath: gameplayUI
+      value: 
+      objectReference: {fileID: 105892025}
     - target: {fileID: 4627681739770462345, guid: 84e253a5a5e3de941b56a26d161ccfea, type: 3}
       propertyPath: localPanel
       value: 

@@ -107,6 +107,9 @@ public class ConnectionMenu : MonoBehaviour
     [SerializeField] GameObject localPanel;
     [SerializeField] GameObject onlinePanel;
 
+    [Header("Gameplay UI")]
+    [SerializeField] GameObject gameplayUI;
+
     // ============================================================
     // MENSAJES
     // ============================================================
@@ -143,6 +146,9 @@ public class ConnectionMenu : MonoBehaviour
             networkTestMenu =
                 FindFirstObjectByType<NetworkTestMenu>();
         }
+
+        if (gameplayUI != null)
+            gameplayUI.SetActive(false);
 
         if (networkTestMenu == null)
         {
@@ -914,14 +920,16 @@ public class ConnectionMenu : MonoBehaviour
     void BeginGameplay()
     {
         gameplayStarted = true;
-
         shownPanel = null;
 
+        // Ocultamos el menú de conexión.
         SetMenuVisible(false);
 
-        Debug.Log(
-            "Todos los jugadores están READY. Comienza la partida."
-        );
+        // Mostramos el HUD del gameplay.
+        if (gameplayUI != null)
+            gameplayUI.SetActive(true);
+
+        Debug.Log("Todos los jugadores están READY. Comienza la partida.");
     }
 
     void SetMenuVisible(bool visible)
