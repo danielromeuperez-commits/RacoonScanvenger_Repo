@@ -6217,7 +6217,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpawnerMechItems
   prefabs:
-  - {fileID: 6000563155942465333, guid: bd1d276ea3332ca44a1a730729b84637, type: 3}
+  - {fileID: 2162358756280939761, guid: fd023949c95ab7b42a9d99dc0c9dffbe, type: 3}
   - {fileID: 5220392856531122104, guid: ee689aad5e9f25b42a8ef910f73200f5, type: 3}
   spawnPoint: {fileID: 670791805}
   segundos: 15

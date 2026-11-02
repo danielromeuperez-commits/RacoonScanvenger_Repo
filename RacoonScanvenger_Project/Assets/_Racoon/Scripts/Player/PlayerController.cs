@@ -974,7 +974,7 @@ namespace Racoon.Player
             );
         }
 
-        [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Owner)]
+        [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
         private void RequestExtintorPickupRpc(
             NetworkObjectReference pickupReference)
         {
