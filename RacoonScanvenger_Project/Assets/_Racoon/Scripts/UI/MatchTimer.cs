@@ -9,7 +9,8 @@ public class MatchTimer : NetworkBehaviour
     [Tooltip("Duración de la partida en segundos.")]
     [SerializeField, Min(1f)] float matchDuration = 300f;
 
-    [SerializeField] bool autoStart = true;
+    [Tooltip("Déjalo desactivado si utilizas el lobby de selección de personaje.")]
+    [SerializeField] bool autoStart = false;
 
     readonly NetworkVariable<double> matchEndTime = new(0);
     readonly NetworkVariable<bool> matchRunning = new(false);
@@ -17,6 +18,7 @@ public class MatchTimer : NetworkBehaviour
 
     // Multiplicador de velocidad permanente para el resto de la partida
     readonly NetworkVariable<float> timeScale = new(1f);
+
     double lastServerTime = 0;
 
     public event Action MatchEnded;
@@ -35,6 +37,8 @@ public class MatchTimer : NetworkBehaviour
             if (matchFinished.Value)
                 return 0f;
 
+            // Mientras todavía estamos en selección de personaje,
+            // mostramos la duración completa y el reloj no avanza.
             if (!matchRunning.Value)
                 return matchDuration;
 
@@ -48,8 +52,11 @@ public class MatchTimer : NetworkBehaviour
     public override void OnNetworkSpawn()
     {
         matchFinished.OnValueChanged += OnMatchFinishedChanged;
+
         lastServerTime = NetworkManager.ServerTime.Time;
 
+        // Solo se utilizará si quieres probar el MatchTimer
+        // sin pasar por el lobby.
         if (IsServer && autoStart)
             ServerStartMatch();
     }
@@ -61,51 +68,103 @@ public class MatchTimer : NetworkBehaviour
 
     void Update()
     {
-        if (!IsServer || !matchRunning.Value || matchFinished.Value)
-            return;
-
-        double currentServerTime = NetworkManager.ServerTime.Time;
-        double deltaTime = currentServerTime - lastServerTime;
-        lastServerTime = currentServerTime;
-
-        // Si la escala de tiempo cambió (ej: x2 o x3), consumimos el tiempo restante más rápido de forma permanente
-        if (timeScale.Value != 1f && deltaTime > 0)
+        if (!IsServer ||
+            !matchRunning.Value ||
+            matchFinished.Value)
         {
-            double extraTimePassed = deltaTime * (timeScale.Value - 1.0);
-            matchEndTime.Value -= extraTimePassed;
+            return;
         }
 
-        if (NetworkManager.ServerTime.Time < matchEndTime.Value)
+        double currentServerTime =
+            NetworkManager.ServerTime.Time;
+
+        double deltaTime =
+            currentServerTime - lastServerTime;
+
+        lastServerTime =
+            currentServerTime;
+
+        // Si la escala de tiempo cambió
+        // (ej: x2 o x3), consumimos tiempo extra.
+        if (timeScale.Value != 1f &&
+            deltaTime > 0)
+        {
+            double extraTimePassed =
+                deltaTime * (timeScale.Value - 1.0);
+
+            matchEndTime.Value -=
+                extraTimePassed;
+        }
+
+        if (NetworkManager.ServerTime.Time <
+            matchEndTime.Value)
+        {
             return;
+        }
 
         matchRunning.Value = false;
+
         DetermineWinner();
+
         matchFinished.Value = true;
     }
+
+    // ============================================================
+    // EMPEZAR PARTIDA
+    // ============================================================
 
     public void ServerStartMatch()
     {
         if (!IsServer)
             return;
 
-        matchFinished.Value = false;
-        matchRunning.Value = true;
-        timeScale.Value = 1f;
-        lastServerTime = NetworkManager.ServerTime.Time;
-
-        matchEndTime.Value =
-            NetworkManager.ServerTime.Time + matchDuration;
-    }
-
-    // Aplica el multiplicador de forma permanente para el resto de la partida
-    public void ApplyTimeMultiplier(float multiplier)
-    {
-        if (!IsServer || !matchRunning.Value)
+        // Evita arrancarla dos veces.
+        if (matchRunning.Value)
             return;
 
-        timeScale.Value = Mathf.Max(0.1f, multiplier);
-        Debug.Log($"MatchTimer: ¡El cronómetro correrá a x{timeScale.Value} durante el resto de la partida!");
+        matchFinished.Value = false;
+        matchRunning.Value = true;
+
+        timeScale.Value = 1f;
+
+        lastServerTime =
+            NetworkManager.ServerTime.Time;
+
+        matchEndTime.Value =
+            NetworkManager.ServerTime.Time +
+            matchDuration;
+
+        Debug.Log(
+            $"MatchTimer: comienza la partida. " +
+            $"Duración: {matchDuration} segundos."
+        );
     }
+
+    // ============================================================
+    // MULTIPLICADOR DE TIEMPO
+    // ============================================================
+
+    public void ApplyTimeMultiplier(
+        float multiplier)
+    {
+        if (!IsServer ||
+            !matchRunning.Value)
+        {
+            return;
+        }
+
+        timeScale.Value =
+            Mathf.Max(0.1f, multiplier);
+
+        Debug.Log(
+            $"MatchTimer: ¡El cronómetro correrá a " +
+            $"x{timeScale.Value} durante el resto de la partida!"
+        );
+    }
+
+    // ============================================================
+    // GANADOR
+    // ============================================================
 
     void DetermineWinner()
     {
@@ -113,53 +172,85 @@ public class MatchTimer : NetworkBehaviour
             return;
 
         PlayerLoot[] players =
-            FindObjectsByType<PlayerLoot>(FindObjectsSortMode.None);
+            FindObjectsByType<PlayerLoot>(
+                FindObjectsSortMode.None
+            );
 
         if (players.Length < 2)
         {
             Debug.LogWarning(
-                "No hay suficientes jugadores para determinar un ganador."
+                "No hay suficientes jugadores " +
+                "para determinar un ganador."
             );
+
             return;
         }
 
-        System.Array.Sort(players, (a, b) =>
-            a.OwnerClientId.CompareTo(b.OwnerClientId)
+        Array.Sort(
+            players,
+            (a, b) =>
+                a.OwnerClientId.CompareTo(
+                    b.OwnerClientId
+                )
         );
 
-        PlayerLoot player1 = players[0];
-        PlayerLoot player2 = players[1];
+        PlayerLoot player1 =
+            players[0];
 
-        int player1Points = player1.BankedPoints;
-        int player2Points = player2.BankedPoints;
+        PlayerLoot player2 =
+            players[1];
+
+        int player1Points =
+            player1.BankedPoints;
+
+        int player2Points =
+            player2.BankedPoints;
 
         Debug.Log(
             $"RESULTADO FINAL -> " +
-            $"Jugador {player1.OwnerClientId}: {player1Points} puntos | " +
-            $"Jugador {player2.OwnerClientId}: {player2Points} puntos"
+            $"Jugador {player1.OwnerClientId}: " +
+            $"{player1Points} puntos | " +
+            $"Jugador {player2.OwnerClientId}: " +
+            $"{player2Points} puntos"
         );
 
-        if (player1Points > player2Points)
+        if (player1Points >
+            player2Points)
         {
-            Debug.Log($"Ganador: jugador {player1.OwnerClientId}");
+            Debug.Log(
+                $"Ganador: jugador " +
+                $"{player1.OwnerClientId}"
+            );
+
             player1.ServerSendMatchResult(true);
             player2.ServerSendMatchResult(false);
         }
-        else if (player2Points > player1Points)
+        else if (
+            player2Points >
+            player1Points)
         {
-            Debug.Log($"Ganador: jugador {player2.OwnerClientId}");
+            Debug.Log(
+                $"Ganador: jugador " +
+                $"{player2.OwnerClientId}"
+            );
+
             player1.ServerSendMatchResult(false);
             player2.ServerSendMatchResult(true);
         }
         else
         {
-            Debug.Log("La partida ha terminado en empate.");
+            Debug.Log(
+                "La partida ha terminado en empate."
+            );
+
             player1.ServerSendDrawResult();
             player2.ServerSendDrawResult();
         }
     }
 
-    void OnMatchFinishedChanged(bool previous, bool current)
+    void OnMatchFinishedChanged(
+        bool previous,
+        bool current)
     {
         if (!current)
             return;
@@ -167,14 +258,23 @@ public class MatchTimer : NetworkBehaviour
         MatchEnded?.Invoke();
 
         if (PlayerController.Local != null)
-            PlayerController.Local.InputHandler.SetInputEnabled(false);
+        {
+            PlayerController.Local
+                .InputHandler
+                .SetInputEnabled(false);
+        }
     }
 
-    public void ApplyCustomTimeReduction(float secondsToSubtract)
+    public void ApplyCustomTimeReduction(
+        float secondsToSubtract)
     {
-        if (!IsServer || !matchRunning.Value)
+        if (!IsServer ||
+            !matchRunning.Value)
+        {
             return;
+        }
 
-        matchEndTime.Value -= secondsToSubtract;
+        matchEndTime.Value -=
+            secondsToSubtract;
     }
 }

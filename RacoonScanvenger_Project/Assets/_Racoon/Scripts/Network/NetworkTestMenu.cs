@@ -156,20 +156,51 @@ namespace Racoon.Network
         // El personaje elegido viaja al host dentro de los datos de conexión.
         void ApplySelection() => spawnManager.SetLocalSelection(selectedCharacter);
 
-        public void StartLocalHost()
+        public async void StartLocalHost()
         {
+            // Si por cualquier motivo seguimos siendo Host/Cliente
+            // de una partida anterior, cerramos primero esa red.
+            if (networkManager.IsListening ||
+                networkManager.ShutdownInProgress)
+            {
+                Debug.Log(
+                    "[Red] Había una conexión anterior activa. " +
+                    "Cerrándola antes de crear el nuevo Host..."
+                );
+
+                networkManager.Shutdown();
+
+                // Esperamos a que NGO haya terminado completamente.
+                while (networkManager.IsListening ||
+                       networkManager.ShutdownInProgress)
+                {
+                    await Task.Yield();
+                }
+            }
+
             ApplySelection();
-            // 0.0.0.0 = acepta conexiones de este PC y de otros de la misma red.
-            transport.SetConnectionData("127.0.0.1", port, "0.0.0.0");
+
+            // 0.0.0.0 permite conexiones desde otros PCs de la LAN.
+            transport.SetConnectionData(
+                "127.0.0.1",
+                port,
+                "0.0.0.0"
+            );
+
             if (networkManager.StartHost())
             {
                 LogNetworkConfig("Host");
-                localAddresses = GetLocalAddresses();
-                status = $"Host local en el puerto {port}";
+
+                localAddresses =
+                    GetLocalAddresses();
+
+                status =
+                    $"Host local en el puerto {port}";
             }
             else
             {
-                status = "No se pudo iniciar el host (¿puerto ocupado?).";
+                status =
+                    "No se pudo iniciar el host.";
             }
         }
 
