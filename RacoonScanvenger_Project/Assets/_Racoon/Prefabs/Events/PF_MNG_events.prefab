@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 7929087774438800172}
   - component: {fileID: 2078652030045823054}
   m_Layer: 0
-  m_Name: MAN_events
+  m_Name: PF_MNG_events
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -45,8 +45,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 61055800
-  InScenePlacedSourceGlobalObjectIdHash: 0
+  GlobalObjectIdHash: 456334157
+  InScenePlacedSourceGlobalObjectIdHash: 456334157
   m_InScenePlacedDisabledByDefault: 0
   DeferredDespawnTick: 0
   Ownership: 1
@@ -73,10 +73,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EventManager
   ShowTopMostFoldoutHeaderGroup: 1
-  initialDelay: 5
-  checkInterval: 2
+  initialDelay: 60
+  checkInterval: 15
   maxTimeLimit: 240
-  eventProbability: 1
+  eventProbability: 0.3
   availableEventScripts:
   - {fileID: 0}
   - {fileID: 0}
