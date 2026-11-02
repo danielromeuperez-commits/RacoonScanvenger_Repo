@@ -5399,7 +5399,7 @@ PrefabInstance:
       objectReference: {fileID: 553140884}
     - target: {fileID: 2813979706518015053, guid: c49dd5596f13ee549a39d01c0e1d3aee, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
-      value: OpenMainSelection
+      value: BackToMainMenu
       objectReference: {fileID: 0}
     - target: {fileID: 5227439098819323947, guid: c49dd5596f13ee549a39d01c0e1d3aee, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target
