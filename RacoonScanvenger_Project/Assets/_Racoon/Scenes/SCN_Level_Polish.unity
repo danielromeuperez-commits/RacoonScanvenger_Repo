@@ -6127,6 +6127,7 @@ GameObject:
   m_Component:
   - component: {fileID: 670791805}
   - component: {fileID: 670791806}
+  - component: {fileID: 670791807}
   m_Layer: 0
   m_Name: SpawnerMechItems
   m_TagString: Untagged
@@ -6163,8 +6164,36 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpawnerMechItems
   prefabs:
   - {fileID: 6000563155942465333, guid: bd1d276ea3332ca44a1a730729b84637, type: 3}
+  - {fileID: 5220392856531122104, guid: ee689aad5e9f25b42a8ef910f73200f5, type: 3}
   spawnPoint: {fileID: 670791805}
-  segundosEntreSpawns: 150
+  segundos: 15
+--- !u!114 &670791807
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 670791804}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
+  GlobalObjectIdHash: 3874753298
+  InScenePlacedSourceGlobalObjectIdHash: 0
+  m_InScenePlacedDisabledByDefault: 0
+  DeferredDespawnTick: 0
+  Ownership: 1
+  AlwaysReplicateAsRoot: 0
+  SynchronizeTransform: 1
+  m_InScenePlaced: 1
+  ActiveSceneSynchronization: 0
+  SceneMigrationSynchronization: 0
+  SpawnWithObservers: 1
+  DontDestroyWithOwner: 0
+  AutoObjectParentSync: 1
+  SyncOwnerTransformWhenParented: 1
+  AllowOwnerToParent: 0
 --- !u!4 &675580310 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 8331726109564739842, guid: bc5e0b8b626af6a49a277197a88ac8e3, type: 3}
@@ -8846,6 +8875,63 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.005547597, y: 0.010115592, z: 0.02042609}
   m_Center: {x: -0.002542684, y: -0.004943843, z: 0.010065381}
+--- !u!1001 &1159311760
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 8257302386576394906, guid: 7f515342e0a995843a5d12df5dae72c8, type: 3}
+      propertyPath: m_Name
+      value: MAN_Vibration
+      objectReference: {fileID: 0}
+    - target: {fileID: 8594510632793854224, guid: 7f515342e0a995843a5d12df5dae72c8, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -4.17982
+      objectReference: {fileID: 0}
+    - target: {fileID: 8594510632793854224, guid: 7f515342e0a995843a5d12df5dae72c8, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -0.001
+      objectReference: {fileID: 0}
+    - target: {fileID: 8594510632793854224, guid: 7f515342e0a995843a5d12df5dae72c8, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 5.11209
+      objectReference: {fileID: 0}
+    - target: {fileID: 8594510632793854224, guid: 7f515342e0a995843a5d12df5dae72c8, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8594510632793854224, guid: 7f515342e0a995843a5d12df5dae72c8, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8594510632793854224, guid: 7f515342e0a995843a5d12df5dae72c8, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8594510632793854224, guid: 7f515342e0a995843a5d12df5dae72c8, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8594510632793854224, guid: 7f515342e0a995843a5d12df5dae72c8, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8594510632793854224, guid: 7f515342e0a995843a5d12df5dae72c8, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8594510632793854224, guid: 7f515342e0a995843a5d12df5dae72c8, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 7f515342e0a995843a5d12df5dae72c8, type: 3}
 --- !u!1001 &1163282703
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -47923,3 +48009,4 @@ SceneRoots:
   - {fileID: 228855409}
   - {fileID: 699442689}
   - {fileID: 670791805}
+  - {fileID: 1159311760}
