@@ -205,3 +205,7 @@ MonoBehaviour:
     color: {r: 1, g: 0.35, b: 0.35, a: 1}
     icon: {fileID: 0}
     applyToSubfolders: 0
+  - folder: {fileID: 102900000, guid: d5bdb12ba9f697a4d8f73e3cb7f2a4ba, type: 3}
+    color: {r: 0.3, g: 0.9, b: 0.85, a: 1}
+    icon: {fileID: 0}
+    applyToSubfolders: 0
