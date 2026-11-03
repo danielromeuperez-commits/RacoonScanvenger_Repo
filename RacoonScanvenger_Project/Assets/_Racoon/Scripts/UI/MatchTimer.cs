@@ -224,6 +224,12 @@ public class MatchTimer : NetworkBehaviour
 
             player1.ServerSendMatchResult(true);
             player2.ServerSendMatchResult(false);
+
+            // Avisamos a los dos clientes de quién ha ganado.
+            ShowMatchResultClientRpc(
+                player1.OwnerClientId,
+                false
+            );
         }
         else if (
             player2Points >
@@ -236,6 +242,12 @@ public class MatchTimer : NetworkBehaviour
 
             player1.ServerSendMatchResult(false);
             player2.ServerSendMatchResult(true);
+
+            // Avisamos a los dos clientes de quién ha ganado.
+            ShowMatchResultClientRpc(
+                player2.OwnerClientId,
+                false
+            );
         }
         else
         {
@@ -245,6 +257,55 @@ public class MatchTimer : NetworkBehaviour
 
             player1.ServerSendDrawResult();
             player2.ServerSendDrawResult();
+
+            // En empate ambos jugadores verán el panel DRAW.
+            ShowMatchResultClientRpc(
+                0,
+                true
+            );
+        }
+    }
+
+    // ============================================================
+    // MOSTRAR RESULTADO
+    // ============================================================
+
+    [ClientRpc]
+    void ShowMatchResultClientRpc(
+        ulong winnerClientId,
+        bool draw)
+    {
+        if (MatchResultUI.Instance == null)
+        {
+            Debug.LogWarning(
+                "MatchTimer: no se encontró ningún MatchResultUI."
+            );
+
+            return;
+        }
+
+        // Si ha habido empate, los dos jugadores
+        // muestran directamente el panel de empate.
+        if (draw)
+        {
+            MatchResultUI.Instance.ShowDraw();
+            return;
+        }
+
+        // Cada PC comprueba si su ClientId
+        // coincide con el jugador que ha ganado.
+        bool localPlayerWon =
+            NetworkManager.Singleton != null &&
+            NetworkManager.Singleton.LocalClientId ==
+            winnerClientId;
+
+        if (localPlayerWon)
+        {
+            MatchResultUI.Instance.ShowVictory();
+        }
+        else
+        {
+            MatchResultUI.Instance.ShowDefeat();
         }
     }
 
