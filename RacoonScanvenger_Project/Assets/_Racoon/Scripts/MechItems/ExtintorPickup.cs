@@ -1,4 +1,3 @@
-
 using UnityEngine;
 using Unity.Netcode;
 using Racoon.Player;
@@ -10,13 +9,21 @@ public class ExtintorPickup : NetworkBehaviour
     [Header("EFECTO")]
     [SerializeField] private float duration = 5f;
     [SerializeField] private float bounceSpeed = 10f;
-    [SerializeField] private float validationDistance = 3f;
+    [SerializeField] private float validationDistance = 5f;
+
+    [Header("Loot / Recompensa")]
+    [SerializeField] private int lootPoints = 50;
+    [SerializeField] private float lootWeight = 2f;
 
     private bool consumed;
 
     private void Awake()
     {
-        GetComponent<Collider>().isTrigger = true;
+        Collider col = GetComponent<Collider>();
+        if (col != null)
+        {
+            col.isTrigger = true;
+        }
     }
 
     private void OnTriggerEnter(Collider other)
@@ -24,8 +31,7 @@ public class ExtintorPickup : NetworkBehaviour
         if (consumed || !IsSpawned)
             return;
 
-        PlayerController player =
-            other.GetComponentInParent<PlayerController>();
+        PlayerController player = other.GetComponentInParent<PlayerController>();
 
         if (player == null || !player.IsOwner)
             return;
@@ -35,21 +41,20 @@ public class ExtintorPickup : NetworkBehaviour
 
     public void ConsumeOnServer(PlayerController player)
     {
-        if (!IsServer || consumed || player == null)
+        if (!IsServer || consumed || player == null || !IsSpawned)
             return;
 
-        if (!player.IsSpawned || !IsSpawned)
-            return;
-
-        float distance = Vector3.Distance(
-            transform.position,
-            player.transform.position
-        );
-
+        float distance = Vector3.Distance(transform.position, player.transform.position);
         if (distance > validationDistance)
             return;
 
         consumed = true;
+
+        // Sumar puntos y peso a la bolsa del jugador a través de PlayerLoot
+        if (player.TryGetComponent(out PlayerLoot playerLoot))
+        {
+            playerLoot.ServerAddLoot(lootPoints, lootWeight);
+        }
 
         player.ActivateExtintorOnOwnerRpc(duration, bounceSpeed);
 

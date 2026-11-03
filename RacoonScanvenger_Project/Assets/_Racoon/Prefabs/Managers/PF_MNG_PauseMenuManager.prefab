@@ -45,3 +45,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PauseMenu
   pausePanel: {fileID: 0}
+  pausedText: {fileID: 0}
+  resumeButton: {fileID: 0}
+  optionsButton: {fileID: 0}
+  mainMenuButton: {fileID: 0}
+  optionsPanel: {fileID: 0}

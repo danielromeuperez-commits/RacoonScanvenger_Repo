@@ -1061,6 +1061,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   extintorTurnSpeed: 360
+  extintorPushCooldown: 5
 --- !u!114 &6877927705847804177
 MonoBehaviour:
   m_ObjectHideFlags: 0

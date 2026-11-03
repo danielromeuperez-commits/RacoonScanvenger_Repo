@@ -107,6 +107,9 @@ public class ConnectionMenu : MonoBehaviour
     [SerializeField] GameObject localPanel;
     [SerializeField] GameObject onlinePanel;
 
+    [Header("Gameplay UI")]
+    [SerializeField] GameObject gameplayUI;
+
     // ============================================================
     // MENSAJES
     // ============================================================
@@ -143,6 +146,9 @@ public class ConnectionMenu : MonoBehaviour
             networkTestMenu =
                 FindFirstObjectByType<NetworkTestMenu>();
         }
+
+        if (gameplayUI != null)
+            gameplayUI.SetActive(false);
 
         if (networkTestMenu == null)
         {
@@ -299,6 +305,50 @@ public class ConnectionMenu : MonoBehaviour
         {
             NetworkManager.Singleton.Shutdown();
         }
+    }
+
+    public void ReturnFromLocal()
+    {
+        // Primero indicamos que queremos volver
+        // a la selección LOCAL / ONLINE / MAIN MENU.
+        page = Page.Mode;
+
+        dismissedStatus = null;
+
+        // Cerramos Host o Cliente.
+        if (networkTestMenu != null)
+        {
+            networkTestMenu.LeaveGame();
+        }
+        else if (NetworkManager.Singleton != null &&
+                 NetworkManager.Singleton.IsListening)
+        {
+            NetworkManager.Singleton.Shutdown();
+        }
+
+        Refresh();
+    }
+
+    public void ReturnFromOnline()
+    {
+        // Volvemos al menú de selección de modo.
+        page = Page.Mode;
+
+        dismissedStatus = null;
+
+        // Cerramos la sesión Online / Relay
+        // y apagamos el NetworkManager.
+        if (networkTestMenu != null)
+        {
+            networkTestMenu.LeaveGame();
+        }
+        else if (NetworkManager.Singleton != null &&
+                 NetworkManager.Singleton.IsListening)
+        {
+            NetworkManager.Singleton.Shutdown();
+        }
+
+        Refresh();
     }
 
     bool CanStartNetwork()
@@ -914,13 +964,38 @@ public class ConnectionMenu : MonoBehaviour
     void BeginGameplay()
     {
         gameplayStarted = true;
-
         shownPanel = null;
 
+        // ========================================================
+        // EMPEZAR TIMER DE PARTIDA
+        // ========================================================
+
+        MatchTimer matchTimer =
+            FindFirstObjectByType<MatchTimer>();
+
+        if (matchTimer != null)
+        {
+            // ServerStartMatch ya comprueba internamente
+            // si somos servidor.
+            matchTimer.ServerStartMatch();
+        }
+        else
+        {
+            Debug.LogWarning(
+                "ConnectionMenu: no se encontró MatchTimer."
+            );
+        }
+
+        // Ocultamos la UI de selección / conexión.
         SetMenuVisible(false);
 
+        // Si tienes el Gameplay UI que añadimos:
+        if (gameplayUI != null)
+            gameplayUI.SetActive(true);
+
         Debug.Log(
-            "Todos los jugadores están READY. Comienza la partida."
+            "Todos los jugadores están READY. " +
+            "Comienza la partida."
         );
     }
 
@@ -970,17 +1045,70 @@ public class ConnectionMenu : MonoBehaviour
         SetMenuVisible(false);
     }
 
-    public void BackToMainMenu()
+    public async void BackToMainMenu()
     {
-        if (NetworkManager.Singleton != null &&
-            NetworkManager.Singleton.IsListening)
+        // Restauramos el juego por si venimos del Pause Menu.
+        Time.timeScale = 1f;
+
+        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.None;
+
+        // Guardamos la referencia al NetworkManager actual.
+        NetworkManager oldNetworkManager = NetworkManager.Singleton;
+
+        // ============================================================
+        // CERRAR LA PARTIDA
+        // ============================================================
+
+        if (networkTestMenu != null)
         {
-            NetworkManager.Singleton.Shutdown();
+            // Sirve tanto para LOCAL como para ONLINE.
+            // En Online también abandona la sesión Relay.
+            networkTestMenu.LeaveGame();
+
+            // LeaveGame es asíncrono.
+            // Esperamos hasta que haya terminado.
+            while (networkTestMenu != null &&
+                   networkTestMenu.IsBusy)
+            {
+                await System.Threading.Tasks.Task.Yield();
+            }
+        }
+        else if (oldNetworkManager != null &&
+                 oldNetworkManager.IsListening)
+        {
+            oldNetworkManager.Shutdown();
         }
 
-        SceneManager.LoadScene(
-            mainMenuSceneName
-        );
+        // Esperamos a que Netcode haya terminado realmente
+        // el Shutdown.
+        if (oldNetworkManager != null)
+        {
+            while (oldNetworkManager.IsListening ||
+                   oldNetworkManager.ShutdownInProgress)
+            {
+                await System.Threading.Tasks.Task.Yield();
+            }
+        }
+
+        // ============================================================
+        // ELIMINAR EL NETWORK MANAGER VIEJO
+        // ============================================================
+
+        if (oldNetworkManager != null)
+        {
+            Destroy(oldNetworkManager.gameObject);
+
+            // Destroy se ejecuta al final del frame,
+            // así que esperamos un frame antes de cambiar de escena.
+            await System.Threading.Tasks.Task.Yield();
+        }
+
+        // ============================================================
+        // VOLVER AL MAIN MENU
+        // ============================================================
+
+        SceneManager.LoadScene(mainMenuSceneName);
     }
 
     static void SetActive(
