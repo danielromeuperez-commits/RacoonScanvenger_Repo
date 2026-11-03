@@ -368,6 +368,10 @@ namespace Racoon.Player
         private float extintorBounceSpeed = 10f;
         private Vector3 extintorDirection;
         [SerializeField] float extintorTurnSpeed = 120f;
+        [SerializeField] float extintorPushCooldown = 1f;
+
+        // Diccionario para registrar cuándo fue golpeado cada jugador por última vez
+        private readonly System.Collections.Generic.Dictionary<PlayerController, float> extintorHitCooldowns = new();
 
         // Combo recibido (lo lleva el dueño de la víctima, que es quien resuelve los golpes).
         int comboHits;
@@ -1038,12 +1042,30 @@ namespace Racoon.Player
             if (!IsOwner || !extintorActive)
                 return;
 
+            // 1. Comprobar si hemos chocado contra otro jugador
+            PlayerController otherPlayer = collision.collider.GetComponentInParent<PlayerController>();
+            if (otherPlayer != null && otherPlayer != this)
+            {
+                // Comprobamos si ya pasó el tiempo de cooldown para este jugador específico
+                if (!extintorHitCooldowns.TryGetValue(otherPlayer, out float lastHitTime) || Time.time - lastHitTime >= extintorPushCooldown)
+                {
+                    // Registramos el momento del golpe actual
+                    extintorHitCooldowns[otherPlayer] = Time.time;
+
+                    Vector3 pushDirection = (otherPlayer.transform.position - transform.position).normalized;
+                    pushDirection.y = 0f;
+                    Vector3 pushForce = pushDirection * extintorBounceSpeed * 1.2f;
+
+                    RequestExtintorPushPlayerRpc(otherPlayer.NetworkObject, pushForce);
+                }
+            }
+
             if (collision.contactCount == 0)
                 return;
 
             ContactPoint contact = collision.GetContact(0);
 
-            // Refleja la dirección respecto a la superficie golpeada
+            // Refleja la dirección respecto a la superficie golpeada (paredes, etc.)
             Vector3 reflected = Vector3.Reflect(
                 extintorDirection,
                 contact.normal
@@ -1056,6 +1078,48 @@ namespace Racoon.Player
                 return;
 
             extintorDirection = reflected.normalized;
+        }
+
+        // RPC para gestionar el empuje al otro jugador de forma segura en el servidor
+        [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Owner)]
+        private void RequestExtintorPushPlayerRpc(NetworkObjectReference victimReference, Vector3 knockbackForce)
+        {
+            if (!IsServer)
+                return;
+
+            if (victimReference.TryGet(out NetworkObject victimObject) &&
+                victimObject.TryGetComponent(out PlayerController victim))
+            {
+                victim.ServerApplyHit(knockbackForce, this, false);
+            }
+        }
+
+        public void RequestPickupWatch(PickupWatch watch)
+        {
+            if (!IsSpawned || !IsOwner || watch == null)
+                return;
+
+            RequestPickupWatchRpc(new NetworkObjectReference(watch.NetworkObject));
+        }
+
+        [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
+        private void RequestPickupWatchRpc(NetworkObjectReference watchReference)
+        {
+            if (!IsServer)
+                return;
+
+            if (watchReference.TryGet(out NetworkObject watchObject) &&
+                watchObject.TryGetComponent(out PickupWatch watch))
+            {
+                watch.ConsumeOnServer(this);
+            }
+        }
+
+        private PickupWatch activeWatchEffect;
+
+        public void RegisterActiveWatch(PickupWatch watch)
+        {
+            activeWatchEffect = watch;
         }
 
         // ---------------- Input (solo dueño) ----------------

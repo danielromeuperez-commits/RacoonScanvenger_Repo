@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 8023930816834403124}
   - component: {fileID: 7151624341466780323}
   - component: {fileID: 2458601511312296608}
+  - component: {fileID: 5106411747947547193}
   - component: {fileID: 4665836064298486943}
   m_Layer: 0
   m_Name: PF_ClockVibration
@@ -113,6 +114,33 @@ SphereCollider:
   serializedVersion: 3
   m_Radius: 0.5
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &5106411747947547193
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5220392856531122104}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
+  GlobalObjectIdHash: 2309941453
+  InScenePlacedSourceGlobalObjectIdHash: 0
+  m_InScenePlacedDisabledByDefault: 0
+  DeferredDespawnTick: 0
+  Ownership: 1
+  AlwaysReplicateAsRoot: 0
+  SynchronizeTransform: 1
+  m_InScenePlaced: 0
+  ActiveSceneSynchronization: 0
+  SceneMigrationSynchronization: 1
+  SpawnWithObservers: 1
+  DontDestroyWithOwner: 0
+  AutoObjectParentSync: 1
+  SyncOwnerTransformWhenParented: 1
+  AllowOwnerToParent: 0
 --- !u!114 &4665836064298486943
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -125,7 +153,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 445542a4c64db4e4694e8bb91683b550, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PickupWatch
-  lowFrequency: 1
-  highFrequency: 1
-  duration: 1
+  ShowTopMostFoldoutHeaderGroup: 1
+  lowFrequency: 0.5
+  highFrequency: 0.5
+  totalVibrationDuration: 5
+  shakeProfile:
+    enabled: 1
+    duration: 10
+    rotation: {x: 2, y: 2, z: 2}
+    position: {x: 0.1, y: 0.1, z: 0}
+    frequency: 25
+    kick: 0.2
+    kickRoll: 0
+    attack: 0
+    decayPower: 2
+  shakeIntensity: 1
   pickupEffectPrefab: {fileID: 0}
+  validationDistance: 5
+  lootPoints: 100
+  lootWeight: 0

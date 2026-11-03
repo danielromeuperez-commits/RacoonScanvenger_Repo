@@ -132,6 +132,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ExtintorPickup
   ShowTopMostFoldoutHeaderGroup: 1
-  duration: 5
-  bounceSpeed: 10
+  duration: 10
+  bounceSpeed: 15
   validationDistance: 3
+  lootPoints: 100
+  lootWeight: 0
