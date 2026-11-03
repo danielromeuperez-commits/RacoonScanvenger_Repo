@@ -39,14 +39,42 @@ namespace Racoon.Items
         [Tooltip("Impulso vertical al soltarla detrás.")]
         [SerializeField] float dropUpwardSpeed = 1f;
 
+        [Header("Apuntar (gatillo + stick)")]
+        [Tooltip("Hasta dónde se puede mandar el punto de caída desde el jugador (radio del círculo, metros).")]
+        [SerializeField, Min(1f)] float maxAimRange = 8f;
+
+        [Tooltip("Lo más cerca del jugador que puede caer al apuntar (metros).")]
+        [SerializeField, Min(0f)] float minAimRange = 1.3f;
+
+        [Tooltip("Capas contra las que se busca la altura del suelo en el punto de caída.")]
+        [SerializeField] LayerMask aimGroundMask = Physics.DefaultRaycastLayers;
+
+        const float AimProbeHeight = 2f, AimProbeDepth = 20f, MinFlightTime = 0.25f;
+
+        public override float MaxAimRange => maxAimRange;
+
         public override void ServerUse(PlayerController user, ItemData item) => ServerUse(user, item, false);
 
         public override void ServerUse(PlayerController user, ItemData item, bool dropBehind)
         {
-            if (!NetworkManager.Singleton.IsServer) return;
-            if (user == null || bananaPrefab == null) return;
+            if (user == null) return;
 
             TryGetThrow(user, dropBehind, out Vector3 spawnPosition, out Vector3 velocity);
+            Launch(user, spawnPosition, velocity);
+        }
+
+        public override void ServerUseAt(PlayerController user, ItemData item, Vector3 target)
+        {
+            if (user == null) return;
+
+            TryGetThrowAt(user, target, out Vector3 spawnPosition, out Vector3 velocity);
+            Launch(user, spawnPosition, velocity);
+        }
+
+        void Launch(PlayerController user, Vector3 spawnPosition, Vector3 velocity)
+        {
+            if (!NetworkManager.Singleton.IsServer) return;
+            if (bananaPrefab == null) return;
 
             Vector3 facing = new Vector3(velocity.x, 0f, velocity.z);
             if (facing.sqrMagnitude < 0.0001f) facing = Vector3.forward;
@@ -81,14 +109,7 @@ namespace Racoon.Items
         // Lo usan el servidor (para lanzarla) y PlayerItemHandler (para dibujar el arco): siempre coinciden.
         public override bool TryGetThrow(PlayerController user, bool dropBehind, out Vector3 spawnPosition, out Vector3 velocity)
         {
-            // Dirección horizontal hacia la que mira el jugador.
-            Vector3 forward = Vector3.ProjectOnPlane(
-                user.transform.forward,
-                Vector3.up
-            ).normalized;
-
-            if (forward.sqrMagnitude < 0.0001f)
-                forward = Vector3.forward;
+            Vector3 forward = Forward(user);
 
             if (dropBehind)
             {
@@ -104,6 +125,52 @@ namespace Racoon.Items
             }
 
             return true;
+        }
+
+        // Mismo ángulo de salida que el lanzamiento normal: lo que cambia con la distancia es la fuerza.
+        public override bool TryGetThrowAt(PlayerController user, Vector3 target, out Vector3 spawnPosition, out Vector3 velocity)
+        {
+            Vector3 origin = user.transform.position;
+            Vector3 offset = Vector3.ProjectOnPlane(target - origin, Vector3.up);
+            float distance = offset.magnitude;
+            Vector3 direction = distance > 0.01f ? offset / distance : Forward(user);
+
+            // El servidor también pasa por aquí: un punto fuera del círculo no llega más lejos.
+            distance = Mathf.Clamp(distance, minAimRange, maxAimRange);
+            spawnPosition = origin + direction * spawnForwardDistance + Vector3.up * spawnHeight;
+
+            float landingY = GroundHeight(origin + direction * distance, origin.y);
+            float drop = spawnPosition.y - landingY;
+            float flat = Mathf.Max(0f, distance - spawnForwardDistance);
+            float gravity = -Physics.gravity.y;
+
+            float flightTime = Mathf.Max(
+                MinFlightTime,
+                Mathf.Sqrt(Mathf.Max(0f, 2f * (flat * upwardSpeed / throwSpeed + drop) / gravity))
+            );
+
+            velocity = direction * (flat / flightTime) +
+                       Vector3.up * ((0.5f * gravity * flightTime * flightTime - drop) / flightTime);
+            return true;
+        }
+
+        // Dirección horizontal hacia la que mira el jugador.
+        static Vector3 Forward(PlayerController user)
+        {
+            Vector3 forward = Vector3.ProjectOnPlane(
+                user.transform.forward,
+                Vector3.up
+            ).normalized;
+
+            return forward.sqrMagnitude < 0.0001f ? Vector3.forward : forward;
+        }
+
+        float GroundHeight(Vector3 point, float fallback)
+        {
+            Vector3 from = new(point.x, fallback + AimProbeHeight, point.z);
+            return Physics.Raycast(from, Vector3.down, out RaycastHit hit, AimProbeDepth, aimGroundMask, QueryTriggerInteraction.Ignore)
+                ? hit.point.y
+                : fallback;
         }
     }
 }

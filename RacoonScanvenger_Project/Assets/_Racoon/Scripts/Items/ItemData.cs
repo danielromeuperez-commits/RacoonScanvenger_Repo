@@ -57,5 +57,17 @@ namespace Racoon.Items
 
             effect.ServerUse(user, this, dropBehind);
         }
+
+        /// <summary>Igual, lanzándolo a un punto elegido con Apuntar.</summary>
+        public void ServerUseAt(PlayerController user, Vector3 target)
+        {
+            if (effect == null)
+            {
+                ServerUse(user);
+                return;
+            }
+
+            effect.ServerUseAt(user, this, target);
+        }
     }
 }

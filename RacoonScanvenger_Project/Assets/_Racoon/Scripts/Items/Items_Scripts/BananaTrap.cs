@@ -3,7 +3,6 @@ using System.Collections;
 using Racoon.Feedback;
 using Racoon.Player;
 using Racoon.VFX;
-using TMPro;
 using Unity.Netcode;
 using UnityEngine;
 using Random = UnityEngine.Random;
@@ -18,7 +17,7 @@ namespace Racoon.Items
     ///  - Al aterrizar: aplastón con botecito. Parpadea hasta que está armada; entonces hace «clic» (pop)
     ///    y aparece un anillo que late a su alrededor para que se vea bien.
     ///  - Últimos segundos de vida: parpadea antes de desaparecer.
-    ///  - Al resbalar: la cáscara sale volando, «¡PLAF!» (o «¡AUTOGOL!» si era tuya) y se cae algo de la bolsa.
+    ///  - Al resbalar: la cáscara sale volando y se cae algo de la bolsa (sin textos flotantes: los avisos van en la UI).
     ///
     /// Montaje: la malla va en un hijo (<see cref="visual"/>) para poder deformarla sin que el
     /// NetworkTransform (que sincroniza la escala del root) la pise. Rastro y anillo usan M_VFX_ToonFlat.
@@ -84,17 +83,6 @@ namespace Racoon.Items
 
         [Tooltip("Velocidad hacia arriba de la cáscara al salir despedida.")]
         [SerializeField, Min(0f)] float shellKickUpSpeed = 5f;
-
-        [Tooltip("Texto que salta sobre quien resbala (vacío = sin texto).")]
-        [SerializeField] string slipText = "¡PLAF!";
-
-        [Tooltip("Texto si resbala con su propio plátano (vacío = usa Slip Text).")]
-        [SerializeField] string selfSlipText = "¡AUTOGOL!";
-
-        [SerializeField] Color slipTextColor = new(1f, 0.85f, 0.2f);
-
-        [Tooltip("Opcional: fuente del texto. Vacío = la de TMP por defecto.")]
-        [SerializeField] TMP_FontAsset slipTextFont;
 
         [Header("Sonido (pendiente: arrastra los clips cuando los haya)")]
         [Tooltip("SFX al CAER la cáscara al suelo: «plaf» blandito y húmedo. Sale de la cáscara.")]
@@ -435,11 +423,6 @@ namespace Racoon.Items
 
             PlayerController victim = Find(victimId);
             PlayerController owner = Find(throwerId);
-            bool own = victim != null && victim == owner;
-
-            string text = own && !string.IsNullOrEmpty(selfSlipText) ? selfSlipText : slipText;
-            if (!string.IsNullOrEmpty(text))
-                FloatingText.Spawn(text, victimPosition + Vector3.up * 2f, slipTextColor, 0.7f, slipTextFont);
 
             slipSfx.Play(victimPosition);
             PlayerRumble.Rumble(victim, 0.6f, 0.4f, 0.25f);

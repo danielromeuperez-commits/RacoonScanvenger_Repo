@@ -84,6 +84,9 @@ namespace Racoon.UI
             canvasRect = (RectTransform)transform;
             if (controller == null) controller = GetComponentInParent<PlayerController>();
             if (controller != null) loot = controller.GetComponent<PlayerLoot>();
+            // Fuera del jugador: colgado de él, el canvas heredaba su giro y su movimiento hasta que Unity lo volvía a
+            // pegar a la cámara, y el anillo saltaba de lado a lado y parpadeaba al moverse. Se destruye con él.
+            if (controller != null) CanvasLayering.DetachFrom(transform, controller.gameObject);
 
             if (bagGroup != null) bagScale = bagGroup.localScale;
             if (bagLabel != null)
@@ -117,7 +120,13 @@ namespace Racoon.UI
 
         void LateUpdate()
         {
-            if (controller == null || loot == null || bagGroup == null || !controller.IsSpawned || !controller.IsOwner)
+            // El jugador ya no existe (desconexión, fin de partida): fuera con él.
+            if (controller == null)
+            {
+                Destroy(gameObject);
+                return;
+            }
+            if (loot == null || bagGroup == null || !controller.IsSpawned || !controller.IsOwner)
             {
                 SetVisible(0f);
                 return;
@@ -194,8 +203,12 @@ namespace Racoon.UI
             if (canvas.worldCamera == null) canvas.worldCamera = cam;
             Vector3 screen = cam.WorldToScreenPoint(controller.transform.position + Vector3.up * headHeight);
             if (screen.z < 0f) return;
-            if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(canvasRect, screen, cam, out Vector2 local)) return;
-            Vector2 half = canvasRect.rect.size * 0.5f;
+            // Directo de píxeles a unidades del canvas (centro de la cámara = 0), sin pasar por el transform del
+            // canvas, que puede ir un frame por detrás de la cámara.
+            float scale = Mathf.Max(canvas.scaleFactor, 0.0001f);
+            Rect pixels = cam.pixelRect;
+            Vector2 local = (new Vector2(screen.x, screen.y) - pixels.center) / scale;
+            Vector2 half = pixels.size * 0.5f / scale;
             Vector2 target = local + bagOffset;
             bagGroup.anchoredPosition = new Vector2(
                 Mathf.Clamp(target.x, -half.x + screenMargin, half.x - screenMargin),

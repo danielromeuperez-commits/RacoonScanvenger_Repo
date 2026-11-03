@@ -35,6 +35,8 @@ namespace Racoon.Player
 
         public bool InteractHeld { get; private set; }
         public bool DashHeld { get; private set; }
+        /// <summary>Apuntar: el stick mueve el punto de caída del objeto en vez de al jugador.</summary>
+        public bool AimHeld { get; private set; }
 
         /// <summary>Dispositivo que controla a este jugador (null si aún no se ha elegido).</summary>
         public InputDevice PairedDevice { get; private set; }
@@ -57,7 +59,7 @@ namespace Racoon.Player
 
         InputActionAsset runtimeActions;
         InputActionMap map;
-        InputAction moveAction, runAction, interactAction, switchItemAction, useAction, dashAction;
+        InputAction moveAction, runAction, interactAction, switchItemAction, useAction, dashAction, aimAction;
         bool listening;
         bool inputEnabled;
 
@@ -122,6 +124,7 @@ namespace Racoon.Player
             switchItemAction = map.FindAction("SwitchItem", true);
             useAction = map.FindAction("Use", true);
             dashAction = map.FindAction("Dash", true);
+            aimAction = map.FindAction("Aim", true);
         }
 
         // ---------------- Dispositivo activo ----------------
@@ -206,6 +209,7 @@ namespace Racoon.Player
             RunHeld = runAction.IsPressed();
             InteractHeld = interactAction.IsPressed();
             DashHeld = dashAction.IsPressed();
+            AimHeld = aimAction.IsPressed();
         }
 
         void ResetValues()
@@ -215,6 +219,7 @@ namespace Racoon.Player
             RunHeld = false;
             InteractHeld = false;
             DashHeld = false;
+            AimHeld = false;
         }
 
         void OnInteract(InputAction.CallbackContext _) =>

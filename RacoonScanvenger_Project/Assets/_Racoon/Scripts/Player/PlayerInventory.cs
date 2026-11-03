@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Racoon.Items;
 using Unity.Netcode;
 using UnityEngine;
@@ -24,6 +25,8 @@ namespace Racoon.Player
         NetworkList<int> items;
         // Posición en 'items' del objeto equipado, o NoSlot si va con las manos vacías.
         readonly NetworkVariable<int> equippedSlot = new(NoSlot);
+        // Quien enseña una ruleta (HUDController, ItemUIController) dice aquí si sigue girando.
+        readonly List<Func<bool>> rouletteChecks = new();
 
         /// <summary>Se lanza en todos los clientes cuando cambia el objeto equipado (null = manos vacías).</summary>
         public event Action<ItemData> EquippedItemChanged;
@@ -50,6 +53,16 @@ namespace Racoon.Player
         /// o pasa al siguiente si tienes más de uno. Nunca desequipa el único objeto que llevas.
         /// </summary>
         public bool CanSwitch => HasEquipped ? items.Count > 1 : items.Count > 0;
+
+        /// <summary>
+        /// Hay un objeto recién cogido sin descubrir en la ruleta. Solo vale en esta máquina (la ruleta es visual y
+        /// cada una la salta cuando quiere), así que no va en <see cref="CanSwitch"/>, que también lee el servidor.
+        /// Sin ninguna UI de ruleta, siempre false.
+        /// </summary>
+        public bool IsRouletteSpinning => rouletteChecks.Exists(check => check());
+
+        public void AddRouletteCheck(Func<bool> check) => rouletteChecks.Add(check);
+        public void RemoveRouletteCheck(Func<bool> check) => rouletteChecks.Remove(check);
 
         public ItemData GetItemAt(int slot) => slot >= 0 && slot < items.Count ? database.Get(items[slot]) : null;
 

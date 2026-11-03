@@ -20,6 +20,11 @@ MonoBehaviour:
   boxWeightLast: 1.6
   effect:
     rid: 7253194387461521408
+  useSfx:
+    clips: []
+    volume: 1
+    pitchVariation: 0.06
+    spatialBlend: 0
   references:
     version: 2
     RefIds:
@@ -35,3 +40,8 @@ MonoBehaviour:
         dropBackDistance: 0.7
         dropBackSpeed: 1.5
         dropUpwardSpeed: 1
+        maxAimRange: 5
+        minAimRange: 1
+        aimGroundMask:
+          serializedVersion: 2
+          m_Bits: 4294967291

@@ -63,6 +63,8 @@ namespace Racoon.UI.HUD
         readonly Action[] inventoryHandlers = new Action[2];
         // Pulsar Usar salta la ruleta de ítems (solo el jugador local)
         readonly Action[] skipHandlers = new Action[2];
+        // Con un ítem en la ruleta el jugador no puede cambiar de objeto
+        readonly Func<bool>[] rouletteChecks = new Func<bool>[2];
         readonly List<ItemData> itemPool = new();
         // Reacciones del retrato a lo que le pasa a cada jugador (solo en las variantes con HUDView.reactions)
         readonly Action<PlayerState>[] actionHandlers = new Action<PlayerState>[2];
@@ -114,6 +116,7 @@ namespace Racoon.UI.HUD
                 };
                 inventoryHandlers[i] = () => SyncItems(index, true);
                 skipHandlers[i] = () => presenters[index].SkipRoulette();
+                rouletteChecks[i] = () => presenters[index].IsRouletteSpinning;
                 // Al pararse la ruleta vibra el mando de ese jugador (PlayerRumble ignora a los rivales)
                 presenters[i].RouletteStopped += () =>
                 {
@@ -168,7 +171,11 @@ namespace Racoon.UI.HUD
             {
                 UpdateTimer();
                 for (int i = 0; i < 2; i++)
-                    if (bound[i] != null && bound[i].Controller) presenters[i].SetStamina(bound[i].Controller.StaminaNormalized);
+                    if (bound[i] != null && bound[i].Controller)
+                    {
+                        presenters[i].SetStamina(bound[i].Controller.StaminaNormalized);
+                        presenters[i].SetEnergized(bound[i].Controller.EnergyDrinkVisible);
+                    }
             }
             float deltaTime = Time.unscaledDeltaTime;
             foreach (var presenter in presenters) presenter.Tick(deltaTime);
@@ -263,7 +270,11 @@ namespace Racoon.UI.HUD
         void Unbind(int index)
         {
             var previous = bound[index];
-            if (previous != null && previous.Inventory) previous.Inventory.InventoryChanged -= inventoryHandlers[index];
+            if (previous != null && previous.Inventory)
+            {
+                previous.Inventory.InventoryChanged -= inventoryHandlers[index];
+                previous.Inventory.RemoveRouletteCheck(rouletteChecks[index]);
+            }
             if (previous != null && previous.Controller)
             {
                 previous.Controller.ActionStarted -= actionHandlers[index];
@@ -298,7 +309,11 @@ namespace Racoon.UI.HUD
             presenter.SetStreak(standing.Streak, standings.IsOnFire(standing), false);
             presenter.SetTop(standings.Leader == standing, false);
             if (standing.Controller) presenter.SetStamina(standing.Controller.StaminaNormalized);
-            if (standing.Inventory) standing.Inventory.InventoryChanged += inventoryHandlers[index];
+            if (standing.Inventory)
+            {
+                standing.Inventory.InventoryChanged += inventoryHandlers[index];
+                standing.Inventory.AddRouletteCheck(rouletteChecks[index]);
+            }
             SyncItems(index, false);
             if (standing.Controller)
             {

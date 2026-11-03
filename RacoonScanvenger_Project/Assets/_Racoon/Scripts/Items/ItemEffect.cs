@@ -25,6 +25,15 @@ namespace Racoon.Items
         /// </summary>
         public virtual void ServerUse(PlayerController user, ItemData item, bool dropBehind) => ServerUse(user, item);
 
+        /// <summary>Igual, lanzándolo a un punto elegido con Apuntar. Por defecto el punto da igual.</summary>
+        public virtual void ServerUseAt(PlayerController user, ItemData item, Vector3 target) => ServerUse(user, item);
+
+        /// <summary>
+        /// Metros alrededor del jugador hasta los que Apuntar puede mover el punto de caída.
+        /// 0 = este objeto no se apunta (Apuntar no hace nada y el stick sigue moviendo al jugador).
+        /// </summary>
+        public virtual float MaxAimRange => 0f;
+
         /// <summary>
         /// Si ahora se puede usar. Lo comprueban el dueño (al pulsar Usar: si no, no apunta y avisa con
         /// PlayerController.ItemUseRefused) y el servidor (no lo gasta). Por defecto, siempre.
@@ -36,6 +45,16 @@ namespace Racoon.Items
         /// false = no se lanza (no se dibuja arco).
         /// </summary>
         public virtual bool TryGetThrow(PlayerController user, bool dropBehind, out Vector3 spawnPosition, out Vector3 velocity)
+        {
+            spawnPosition = velocity = Vector3.zero;
+            return false;
+        }
+
+        /// <summary>
+        /// Igual que <see cref="TryGetThrow"/>, para que caiga en <paramref name="target"/> (se ajusta al alcance).
+        /// Lo usan el servidor y el arco de apuntado: siempre coinciden.
+        /// </summary>
+        public virtual bool TryGetThrowAt(PlayerController user, Vector3 target, out Vector3 spawnPosition, out Vector3 velocity)
         {
             spawnPosition = velocity = Vector3.zero;
             return false;

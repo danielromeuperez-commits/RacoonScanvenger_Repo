@@ -95,6 +95,8 @@ namespace Racoon.UI
             if (controller == null) controller = GetComponentInParent<PlayerController>();
             // Directo (no controller.InputHandler): el Awake del PlayerController puede no haber pasado aún.
             if (controller != null) input = controller.GetComponent<PlayerInputHandler>();
+            // Fuera del jugador (si no, el canvas hereda su giro y tiembla); se destruye con él.
+            if (controller != null) CanvasLayering.DetachFrom(transform, controller.gameObject);
 
             if (glyph != null)
             {
@@ -204,6 +206,11 @@ namespace Racoon.UI
 
         void LateUpdate()
         {
+            if (controller == null)
+            {
+                Destroy(gameObject);
+                return;
+            }
             if (!visible || content == null) return;
             float time = Time.time;
             float dt = Time.deltaTime;

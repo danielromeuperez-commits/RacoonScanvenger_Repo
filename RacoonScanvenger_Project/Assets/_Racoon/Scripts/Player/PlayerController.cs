@@ -20,6 +20,7 @@ namespace Racoon.Player
     ///  - RESTO DE CLIENTES: solo leen el estado replicado para animar y mostrar la barra.
     ///    Allí NetworkRigidbody pone el Rigidbody en kinematic y lo mueve con lo que llega por red.
     /// </summary>
+    [DisallowMultipleComponent]
     [RequireComponent(typeof(Rigidbody), typeof(PlayerInputHandler), typeof(PlayerInventory))]
     public class PlayerController : NetworkBehaviour
     {
@@ -118,6 +119,10 @@ namespace Racoon.Player
         [SerializeField, Range(0f, 1f)] float aimMoveMultiplier = 0.6f;
         [Tooltip("Ángulo (grados) entre el stick y hacia donde mira a partir del cual el objeto se suelta DETRÁS.")]
         [SerializeField, Range(90f, 180f)] float dropBehindAngle = 120f;
+        [Tooltip("Metros por segundo a los que el stick mueve el punto de caída mientras se mantiene Apuntar.")]
+        [SerializeField, Min(0.1f)] float aimTargetSpeed = 7f;
+        [Tooltip("A qué distancia delante del jugador aparece el punto de caída al empezar a Apuntar.")]
+        [SerializeField, Min(0f)] float aimTargetStartDistance = 4f;
 
         /// <summary>Cómo reacciona el jugador a un tipo de golpe.</summary>
         [Serializable]
@@ -195,7 +200,7 @@ namespace Racoon.Player
 
         [Tooltip("Velocidad vertical al terminar de recuperarse.")]
         [SerializeField] float itemRecoveryJumpVelocity = 3f;
-        [Tooltip("Segundos tras levantarse en los que Dash no hace dash (las pulsaciones de machacar que sobran).")]
+        [Tooltip("Tras levantarse, Dash no hace dash hasta pasar estos segundos sin pulsarlo: si sigue machacando, no sale ninguno.")]
         [SerializeField, Min(0f)] float recoveryDashLock = 0.4f;
 
         [Header("Resbalón (plátano)")]
@@ -258,6 +263,11 @@ namespace Racoon.Player
             NetworkVariableReadPermission.Everyone,
             NetworkVariableWritePermission.Owner);
 
+        readonly NetworkVariable<bool> energyDrinkVisible = new(
+            false, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+        // Hora de servidor a la que acaba: así todos los equipos parpadean a la vez al final de la bebida.
+        readonly NetworkVariable<double> energyDrinkEndTime = new(
+            0d, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
         readonly NetworkVariable<float> staminaNormalized = new(
             1f,
             NetworkVariableReadPermission.Everyone,
@@ -266,6 +276,8 @@ namespace Racoon.Player
         /// <summary>El jugador controlado en esta máquina (null hasta que spawnea).</summary>
         public static PlayerController Local { get; private set; }
         public static event Action<PlayerController> LocalPlayerSpawned;
+        /// <summary>Aparece cualquier jugador (local o no), en todas las máquinas.</summary>
+        public static event Action<PlayerController> AnySpawned;
 
         /// <summary>(anterior, nuevo). Todos los clientes.</summary>
         public event Action<PlayerState, PlayerState> StateChanged;
@@ -313,6 +325,12 @@ namespace Racoon.Player
         public HitReaction HeavyHit => heavyHit;
         public int HitsForHeavy => hitsForHeavy;
         public float StaminaNormalized => staminaNormalized.Value;
+        /// <summary>Bebida energética activa, válido en todos los equipos (el HUD también la enseña en el rival).</summary>
+        public bool EnergyDrinkVisible => energyDrinkVisible.Value;
+        /// <summary>Segundos que le quedan a la bebida energética, válido en todos los equipos.</summary>
+        public float EnergyDrinkRemaining => energyDrinkVisible.Value
+            ? Mathf.Max(0f, (float)(energyDrinkEndTime.Value - NetworkManager.ServerTime.Time))
+            : 0f;
         /// <summary>Solo tiene sentido en el dueño.</summary>
         public bool IsExhausted => exhausted;
         /// <summary>Bebida energética activa (estamina infinita, dash sin cooldown). Solo tiene sentido en el dueño.</summary>
@@ -334,6 +352,12 @@ namespace Racoon.Player
         public bool IsAimingItem => aimingItem;
         /// <summary>Apuntando con el stick hacia atrás: al soltar, el objeto cae detrás. Solo tiene sentido en el dueño.</summary>
         public bool IsAimingBehind => aimingItem && aimingBehind;
+        /// <summary>Mantiene Apuntar con un objeto que se lanza: el stick mueve el punto de caída. Solo tiene sentido en el dueño.</summary>
+        public bool IsAimingTarget => aimingTarget;
+        /// <summary>Punto de caída elegido (la altura la pone quien lanza, según el suelo). Solo tiene sentido en el dueño.</summary>
+        public Vector3 AimTarget => transform.position + aimTargetOffset;
+        /// <summary>Radio del círculo hasta el que llega el punto de caída. Solo tiene sentido en el dueño.</summary>
+        public float AimTargetRange => aimTargetRange;
         public PlayerInventory Inventory => inventory;
         public PlayerInputHandler InputHandler => input;
 
@@ -376,13 +400,17 @@ namespace Racoon.Player
         // Mantiene Usar con un objeto: apunta y lo usa al soltar (dueño).
         bool aimingItem;
         bool aimingBehind;
+        // Mantiene Apuntar: el stick mueve el punto de caída, relativo al jugador (dueño).
+        bool aimingTarget;
+        Vector3 aimTargetOffset;
+        float aimTargetRange;
 
         // Golpe cargado (dueño).
         bool chargingPunch;
         float punchChargeTimer;
         // El puñetazo en curso salió cargado; lo usa OwnerCheckPunchHit.
         bool releasedPunchCharged;
-        // Tras levantarse machacando Dash, las pulsaciones que sobran no hacen dash.
+        // Tras levantarse machacando Dash, las pulsaciones que sobran no hacen dash (cada una lo reinicia).
         float recoveryDashLockTimer;
 
         [Header("Extintor")]
@@ -434,6 +462,7 @@ namespace Racoon.Player
                 Debug.LogWarning("Falta NetworkRigidbody con 'Use Rigid Body For Motion' activado.", this);
 
             input.SetInputEnabled(IsOwner);
+            AnySpawned?.Invoke(this);
             if (!IsOwner) return;
 
             Local = this;
@@ -507,6 +536,7 @@ namespace Racoon.Player
                 !itemRecoveryRequired &&
                 !chargingPunch &&
                 !aimingItem &&
+                !aimingTarget &&
                 interactRepeatTimer <= 0f)
             {
                 StartAction(PlayerState.Interact, interactDuration);
@@ -523,6 +553,7 @@ namespace Racoon.Player
                 {
                     infiniteDashTimer = 0f;
                     infiniteDashActive = false;
+                    energyDrinkVisible.Value = false;
                 }
             }
             if (punchCooldownTimer > 0f) punchCooldownTimer -= dt;
@@ -541,11 +572,21 @@ namespace Racoon.Player
                 if (punchHitTimer < 0f) OwnerCheckPunchHit();
             }
             UpdatePunchCharge(dt);
+            UpdateAimTarget();
             UpdateItemAim();
 
             UpdateInvulnerability();
 
             Vector2 move = input.Move;
+            if (aimingTarget)
+            {
+                // El stick mueve el punto de caída, no al personaje.
+                if (move.sqrMagnitude > moveDeadzone * moveDeadzone)
+                    aimTargetOffset = Vector3.ClampMagnitude(
+                        aimTargetOffset + GetCameraRelativeDirection(move) * (move.magnitude * aimTargetSpeed * dt),
+                        aimTargetRange);
+                move = Vector2.zero;
+            }
             bool hasMoveInput = move.sqrMagnitude > moveDeadzone * moveDeadzone;
             // El puñetazo va por el tren superior (capa UpperBody): las piernas siguen andando o corriendo.
             bool upperBodyAction = IsInAction && State == PlayerState.Punch;
@@ -577,6 +618,8 @@ namespace Racoon.Player
                 aimingBehind = aimingItem && hasMoveInput &&
                     Vector3.Angle(Vector3.ProjectOnPlane(transform.forward, Vector3.up), moveDirection) > dropBehindAngle;
                 if (aimingBehind) desiredDirection = Vector3.zero;
+                // Quieto, pero mirando hacia el punto de caída.
+                if (aimingTarget && aimTargetOffset.sqrMagnitude > 0.01f) desiredDirection = aimTargetOffset.normalized;
 
                 float targetSpeed =
                     (isRunning ? runSpeed : walkSpeed) *
@@ -746,6 +789,22 @@ namespace Racoon.Player
 
         // ---------------- Usar objeto (apuntar mientras se mantiene, usar al soltar) ----------------
 
+        // Apuntar no gasta nada: soltarlo sin haber usado el objeto solo devuelve el stick al personaje.
+        void UpdateAimTarget()
+        {
+            ItemData equipped = inventory.EquippedItem;
+            aimTargetRange = equipped != null && equipped.Effect != null ? equipped.Effect.MaxAimRange : 0f;
+
+            bool active = input.AimHeld && aimTargetRange > 0f && !IsInAction && !itemRecoveryRequired &&
+                          !chargingPunch && !extintorActive && !inventory.IsRouletteSpinning && !State.IsGrounded();
+
+            if (active && !aimingTarget)
+                aimTargetOffset = Vector3.ProjectOnPlane(transform.forward, Vector3.up).normalized *
+                                  Mathf.Min(aimTargetStartDistance, aimTargetRange);
+
+            aimingTarget = active;
+        }
+
         void UpdateItemAim()
         {
             if (!aimingItem) return;
@@ -767,7 +826,7 @@ namespace Racoon.Player
             aimingBehind = false;
             CancelRecoveryInvulnerability();
             StartAction(PlayerState.UseItem, useItemDuration);
-            UseItemRpc(dropBehind);
+            UseItemRpc(dropBehind, aimingTarget, AimTarget);
         }
 
         void UpdateInvulnerability()
@@ -1107,7 +1166,7 @@ namespace Racoon.Player
 
         void OnInteractPressed()
         {
-            if (IsInAction || itemRecoveryRequired || chargingPunch || aimingItem) return;
+            if (IsInAction || itemRecoveryRequired || chargingPunch || aimingItem || aimingTarget) return;
 
             StartAction(PlayerState.Interact, interactDuration);
             interactRepeatTimer = interactRepeatInterval;
@@ -1118,7 +1177,9 @@ namespace Racoon.Player
         {
             // CanSwitch evita desequipar el único objeto que llevas.
             // Mientras apunta no cambia: la flecha es del objeto que tiene en la mano.
-            if (IsInAction || itemRecoveryRequired || chargingPunch || aimingItem || !inventory.CanSwitch) return;
+            // Con un objeto en la ruleta tampoco: aún no se ha descubierto qué ha tocado.
+            if (IsInAction || itemRecoveryRequired || chargingPunch || aimingItem || aimingTarget || !inventory.CanSwitch ||
+                inventory.IsRouletteSpinning) return;
             StartAction(PlayerState.SwitchItem, switchItemDuration);
             SwitchItemRpc();
         }
@@ -1127,6 +1188,9 @@ namespace Racoon.Player
         {
             // Tirado por un objeto no se puede golpear ni lanzar hasta levantarse.
             if (IsInAction || itemRecoveryRequired || chargingPunch || aimingItem || State.IsGrounded()) return;
+
+            // Con un objeto en la ruleta, Usar solo la para (HUDController): no golpea ni lanza nada.
+            if (inventory.IsRouletteSpinning) return;
 
             if (inventory.HasEquipped)
             {
@@ -1160,9 +1224,16 @@ namespace Racoon.Player
                 return;
             }
 
+            // Recién levantado del plátano: sigue machacando, no quiere un dash. Cada pulsación reinicia la
+            // espera, así el dash vuelve cuando deja de machacar y no a los pocos segundos de levantarse.
+            if (recoveryDashLockTimer > 0f)
+            {
+                recoveryDashLockTimer = recoveryDashLock;
+                return;
+            }
+
             // Incluye el stun: no se puede salir del aturdimiento con un dash.
-            // Recién levantado del plátano: sigue machacando, no quiere un dash.
-            if (IsInAction || recoveryDashLockTimer > 0f) return;
+            if (IsInAction) return;
 
             // Con la bebida energética no hay cooldown ni coste de estamina.
             if (!infiniteDashActive)
@@ -1289,7 +1360,7 @@ namespace Racoon.Player
         void SwitchItemRpc() => inventory.ServerTrySwitch();
 
         [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Owner)]
-        void UseItemRpc(bool dropBehind)
+        void UseItemRpc(bool dropBehind, bool hasTarget, Vector3 target)
         {
             // El dueño ya lo comprueba; esto es por si llega justo al acabar (no se gasta).
             ItemData equipped = inventory.EquippedItem;
@@ -1302,7 +1373,8 @@ namespace Racoon.Player
             ItemData item = inventory.ServerConsumeEquipped();
             if (item == null) return;
 
-            item.ServerUse(this, dropBehind);
+            if (hasTarget) item.ServerUseAt(this, target);
+            else item.ServerUse(this, dropBehind);
             ItemUsedRpc(inventory.Database.GetId(item));
         }
 
@@ -1509,8 +1581,10 @@ namespace Racoon.Player
         void EnergyDrinkRpc(float duration)
         {
             infiniteDashActive = true;
+            energyDrinkVisible.Value = true;
             infiniteDashTimer = Mathf.Max(infiniteDashTimer, duration);
             infiniteDashDuration = Mathf.Max(infiniteDashTimer, 0.01f);
+            energyDrinkEndTime.Value = NetworkManager.ServerTime.Time + infiniteDashTimer;
             dashCooldownTimer = 0f;
         }
 

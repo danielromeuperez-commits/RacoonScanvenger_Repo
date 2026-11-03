@@ -14,8 +14,10 @@ namespace Racoon.Player
     ///    el anterior se guarda a la espalda; al usarlo, se encoge (el de verdad ya lo ha creado el servidor).
     ///  - Mientras apuntas (solo el dueño): arco de puntos con la trayectoria real y un anillo donde caerá.
     ///    Con el stick hacia atrás el arco pasa a «soltar detrás» (otro color).
+    ///    Manteniendo Apuntar sale además un círculo con el alcance y el arco va al punto que mueve el stick.
     /// Cuándo se usa el objeto lo decide PlayerController (mantener Usar = apuntar, soltar = usar);
-    /// aquí solo se lee <see cref="PlayerController.IsAimingItem"/> / <see cref="PlayerController.IsAimingBehind"/>.
+    /// aquí solo se lee <see cref="PlayerController.IsAimingItem"/> / <see cref="PlayerController.IsAimingBehind"/>
+    /// / <see cref="PlayerController.IsAimingTarget"/>.
     /// </summary>
     public class PlayerItemHandler : NetworkBehaviour
     {
@@ -55,7 +57,7 @@ namespace Racoon.Player
         [SerializeField, Min(0.05f)] float arcDotSpacing = 0.35f;
 
         [Tooltip("Tamaño de cada punto del arco (metros).")]
-        [SerializeField, Min(0.01f)] float arcDotSize = 0.09f;
+        [SerializeField, Min(0.01f)] float arcDotSize = 0.05f;
 
         [Tooltip("Radio del anillo donde caerá (metros).")]
         [SerializeField, Min(0.05f)] float landingRingRadius = 0.3f;
@@ -68,7 +70,7 @@ namespace Racoon.Player
         [Tooltip("SFX al CAMBIAR de objeto: «swish» corto de meter una cosa en la mochila y sacar otra. Lo oyen todos, sale del jugador.")]
         [SerializeField] SfxCue switchSfx = new();
 
-        const int MaxArcDots = 28;
+        const int MaxArcDots = 36;
         const float ArcMaxTime = 2f, ArcStep = 0.03f, ArcMarchSpeed = 1.2f;
 
         GameObject currentHeldVisual;
@@ -82,6 +84,7 @@ namespace Racoon.Player
         GameObject arcRoot;
         readonly List<FlatPiece> arcDots = new();
         FlatPiece landingRing;
+        FlatPiece rangeRing;
         readonly List<Vector3> arcPoints = new();
 
         void Awake()
@@ -134,7 +137,13 @@ namespace Racoon.Player
                 switchSfx.Play(transform.position);
 
             if (currentHeldVisual != null)
-                StartCoroutine(used ? ShrinkAway(currentHeldVisual) : PutAway(currentHeldVisual));
+            {
+                // Aún no había llegado a la mano (se engancha un frame después): se tira sin animación.
+                if (!currentHeldVisual.activeInHierarchy)
+                    Destroy(currentHeldVisual.transform.parent.gameObject);
+                else
+                    StartCoroutine(used ? ShrinkAway(currentHeldVisual) : PutAway(currentHeldVisual));
+            }
 
             currentHeldVisual = null;
             currentItem = item;
@@ -142,17 +151,18 @@ namespace Racoon.Player
             if (item == null || item.heldVisualPrefab == null || itemHoldPoint == null)
                 return;
 
-            currentHeldVisual = InstantiateVisual(item.heldVisualPrefab, itemHoldPoint);
-            currentHeldVisual.transform.localPosition = Vector3.zero;
-            currentHeldVisual.transform.localRotation = Quaternion.identity;
+            currentHeldVisual = InstantiateVisual(item.heldVisualPrefab);
             heldRestScale = currentHeldVisual.transform.localScale;
-            heldPopStart = Time.time;
-            ApplyHeldAnimation();
+            StartCoroutine(AttachNextFrame(currentHeldVisual));
         }
 
-        // Copia SOLO visual: si el prefab es un objeto de red (p. ej. PF_BananaTrap) se le quitan scripts,
-        // física y colliders. Se instancia bajo un padre desactivado para que esos scripts no lleguen a arrancar.
-        static GameObject InstantiateVisual(GameObject prefab, Transform parent)
+        // Copia SOLO visual: si el prefab es un objeto de red (p. ej. PF_BananaTrap) o lleva collider
+        // (p. ej. PF_EnergyDrink) se le quitan scripts, física y colliders. Se queda bajo un padre desactivado
+        // (sin física ni scripts arrancados) hasta que AttachNextFrame la pasa a la mano.
+        //
+        // No vale DestroyImmediate: en el host el objeto se recibe dentro del OnTriggerEnter de la ItemBox
+        // y ahí Unity lo prohíbe; el collider se quedaba pegado al jugador y lo enganchaba en las paredes.
+        static GameObject InstantiateVisual(GameObject prefab)
         {
             var holder = new GameObject("HeldVisualHolder");
             holder.SetActive(false);
@@ -161,18 +171,36 @@ namespace Racoon.Player
             // Primero los de red y al revés del orden en que se añadieron (los que dependen de otros van detrás).
             MonoBehaviour[] behaviours = go.GetComponentsInChildren<MonoBehaviour>(true);
             for (int i = behaviours.Length - 1; i >= 0; i--)
-                if (behaviours[i] is NetworkBehaviour) DestroyImmediate(behaviours[i]);
-            behaviours = go.GetComponentsInChildren<MonoBehaviour>(true);
+                if (behaviours[i] is NetworkBehaviour) Destroy(behaviours[i]);
             for (int i = behaviours.Length - 1; i >= 0; i--)
-                DestroyImmediate(behaviours[i]);
+                if (behaviours[i] is not NetworkBehaviour) Destroy(behaviours[i]);
             foreach (Collider collider in go.GetComponentsInChildren<Collider>(true))
-                DestroyImmediate(collider);
+            {
+                collider.enabled = false;
+                Destroy(collider);
+            }
             foreach (Rigidbody body in go.GetComponentsInChildren<Rigidbody>(true))
-                DestroyImmediate(body);
+                Destroy(body);
 
-            go.transform.SetParent(parent, false);
-            Destroy(holder);
             return go;
+        }
+
+        // Destroy actúa al final del frame: al siguiente ya no quedan scripts, física ni colliders.
+        IEnumerator AttachNextFrame(GameObject visual)
+        {
+            yield return null;
+
+            if (visual == null || visual != currentHeldVisual || itemHoldPoint == null)
+                yield break;
+
+            GameObject holder = visual.transform.parent.gameObject;
+            visual.transform.SetParent(itemHoldPoint, false);
+            visual.transform.localPosition = Vector3.zero;
+            visual.transform.localRotation = Quaternion.identity;
+            Destroy(holder);
+
+            heldPopStart = Time.time;
+            ApplyHeldAnimation();
         }
 
         void LateUpdate()
@@ -246,7 +274,7 @@ namespace Racoon.Player
 
         void UpdateAim()
         {
-            bool aiming = controller != null && controller.IsAimingItem;
+            bool aiming = controller != null && (controller.IsAimingItem || controller.IsAimingTarget);
             aimHeldTime = aiming ? aimHeldTime + Time.deltaTime : 0f;
             bool show = aiming && aimHeldTime >= aimArrowDelay;
 
@@ -283,9 +311,13 @@ namespace Racoon.Player
         {
             ItemEffect effect = show && inventory.EquippedItem != null ? inventory.EquippedItem.Effect : null;
             bool behind = controller != null && controller.IsAimingBehind;
+            bool atTarget = controller != null && controller.IsAimingTarget;
+            Vector3 start = default, velocity = default;
 
             if (effect == null || flatMaterial == null ||
-                !effect.TryGetThrow(controller, behind, out Vector3 start, out Vector3 velocity))
+                !(atTarget
+                    ? effect.TryGetThrowAt(controller, controller.AimTarget, out start, out velocity)
+                    : effect.TryGetThrow(controller, behind, out start, out velocity)))
             {
                 HideArc();
                 return;
@@ -331,6 +363,15 @@ namespace Racoon.Player
                 float beat = 1f + 0.1f * Mathf.Sin(Time.time * 10f);
                 landingRing.Transform.localScale = Vector3.one * landingRingRadius * beat;
                 landingRing.Colors(color, Color.Lerp(color, Color.white, 0.5f), outline);
+            }
+
+            rangeRing.Visible = atTarget;
+
+            if (atTarget)
+            {
+                rangeRing.Transform.SetPositionAndRotation(transform.position + Vector3.up * 0.02f, Quaternion.identity);
+                rangeRing.Transform.localScale = Vector3.one * controller.AimTargetRange;
+                rangeRing.Colors(color, color, outline);
             }
         }
 
@@ -378,6 +419,7 @@ namespace Racoon.Player
                 arcDots.Add(new FlatPiece("ArcDot", arcRoot.transform, dotMesh, flatMaterial, 2));
 
             landingRing = new FlatPiece("LandingRing", arcRoot.transform, FlatMeshes.Arc(1f, 0f, 360f, 0.12f, 0f, 40), flatMaterial, 1);
+            rangeRing = new FlatPiece("RangeRing", arcRoot.transform, FlatMeshes.Arc(1f, 0f, 360f, 0.008f, 0f, 96), flatMaterial);
         }
 
         void HideArc()
@@ -389,6 +431,7 @@ namespace Racoon.Player
                 dot.Visible = false;
 
             landingRing.Visible = false;
+            rangeRing.Visible = false;
         }
     }
 }

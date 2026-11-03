@@ -38,6 +38,14 @@ namespace Racoon.UI.HUD
         const float HitTime = .4f, HeavyTime = .75f, SlipTime = .9f, RollTime = .5f, PunchTime = .25f, RunBlendSpeed = 8f;
         // Estela de la estamina gastada: el color del jugador aclarado hacia el blanco
         const float TrailLighten = .55f;
+        // Bebida energética: el aro cambia de color a saltos, como la estrella de Mario (sin rosas; empieza por el rojo 7-Eleven)
+        const float EnergyBlinkTime = .07f;
+        static readonly Color[] EnergyColors =
+        {
+            new Color32(0xE0, 0x27, 0x35, 0xFF), new Color32(0xFF, 0x9A, 0x2E, 0xFF), new Color32(0xFF, 0xE0, 0x4A, 0xFF),
+            new Color32(0x3F, 0xD0, 0x7A, 0xFF), new Color32(0x3F, 0xB8, 0xF5, 0xFF), new Color32(0x7A, 0x5C, 0xF5, 0xFF),
+        };
+
         // Cajas de ítems: icono que respira y se menea cada poco, «?» que se balancea
         const float BreathPeriod = 1.4f, IconWigglePeriod = 3.2f, IconWiggleTime = .45f, EmptyTiltPeriod = 2f;
 
@@ -97,7 +105,7 @@ namespace Racoon.UI.HUD
         // Racha, llama y TOP
         CanvasGroup fireGroup, streakGroup;
         Vector3 fireRest;
-        bool fireOn, topOn;
+        bool fireOn, topOn, energized;
         int streakShown = -1;
         float fireChange = -99f, counterBump = -99f, topChange = -99f;
         Vector2 crownRestPos;
@@ -124,6 +132,9 @@ namespace Racoon.UI.HUD
         readonly List<GameObject> flying = new();
 
         public int Number => number;
+
+        /// <summary>Hay un ítem recogido sin descubrir: su ruleta gira o espera a que acabe la transición anterior.</summary>
+        public bool IsRouletteSpinning => Count(wantMain, wantReserve) > Count(shownMain, shownReserve);
 
         public HUDPlayerPresenter(MonoBehaviour host, HUDView view, int number)
         {
@@ -241,7 +252,7 @@ namespace Racoon.UI.HUD
             staminaTarget = staminaShown = trailValue = 1f;
             refillStart = emptyStart = -99f;
             SetItems(null, null, null, false);
-            running = dizzy = false;
+            running = dizzy = energized = false;
             reactionStart = -99f;
             foreach (var pop in pops)
                 if (pop.rect) Object.Destroy(pop.rect.gameObject);
@@ -334,6 +345,9 @@ namespace Racoon.UI.HUD
                 if (!animate) pv.bag.gameObject.SetActive(false);
             }
         }
+
+        /// <summary>Bebida energética: el aro de estamina parpadea en colores mientras dure.</summary>
+        public void SetEnergized(bool on) => energized = on;
 
         public void SetStamina(float value)
         {
@@ -642,6 +656,8 @@ namespace Racoon.UI.HUD
             }
         }
 
+        static Color EnergyColor => EnergyColors[Mathf.FloorToInt(Now / EnergyBlinkTime) % EnergyColors.Length];
+
         void TickStamina(float deltaTime)
         {
             staminaShown = Mathf.Lerp(staminaShown, staminaTarget, 1f - Mathf.Exp(-StaminaSmoothing * deltaTime));
@@ -668,17 +684,19 @@ namespace Racoon.UI.HUD
                 pv.staminaFill.fillAmount = staminaShown;
                 // Estamina baja: parpadeo seco entre el color del jugador y blanco. Recarga completa: destello blanco
                 bool blink = staminaTarget < LowStamina && Mathf.FloorToInt(Now / LowBlinkTime) % 2 == 1;
-                pv.staminaFill.color = blink ? Color.white : refill < 1f ? Color.Lerp(Color.white, color, refill) : color;
+                pv.staminaFill.color = energized ? EnergyColor
+                    : blink ? Color.white : refill < 1f ? Color.Lerp(Color.white, color, refill) : color;
             }
 
             if (pv.staminaGlow)
             {
-                // Durante la racha el aro brilla con el color del jugador
-                if (pv.staminaGlow.gameObject.activeSelf != fireOn) pv.staminaGlow.gameObject.SetActive(fireOn);
-                if (fireOn)
+                // Durante la racha el aro brilla con el color del jugador; con la energética, con el color del momento
+                bool glowing = fireOn || energized;
+                if (pv.staminaGlow.gameObject.activeSelf != glowing) pv.staminaGlow.gameObject.SetActive(glowing);
+                if (glowing)
                 {
                     pv.staminaGlow.fillAmount = staminaShown;
-                    var glow = color;
+                    var glow = energized ? EnergyColor : color;
                     glow.a = .45f + .15f * Mathf.Sin(Now * 6f);
                     pv.staminaGlow.color = glow;
                 }

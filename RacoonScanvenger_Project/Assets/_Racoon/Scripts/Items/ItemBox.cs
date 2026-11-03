@@ -66,11 +66,6 @@ namespace Racoon.Items
         [Tooltip("Segundos hasta destruir los VFX instanciados.")]
         [SerializeField, Min(0.1f)] float vfxLifeTime = 2f;
 
-        [Header("Inventario lleno")]
-        [Tooltip("Texto que ve SOLO quien llega con el inventario lleno (vacío = sin texto).")]
-        [SerializeField] string inventoryFullText = "¡LLENO!";
-        [SerializeField] Color inventoryFullTextColor = new(1f, 0.45f, 0.4f);
-
         [Header("Decoración")]
         [Tooltip("M_VFX_ToonFlat. Sombra en el suelo y anillo de reaparición (sin él no salen).")]
         [SerializeField] Material flatMaterial;
@@ -383,15 +378,10 @@ namespace Racoon.Items
             shakeStart = Time.time;
             inventoryFullSfx.Play(animatedVisual.position);
 
-            if (string.IsNullOrEmpty(inventoryFullText))
-                return;
-
+            // Sin texto flotante: basta con la sacudida de la caja, el sonido y la vibración.
             if (NetworkManager.SpawnManager.SpawnedObjects.TryGetValue(playerObjectId, out NetworkObject playerObject) &&
                 playerObject.IsOwner)
-            {
-                FloatingText.Spawn(inventoryFullText, animatedVisual.position + Vector3.up * 0.8f, inventoryFullTextColor, 0.45f);
                 PlayerRumble.Rumble(playerObject.GetComponent<PlayerController>(), 0.2f, 0.1f, 0.12f);
-            }
         }
 
         void OnAvailabilityChanged(bool previousValue, bool newValue)

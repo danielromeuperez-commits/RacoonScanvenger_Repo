@@ -1230,12 +1230,12 @@ MonoBehaviour:
   swayBob: 0.015
   aimArrow: {fileID: 0}
   aimArrowDelay: 0.12
-  flatMaterial: {fileID: 0}
+  flatMaterial: {fileID: 2100000, guid: 9e4a6c8d0f2b43c5d7e9f1a3b5c7d9e1, type: 2}
   arcGroundMask:
     serializedVersion: 2
     m_Bits: 4294967291
   arcDotSpacing: 0.35
-  arcDotSize: 0.09
+  arcDotSize: 0.05
   landingRingRadius: 0.3
   arcColor: {r: 1, g: 1, b: 1, a: 1}
   arcBehindColor: {r: 1, g: 0.6, b: 0.2, a: 1}
@@ -1901,6 +1901,10 @@ PrefabInstance:
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: 620b4789a208ff541bbf3b5850c81f7c, type: 2}
+    - target: {fileID: -1966589418606015477, guid: f34a1837090a2604cb2e66bacae22a0a, type: 3}
+      propertyPath: 'm_Materials.Array.data[1]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 26708e3498874bf9920b6eeb3e66fda8, type: 2}
     - target: {fileID: 919132149155446097, guid: f34a1837090a2604cb2e66bacae22a0a, type: 3}
       propertyPath: m_Name
       value: SK_Opossum
@@ -1909,6 +1913,10 @@ PrefabInstance:
       propertyPath: m_Controller
       value: 
       objectReference: {fileID: 9100000, guid: 30c65bd3c016eb144aadb2476411169d, type: 2}
+    - target: {fileID: 5866666021909216657, guid: f34a1837090a2604cb2e66bacae22a0a, type: 3}
+      propertyPath: m_CullingMode
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects:

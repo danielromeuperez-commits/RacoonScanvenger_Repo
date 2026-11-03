@@ -14,7 +14,9 @@ namespace Racoon.Player
     ///  - Dar un golpe que conecta: hitstop corto y punch-in mínimo.
     ///  - Correr y dash: FOV abierto y líneas de velocidad. Agotado: desaturado y viñeta que late.
     ///  - Plátano (aturdido por un objeto): alabeo con rebote, congelado y mareo mientras estás en el suelo.
-    ///  - Extintor y bebida energética: velocidad y color mientras duran (la bebida, con bajón al acabar).
+    ///  - Extintor y bebida energética: efectos mientras duran. La bebida abre el FOV sin más (como la velocidad de
+    ///    Minecraft), pone el aura abajo y en las esquinas, parpadea al acabarse y termina con el bajón. Su capa sobre
+    ///    la malla, que ven todos los jugadores, es de <see cref="PlayerEnergyOverlay"/>.
     /// No hace falta ponerlo en el prefab: se añade solo al jugador local al aparecer (y crea el
     /// <see cref="MatchCameraFX"/> de la partida). Si se pone en el prefab, se usan sus ajustes del Inspector.
     /// </summary>
@@ -115,23 +117,23 @@ namespace Racoon.Player
         };
 
         // Colores del HUD: amarillo de acento #FFD36E y crema #FFF8EC (contorno: tinta, en CameraFX.InkColor).
-        // Los rayos, en gris casi transparente (el alfa de risingColor), para no competir con el viñeteado.
+        // Aura en azul verdoso (CameraFX saca de él las variantes de tono de cada capa). Los rayos, en gris casi
+        // transparente (el alfa de risingColor), para no competir con ella.
         [Header("Bebida energética")]
-        [Tooltip("Al beber: golpe de FOV, destello, el viñeteado entra de golpe y una ráfaga de rayos.")]
+        [Tooltip("Al beber: el aura entra de golpe y sale una ráfaga de rayos. Sin golpe de cámara.")]
         [SerializeField] CameraFXProfile energyStart = new(0.7f, decayPower: 2.5f)
         {
             priority = 40, duck = 0.5f,
-            fov = 0.3f, chromatic = 0.8f, flash = 0.3f, flashColor = new Color(1f, 0.973f, 0.925f), distortion = 0.25f,
-            aura = 1f, auraColor = new Color(1f, 0.827f, 0.431f),
+            aura = 1f, auraColor = new Color(0.25f, 0.75f, 0.7f),
             risingBolts = 1f, risingColor = new Color(0.6f, 0.58f, 0.66f, 0.3f),
         };
-        [Tooltip("Continuo mientras dura: FOV abierto que respira, colores vivos, viñeteado por capas con ondas y " +
-                 "rayos grises translúcidos que suben.")]
+        [Tooltip("Continuo mientras dura: FOV abierto de forma estable (como la velocidad de Minecraft), aura por " +
+                 "capas abajo y en las esquinas, y rayos grises translúcidos que suben.")]
         [SerializeField] CameraFXProfile energized = new(1f)
         {
-            priority = 40, duck = 0.3f, fadeIn = 0.35f, fadeOut = 0.8f,
-            fov = 0.2f, saturation = 40f, hueShift = 12f, pulseRate = 1.6f, pulseDepth = 0.35f,
-            aura = 0.8f, auraColor = new Color(1f, 0.827f, 0.431f),
+            priority = 40, duck = 0.3f, fadeIn = 0.45f, fadeOut = 0.6f,
+            fov = 0.25f,
+            aura = 0.8f, auraColor = new Color(0.25f, 0.75f, 0.7f),
             risingBolts = 0.55f, risingColor = new Color(0.6f, 0.58f, 0.66f, 0.22f),
         };
         [Tooltip("El bajón al acabar.")]
@@ -233,9 +235,9 @@ namespace Racoon.Player
             if (energizedNow && !wasEnergized) Play(energyStart);
             if (!energizedNow && wasEnergized) Play(energyCrash);
             wasEnergized = energizedNow;
-            // El último segundo se va apagando.
-            float energy = energizedNow ? Mathf.Clamp01(controller.EnergyRemaining) : 0f;
-            CameraFX.SetContinuous(energyKey, energized, energy * intensity, 3f);
+            // Al acabarse parpadea y se apaga; el FOV no parpadea: vuelve suave con la salida del perfil.
+            float blink = energizedNow ? PlayerEnergyOverlay.Blink(controller.EnergyRemaining) : 0f;
+            CameraFX.SetContinuous(energyKey, energized, energizedNow ? intensity : 0f, 3f, 1f, default, blink);
         }
 
         void Continuous(object key, CameraFXProfile profile, bool on, float fadeSpeed) =>

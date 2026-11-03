@@ -74,9 +74,10 @@ namespace Racoon.Cameras
         [Range(0f, 1f)] public float embers;
         [Tooltip("Color base de llamas y virutas (la rampa saca de él los tonos fríos y calientes).")]
         public Color fireColor = new(1f, 0.62f, 0.43f);
-        [Tooltip("Aura de energía: viñeteado cartoon por capas con el borde ondulando como ondas de sonido.")]
+        [Tooltip("Aura de energía: capas planas abajo y un triángulo en cada esquina, con el borde ondulando como " +
+                 "ondas de sonido. Del color salen las variantes de tono de cada capa.")]
         [Range(0f, 1f)] public float aura;
-        public Color auraColor = new(1f, 0.827f, 0.431f);
+        public Color auraColor = new(0.25f, 0.75f, 0.7f);
         [Tooltip("Líneas que suben desde las zonas y se difuminan al subir.")]
         [Range(0f, 1f)] public float risingLines;
         [Tooltip("Iconos de rayo que suben desde las zonas y se difuminan al subir.")]
@@ -164,6 +165,7 @@ namespace Racoon.Cameras
             public float startedAt;
             public bool on;
             public Color color;
+            public float gain = 1f;
         }
 
         // Suma de este frame.
@@ -172,6 +174,7 @@ namespace Racoon.Cameras
             public float fov, dutch, vignette, chromatic, distortion, saturation, contrast, exposure, hueShift;
             public float tintAmount, flash, speedLines, edge, fire, embers, aura, risingLines, risingBolts;
             public Color vignetteColor, tint, flashColor, edgeColor, fireColor, auraColor, risingColor;
+            public float blink; // Parpadeo de quien lo pide; alcanza también a los rayos ya en pantalla.
         }
 
         static readonly List<Pulse> pulses = new();
@@ -227,9 +230,10 @@ namespace Racoon.Cameras
         /// Efecto continuo identificado por <paramref name="key"/>, a <paramref name="intensity"/> (0 = apagado).
         /// Entra y sale con las transiciones del perfil (o a <paramref name="fadeSpeed"/> por segundo si no tiene).
         /// <paramref name="rateScale"/> acelera su latido; <paramref name="color"/> (alfa &gt; 0) sustituye sus colores.
+        /// <paramref name="gain"/> se aplica directo, sin transición (para parpadeos), a todo menos al FOV.
         /// </summary>
         public static void SetContinuous(object key, CameraFXProfile profile, float intensity, float fadeSpeed = 3f,
-            float rateScale = 1f, Color color = default)
+            float rateScale = 1f, Color color = default, float gain = 1f)
         {
             if (key == null) return;
             if (!layers.TryGetValue(key, out Layer layer))
@@ -244,6 +248,7 @@ namespace Racoon.Cameras
             layer.fadeSpeed = Mathf.Max(0.01f, fadeSpeed);
             layer.rateScale = Mathf.Max(0f, rateScale);
             layer.color = color;
+            layer.gain = gain;
         }
 
         /// <summary>Quita de golpe un efecto continuo (p. ej. al destruirse quien lo puso).</summary>
@@ -320,14 +325,14 @@ namespace Racoon.Cameras
 
             UpdateLayers(dt);
 
-            var s = new Sample();
+            var s = new Sample { blink = 1f };
             var colors = new ColorSums();
             foreach (Pulse pulse in pulses)
             {
                 CameraFXProfile p = pulse.profile;
                 float amount = pulse.amount * PulseDuck(pulse) * Rhythm(p, pulse.age, 0f);
                 float wobble = p.dutchWobble > 0f ? Mathf.Cos(pulse.age * p.dutchWobble * Mathf.PI * 2f) : 1f;
-                Accumulate(ref s, ref colors, p, amount, wobble, pulse.color);
+                Accumulate(ref s, ref colors, p, amount, amount, wobble, pulse.color);
             }
             foreach (Layer layer in layers.Values)
             {
@@ -335,7 +340,8 @@ namespace Racoon.Cameras
                 CameraFXProfile p = layer.profile;
                 float amount = layer.weight * LayerDuck(layer) * Rhythm(p, layer.phase, layer.seed);
                 float wobble = p.dutchWobble > 0f ? Mathf.Sin((time + layer.seed) * p.dutchWobble * Mathf.PI * 2f) : 1f;
-                Accumulate(ref s, ref colors, p, amount, wobble, layer.color);
+                s.blink = Mathf.Min(s.blink, layer.gain);
+                Accumulate(ref s, ref colors, p, amount * layer.gain, amount, wobble, layer.color);
             }
 
             float global = Mathf.Max(0f, GlobalIntensity);
@@ -483,10 +489,11 @@ namespace Racoon.Cameras
             public Color Rising => Avg(rising, risingW, Color.white);
         }
 
-        static void Accumulate(ref Sample s, ref ColorSums colors, CameraFXProfile p, float amount, float wobble, Color over)
+        static void Accumulate(ref Sample s, ref ColorSums colors, CameraFXProfile p, float amount, float fovAmount,
+            float wobble, Color over)
         {
+            s.fov += p.fov * fovAmount;
             if (amount <= 0f) return;
-            s.fov += p.fov * amount;
             s.dutch += p.dutch * amount * wobble;
             s.vignette += p.vignette * amount;
             s.chromatic += p.chromatic * amount;
@@ -521,7 +528,7 @@ namespace Racoon.Cameras
         const int MaxEmbers = 48;
         // Altura (fracción de pantalla, desde donde nace) a la que ya se han difuminado del todo.
         const float LinesFadeHeight = 0.6f;
-        const float BoltsFadeHeight = 0.45f;
+        const float BoltsFadeHeight = 0.3f;
         // Flipbooks horneados: 4x4 fotogramas.
         const int FlipbookGrid = 4;
         const int FlipbookFrames = FlipbookGrid * FlipbookGrid;
@@ -637,7 +644,6 @@ namespace Racoon.Cameras
             {
                 wavesMaterial = new Material(wavesShader) { name = "CameraFX Waves", hideFlags = HideFlags.DontSave };
                 wavesMaterial.SetColor("_Ink", CameraFX.InkColor);
-                wavesMaterial.SetColor("_Cream", CameraFX.CreamColor);
             }
             Shader ramp = CameraFXTextures.RampShader;
             if (ramp != null)
@@ -795,7 +801,7 @@ namespace Racoon.Cameras
             UpdateMotes(risingLines, ref lineSpawn, s.risingLines, 30f, size, scale, dt, spawnLine, s.risingColor, false);
             // El alfa de risingColor hace los rayos translúcidos (también su contorno).
             UpdateMotes(risingBolts, ref boltSpawn, s.risingBolts, 7f, size, scale, dt, spawnBolt,
-                new Color(1f, 1f, 1f, s.risingColor.a), true);
+                new Color(1f, 1f, 1f, s.risingColor.a * s.blink), true);
         }
 
         Action<Mote, float> spawnEmber, spawnLine, spawnBolt;
@@ -842,7 +848,7 @@ namespace Racoon.Cameras
             return new Rect(col * cell, 1f - (row + 1) * cell, cell, cell);
         }
 
-        // Aura: viñeteado por capas (shader). Entra creciendo desde los bordes con el propio canal.
+        // Aura: capas abajo y en las esquinas (shader). Entra creciendo desde abajo con el propio canal.
         void ApplyWaves(in CameraFX.Sample s, Vector2 size)
         {
             if (wavesMaterial == null) return;
@@ -850,13 +856,28 @@ namespace Racoon.Cameras
             ApplyImage(waves, s.auraColor, Mathf.Clamp01(a));
             if (!waves.enabled) return;
             wavesMaterial.SetFloat(FXTimeId, Time.unscaledTime);
-            wavesMaterial.SetFloat(AspectId, size.x / Mathf.Max(1f, size.y));
-            wavesMaterial.SetFloat(ThicknessId, 0.13f * Mathf.Lerp(0.45f, 1f, Smooth(Mathf.Clamp01(a))));
+            wavesMaterial.SetFloat(GrowId, Mathf.Lerp(0.45f, 1f, Smooth(Mathf.Clamp01(a))));
+            if (wavesColor != s.auraColor) SetWaveTones(s.auraColor);
         }
 
+        // Variantes del color del aura para las capas: hacia el verde, tal cual, hacia el azul y una más clara.
+        void SetWaveTones(Color c)
+        {
+            wavesColor = c;
+            Color.RGBToHSV(c, out float h, out float sat, out float v);
+            wavesMaterial.SetColor(Tone0Id, Color.HSVToRGB(Mathf.Repeat(h - 0.05f, 1f), sat, v * 0.88f));
+            wavesMaterial.SetColor(Tone1Id, c);
+            wavesMaterial.SetColor(Tone2Id, Color.HSVToRGB(Mathf.Repeat(h + 0.05f, 1f), sat, v));
+            wavesMaterial.SetColor(Tone3Id, Color.Lerp(Color.HSVToRGB(Mathf.Repeat(h + 0.02f, 1f), sat, v), CameraFX.CreamColor, 0.4f));
+        }
+
+        Color wavesColor;
         static readonly int FXTimeId = Shader.PropertyToID("_FXTime");
-        static readonly int AspectId = Shader.PropertyToID("_Aspect");
-        static readonly int ThicknessId = Shader.PropertyToID("_Thickness");
+        static readonly int GrowId = Shader.PropertyToID("_Grow");
+        static readonly int Tone0Id = Shader.PropertyToID("_Tone0");
+        static readonly int Tone1Id = Shader.PropertyToID("_Tone1");
+        static readonly int Tone2Id = Shader.PropertyToID("_Tone2");
+        static readonly int Tone3Id = Shader.PropertyToID("_Tone3");
 
         // Llamas: cada una aparece cuando el fuego pasa su umbral y crece desde su base.
         void ApplyFire(in CameraFX.Sample s, Vector2 size)
@@ -999,7 +1020,7 @@ namespace Racoon.Cameras
 
         void SpawnBolt(Mote m, float scale)
         {
-            m.position = ZonePoint(0.6f, 0.15f, 0.25f, out float inward);
+            m.position = ZonePoint(0.7f, 0.3f, 0f, out float inward); // Sin laterales: abajo y en las esquinas.
             float speed = UnityEngine.Random.Range(0.22f, 0.4f);
             m.velocity = new Vector2(inward * UnityEngine.Random.Range(0f, 0.04f), speed);
             m.life = BoltsFadeHeight / speed;

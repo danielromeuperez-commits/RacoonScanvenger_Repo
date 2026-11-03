@@ -43,6 +43,7 @@ public class ItemUIController : MonoBehaviour
         {
             inventory.ItemAdded -= OnItemAdded;
             inventory.InventoryChanged -= OnInventoryChanged;
+            inventory.RemoveRouletteCheck(IsRouletteSpinning);
         }
 
         inventory = newInventory;
@@ -53,6 +54,7 @@ public class ItemUIController : MonoBehaviour
         // Escuchamos los cambios del inventario del jugador.
         inventory.ItemAdded += OnItemAdded;
         inventory.InventoryChanged += OnInventoryChanged;
+        inventory.AddRouletteCheck(IsRouletteSpinning);
 
         RefreshUI();
     }
@@ -64,8 +66,14 @@ public class ItemUIController : MonoBehaviour
         {
             inventory.ItemAdded -= OnItemAdded;
             inventory.InventoryChanged -= OnInventoryChanged;
+            inventory.RemoveRouletteCheck(IsRouletteSpinning);
         }
     }
+
+    /// <summary>
+    /// Mientras gire alguna ruleta el jugador no puede cambiar de objeto.
+    /// </summary>
+    private bool IsRouletteSpinning() => mainRoulettePlaying || reserveRoulettePlaying;
 
     /// <summary>
     /// Se llama cuando entra un nuevo objeto en el inventario.

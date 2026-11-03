@@ -959,7 +959,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Racoon.Player.PlayerController
   ShowTopMostFoldoutHeaderGroup: 1
-  walkSpeed: 3.5
+  walkSpeed: 2.5
   runSpeed: 6.5
   groundAcceleration: 16
   groundDeceleration: 24
@@ -990,7 +990,7 @@ MonoBehaviour:
     m_Bits: 64
   interactRepeatInterval: 0.25
   hitCollider: {fileID: 8799597047483872339}
-  punchHitDelay: 0
+  punchHitDelay: 0.15
   punchRange: 0.9
   punchHeight: 0
   punchRadius: 0.6
@@ -1023,7 +1023,7 @@ MonoBehaviour:
     upwardVelocity: 4
     stunDuration: 1
     invulnerableWhileStunned: 1
-    recoveryInvulnerability: 3
+    recoveryInvulnerability: 0.8
   dashSpeed: 14
   dashDuration: 0.25
   dashSpeedCurve:
@@ -1260,7 +1260,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 4294967291
   arcDotSpacing: 0.35
-  arcDotSize: 0.09
+  arcDotSize: 0.05
   landingRingRadius: 0.3
   arcColor: {r: 1, g: 1, b: 1, a: 1}
   arcBehindColor: {r: 1, g: 0.6, b: 0.2, a: 1}
@@ -2240,6 +2240,10 @@ PrefabInstance:
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: f57de837bf33b7e419ea658fc8e1cd70, type: 2}
+    - target: {fileID: -11820259134055355, guid: d8b1305a1f1b9da4caeb1d3cceaa53c7, type: 3}
+      propertyPath: 'm_Materials.Array.data[1]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 26708e3498874bf9920b6eeb3e66fda8, type: 2}
     - target: {fileID: 336543876944929190, guid: d8b1305a1f1b9da4caeb1d3cceaa53c7, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
       value: -45.002

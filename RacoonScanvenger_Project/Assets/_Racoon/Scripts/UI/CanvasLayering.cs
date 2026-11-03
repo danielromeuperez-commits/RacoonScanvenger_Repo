@@ -10,6 +10,19 @@ namespace Racoon.UI
     /// </summary>
     public static class CanvasLayering
     {
+        /// <summary>
+        /// Saca un canvas del objeto en el que va anidado (el jugador): colgado de algo que se mueve y gira, un Screen
+        /// Space - Camera hereda ese movimiento hasta que Unity lo vuelve a pegar a la cámara y lo que se coloca en él
+        /// tiembla. Lo deja en la misma escena que <paramref name="owner"/> (también si es DontDestroyOnLoad).
+        /// </summary>
+        public static void DetachFrom(Transform canvas, GameObject owner)
+        {
+            canvas.SetParent(null, false);
+            if (owner.scene.name == "DontDestroyOnLoad") Object.DontDestroyOnLoad(canvas.gameObject);
+            else if (owner.scene.IsValid() && owner.scene != canvas.gameObject.scene)
+                UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(canvas.gameObject, owner.scene);
+        }
+
         public static void BringToFront(Canvas canvas, int ceiling = 500)
         {
             if (canvas == null) return;

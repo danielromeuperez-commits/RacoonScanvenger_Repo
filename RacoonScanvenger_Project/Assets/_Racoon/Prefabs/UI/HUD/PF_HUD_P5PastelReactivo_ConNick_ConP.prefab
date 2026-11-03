@@ -16182,7 +16182,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ae3413ef26da4894ca90fa1c659a8f5a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.P5.P5Text
-  text: MAPACHE
+  text: 
   style: {fileID: 11400000, guid: 36656f498d5d306449135aef3720d564, type: 2}
   player: 1
   colorJugador: {r: 0.22352941, g: 0.36078432, b: 0.9607843, a: 1}
@@ -19299,7 +19299,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ae3413ef26da4894ca90fa1c659a8f5a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.P5.P5Text
-  text: PANDA ROJO
+  text: 
   style: {fileID: 11400000, guid: 36656f498d5d306449135aef3720d564, type: 2}
   player: 2
   colorJugador: {r: 0.22352941, g: 0.36078432, b: 0.9607843, a: 1}
