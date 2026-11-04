@@ -136,7 +136,8 @@ namespace Racoon.Player
         [Tooltip("Si pasa este tiempo sin recibir golpes, el combo vuelve a 0.")]
         [SerializeField] float comboResetTime = 1.5f;
         [Tooltip("Golpes 1º y 2º: stun corto, se puede encadenar (pero hay hueco para escapar con dash).")]
-        [SerializeField] HitReaction lightHit = new()
+        [SerializeField]
+        HitReaction lightHit = new()
         {
             knockbackMultiplier = 0.6f,
             upwardVelocity = 0f,
@@ -145,7 +146,8 @@ namespace Racoon.Player
             recoveryInvulnerability = 0f,
         };
         [Tooltip("Golpe 3º: derriba, invulnerable en el suelo y al levantarse. Reinicia el combo.")]
-        [SerializeField] HitReaction heavyHit = new()
+        [SerializeField]
+        HitReaction heavyHit = new()
         {
             knockbackMultiplier = 1.8f,
             upwardVelocity = 4f,
@@ -229,7 +231,7 @@ namespace Racoon.Player
         public struct NetState : INetworkSerializeByMemcpy, IEquatable<NetState>
         {
             public PlayerState State;
-            // Se incrementa en cada acción: así se detectan dos golpes seguidos aunque el
+            // Se incrementa en cada acción: así se detectan two golpes seguidos aunque el
             // estado no pase visiblemente por Idle entre ellos.
             public byte ActionSequence;
             // I-frames (dash, derribo, recuperación): el servidor lo consulta para descartar golpes.
@@ -458,7 +460,6 @@ namespace Racoon.Player
             if (!IsSpawned || !IsOwner) return;
             if (extintorActive)
             {
-                // Antes este bloque estaba duplicado y el tiempo bajaba el doble de rápido.
                 extintorTimer -= Time.deltaTime;
 
                 desiredVelocity = Vector3.zero;
@@ -478,12 +479,16 @@ namespace Racoon.Player
                 }
             }
             float dt = Time.deltaTime;
+
+            if (extintorActive) return; // Si el extintor está activo, ignoramos todo el input y la lógica de juego habitual
+
             if (interactRepeatTimer > 0f)
                 interactRepeatTimer -= dt;
 
             // Si mantiene Interact, sigue saqueando automáticamente
             // cuando termina la interacción anterior.
             if (input.InteractHeld &&
+                !extintorActive &&
                 !IsInAction &&
                 !itemRecoveryRequired &&
                 !chargingPunch &&
@@ -1126,7 +1131,7 @@ namespace Racoon.Player
 
         void OnInteractPressed()
         {
-            if (IsInAction || itemRecoveryRequired || chargingPunch || aimingItem) return;
+            if (extintorActive || IsInAction || itemRecoveryRequired || chargingPunch || aimingItem) return;
 
             StartAction(PlayerState.Interact, interactDuration);
             interactRepeatTimer = interactRepeatInterval;
@@ -1137,7 +1142,7 @@ namespace Racoon.Player
         {
             // CanSwitch evita desequipar el único objeto que llevas.
             // Mientras apunta no cambia: la flecha es del objeto que tiene en la mano.
-            if (IsInAction || itemRecoveryRequired || chargingPunch || aimingItem || !inventory.CanSwitch) return;
+            if (extintorActive || IsInAction || itemRecoveryRequired || chargingPunch || aimingItem || !inventory.CanSwitch) return;
             StartAction(PlayerState.SwitchItem, switchItemDuration);
             SwitchItemRpc();
         }
@@ -1145,7 +1150,7 @@ namespace Racoon.Player
         void OnUsePressed()
         {
             // Tirado por un objeto no se puede golpear ni lanzar hasta levantarse.
-            if (IsInAction || itemRecoveryRequired || chargingPunch || aimingItem || State.IsGrounded()) return;
+            if (extintorActive || IsInAction || itemRecoveryRequired || chargingPunch || aimingItem || State.IsGrounded()) return;
 
             if (inventory.HasEquipped)
             {
@@ -1164,6 +1169,9 @@ namespace Racoon.Player
 
         void OnDashPressed()
         {
+            // Si el extintor está activo, se bloquea totalmente el dash
+            if (extintorActive) return;
+
             // Tirado por un objeto: Dash se machaca para levantarse.
             if (itemRecoveryRequired)
             {
