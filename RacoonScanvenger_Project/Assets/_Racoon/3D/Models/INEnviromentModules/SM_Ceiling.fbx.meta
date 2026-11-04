@@ -1,9 +1,14 @@
 fileFormatVersion: 2
-guid: 91125a56fa287834fa0a14d950469244
+guid: a673fc887a784082889d6d85f5c5e766
 ModelImporter:
   serializedVersion: 24200
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: M_Ceiling
+    second: {fileID: 2100000, guid: d6371af4097462847ba8172d5106d170, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0
