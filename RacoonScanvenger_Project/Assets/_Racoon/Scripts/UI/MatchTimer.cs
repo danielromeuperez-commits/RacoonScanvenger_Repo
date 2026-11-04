@@ -6,10 +6,10 @@ using UnityEngine;
 public class MatchTimer : NetworkBehaviour
 {
     [Header("Partida")]
-    [Tooltip("Duración de la partida en segundos.")]
+    [Tooltip("DuraciÃ³n de la partida en segundos.")]
     [SerializeField, Min(1f)] float matchDuration = 300f;
 
-    [Tooltip("Déjalo desactivado si utilizas el lobby de selección de personaje.")]
+    [Tooltip("DÃ©jalo desactivado si utilizas el lobby de selecciÃ³n de personaje.")]
     [SerializeField] bool autoStart = false;
 
     readonly NetworkVariable<double> matchEndTime = new(0);
@@ -26,6 +26,8 @@ public class MatchTimer : NetworkBehaviour
     public bool IsRunning => matchRunning.Value;
     public bool IsFinished => matchFinished.Value;
     public float Duration => matchDuration;
+    /// <summary>Multiplicador de velocidad actual del cronÃ³metro (1 = normal).</summary>
+    public float TimeScale => timeScale.Value;
 
     public float TimeRemaining
     {
@@ -37,8 +39,8 @@ public class MatchTimer : NetworkBehaviour
             if (matchFinished.Value)
                 return 0f;
 
-            // Mientras todavía estamos en selección de personaje,
-            // mostramos la duración completa y el reloj no avanza.
+            // Mientras todavÃ­a estamos en selecciÃ³n de personaje,
+            // mostramos la duraciÃ³n completa y el reloj no avanza.
             if (!matchRunning.Value)
                 return matchDuration;
 
@@ -55,7 +57,7 @@ public class MatchTimer : NetworkBehaviour
 
         lastServerTime = NetworkManager.ServerTime.Time;
 
-        // Solo se utilizará si quieres probar el MatchTimer
+        // Solo se utilizarÃ¡ si quieres probar el MatchTimer
         // sin pasar por el lobby.
         if (IsServer && autoStart)
             ServerStartMatch();
@@ -84,7 +86,7 @@ public class MatchTimer : NetworkBehaviour
         lastServerTime =
             currentServerTime;
 
-        // Si la escala de tiempo cambió
+        // Si la escala de tiempo cambiÃ³
         // (ej: x2 o x3), consumimos tiempo extra.
         if (timeScale.Value != 1f &&
             deltaTime > 0)
@@ -136,7 +138,7 @@ public class MatchTimer : NetworkBehaviour
 
         Debug.Log(
             $"MatchTimer: comienza la partida. " +
-            $"Duración: {matchDuration} segundos."
+            $"DuraciÃ³n: {matchDuration} segundos."
         );
     }
 
@@ -157,7 +159,7 @@ public class MatchTimer : NetworkBehaviour
             Mathf.Max(0.1f, multiplier);
 
         Debug.Log(
-            $"MatchTimer: ¡El cronómetro correrá a " +
+            $"MatchTimer: Â¡El cronÃ³metro correrÃ¡ a " +
             $"x{timeScale.Value} durante el resto de la partida!"
         );
     }

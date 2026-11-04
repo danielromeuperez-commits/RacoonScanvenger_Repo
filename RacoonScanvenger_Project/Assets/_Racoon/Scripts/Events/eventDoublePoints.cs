@@ -1,32 +1,68 @@
+using System;
+using Racoon.Events;
 using Unity.Netcode;
 using UnityEngine;
-using TMPro;
 
+/// <summary>
+/// Evento «OFERTA x2»: el servidor elige una estantería (LootPoint) al azar y la pone a puntos dobles durante
+/// <c>maxDoublePointsCollections</c> recolecciones.
+///
+/// Estado en red (lo ven todos, también quien entra tarde): posición de la estantería, recolecciones que quedan y
+/// total. Con eso cada cliente monta sus visuales: el anuncio por megafonía y la ficha de estado
+/// (<see cref="GameEventAnnouncer"/>) y el cartel colgante, el marco dorado y los destellos (<see cref="DoublePointsVFX"/>).
+/// </summary>
 public class eventDoublePoints : NetworkBehaviour, IGameEvent
 {
-    [Header("Configuración de UI")]
-    [Tooltip("Panel de UI que se activará cuando comience el evento.")]
-    [SerializeField] GameObject PopUpPanel;
-    [Tooltip("Texto opcional para mostrar qué estantería tiene el x2.")]
-    [SerializeField] TextMeshProUGUI PopUpText;
-    [Tooltip("Tiempo en segundos que la UI permanecerá visible (0 para dejarla fija).")]
-    [SerializeField] float displayDuration = 5f;
+    [Header("Presentación")]
+    [SerializeField] string title = "¡OFERTA x2!";
+    [SerializeField] string subtitle = "Una estantería da el doble de puntos. ¡Busca el cartel!";
+    [Tooltip("Color del evento (golpe de cámara): verde pastel, el de la cinta.")]
+    [SerializeField] Color accent = new(0.66f, 0.9f, 0.79f);
+    [Tooltip("Piel de color de la cinta (Verde, Amarillo o Rojo; sprites del PSD, sin teñir).")]
+    [SerializeField] string colorSkin = "Verde";
+
+    // Declaradas en este orden a propósito: se replican en orden, así que cuando llega «remaining» (lo que arranca
+    // los visuales) la posición y el total ya están. -1 = aún no ha empezado; 0 = se acabó; >0 = activo.
+    readonly NetworkVariable<Vector3> shelfPosition = new();
+    readonly NetworkVariable<int> total = new(0);
+    readonly NetworkVariable<int> remaining = new(-1);
+
+    LootPoint serverShelf;
 
     // Propiedad requerida por el EventManager para saber si ya se ejecutó
     public bool HasTriggered { get; private set; } = false;
 
+    /// <summary>Mientras haya una estantería x2 activa no se lanza otra.</summary>
+    public bool IsBusy => IsActive;
+
+    public bool IsActive => remaining.Value > 0;
+    public bool HasStarted => remaining.Value >= 0;
+    public int Remaining => Mathf.Max(0, remaining.Value);
+    public int Total => total.Value;
+    public Vector3 ShelfPosition => shelfPosition.Value;
+    public Color Accent => accent;
+
+    /// <summary>En cada cliente: empieza (true) o cambia lo que queda / se acaba (false).</summary>
+    public event Action<eventDoublePoints, bool> StateChanged;
+
     public override void OnNetworkSpawn()
     {
-        if (PopUpPanel != null)
-            PopUpPanel.SetActive(false);
+        remaining.OnValueChanged += OnRemainingChanged;
+        // Los visuales viven en el cliente (también en el host). Si ya estaba activo al entrar, se montan sin anuncio.
+        if (!TryGetComponent(out DoublePointsVFX _)) gameObject.AddComponent<DoublePointsVFX>();
+        if (IsActive) StateChanged?.Invoke(this, false);
     }
 
-    // El Update se elimina de aquí porque el tiempo lo gestiona el EventManager.
+    public override void OnNetworkDespawn()
+    {
+        remaining.OnValueChanged -= OnRemainingChanged;
+        if (serverShelf != null) serverShelf.DoublePointsChanged -= OnServerShelfChanged;
+    }
 
     // Método público que llamará el EventManager de forma aleatoria
     public void TriggerEventManually()
     {
-        if (HasTriggered || !IsServer)
+        if (!IsServer || IsBusy)
             return;
 
         HasTriggered = true;
@@ -38,40 +74,32 @@ public class eventDoublePoints : NetworkBehaviour, IGameEvent
             return;
         }
 
-        int randomIndex = Random.Range(0, lootPoints.Length);
-        LootPoint selectedLoot = lootPoints[randomIndex];
+        serverShelf = lootPoints[UnityEngine.Random.Range(0, lootPoints.Length)];
+        serverShelf.DoublePointsChanged += OnServerShelfChanged;
 
-        selectedLoot.SetDoublePoints(true);
-        TriggerDoublePointsClientRpc(selectedLoot.gameObject.name);
+        // Primero dónde y cuántas; lo último, «remaining», que es lo que arranca los visuales.
+        shelfPosition.Value = serverShelf.transform.position;
+        total.Value = serverShelf.MaxDoublePointsCollections;
+        serverShelf.SetDoublePoints(true);
 
-        Debug.Log($"¡EVENTO X2 ALEATORIO! La estantería '{selectedLoot.gameObject.name}' ha sido marcada.");
+        Debug.Log($"¡EVENTO X2 ALEATORIO! La estantería '{serverShelf.gameObject.name}' ha sido marcada.");
     }
 
-    [ClientRpc]
-    void TriggerDoublePointsClientRpc(string lootPointName)
+    void OnServerShelfChanged(LootPoint shelf)
     {
-        if (PopUpPanel != null)
+        remaining.Value = shelf.DoublePointsRemaining;
+        if (!shelf.IsDoublePoints)
         {
-            PopUpPanel.SetActive(true);
-
-            if (displayDuration > 0)
-            {
-                CancelInvoke(nameof(HideUI));
-                Invoke(nameof(HideUI), displayDuration);
-            }
-        }
-
-        if (PopUpText != null)
-        {
-            PopUpText.text = $"¡EVENTO X2!\nLa zona '{lootPointName}' otorga el doble de puntos.";
+            shelf.DoublePointsChanged -= OnServerShelfChanged;
+            serverShelf = null;
         }
     }
 
-    void HideUI()
+    void OnRemainingChanged(int previous, int current)
     {
-        if (PopUpPanel != null)
-        {
-            PopUpPanel.SetActive(false);
-        }
+        // Empieza (también al repetirse en la misma partida: de 0 a >0).
+        bool started = previous <= 0 && current > 0;
+        if (started) GameEventAnnouncer.Announce(this, title, subtitle, accent, colorSkin);
+        StateChanged?.Invoke(this, started);
     }
 }

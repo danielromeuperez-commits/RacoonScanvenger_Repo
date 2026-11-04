@@ -1,40 +1,44 @@
 using Unity.Netcode;
 using UnityEngine;
-using TMPro;
+using Racoon.Events;
 using Racoon.Items;
 
 public class eventSpawnItem : NetworkBehaviour, IGameEvent
 {
-    [Header("ConfiguraciÛn del Evento de InstanciaciÛn")]
+    [Header("Configuraci√≥n del Evento de Instanciaci√≥n")]
     [Tooltip("El ItemData del objeto que deseas instanciar (ej: ITEM_Banana_New).")]
     [SerializeField] private ItemData itemToSpawnData;
 
-    [Tooltip("Lista de todos los puntos donde quieres que aparezca un pl·tano.")]
+    [Tooltip("Lista de todos los puntos donde quieres que aparezca un pl√°tano.")]
     [SerializeField] private Transform[] spawnPoints;
 
-    [Header("ConfiguraciÛn de UI")]
-    [SerializeField] private GameObject PopUpPanel;
-    [SerializeField] private TextMeshProUGUI PopUpText;
-    [SerializeField] private float displayDuration = 5f;
+    [Header("Presentaci√≥n (anuncio com√∫n: GameEventAnnouncer)")]
+    [SerializeField] private string title = "¬°PASILLO RESBALADIZO!";
+    [Tooltip("{0} = nombre del objeto (opcional).")]
+    [SerializeField] private string subtitle = "¬°Hay pl√°tanos por todo el suelo! Cuidado al correr.";
+    [Tooltip("Color del evento (golpe de c√°mara): amarillo pastel, el de la cinta.")]
+    [SerializeField] private Color accent = new(1f, 0.91f, 0.64f);
+    [Tooltip("Piel de color de la cinta (Verde, Amarillo o Rojo; sprites del PSD, sin te√±ir).")]
+    [SerializeField] private string colorSkin = "Amarillo";
+
+    [Tooltip("Al repetirse, no se pone otro pl√°tano en un punto que ya tenga uno a menos de esta distancia (m).")]
+    [SerializeField, Min(0f)] private float occupiedRadius = 0.6f;
 
     public bool HasTriggered { get; private set; } = false;
 
-    public override void OnNetworkSpawn()
-    {
-        if (PopUpPanel != null)
-            PopUpPanel.SetActive(false);
-    }
+    /// <summary>Se puede repetir en cualquier momento (los puntos ocupados se saltan).</summary>
+    public bool IsBusy => false;
 
     public void TriggerEventManually()
     {
-        if (HasTriggered || !IsServer)
+        if (!IsServer || IsBusy)
             return;
 
         HasTriggered = true;
 
         if (itemToSpawnData == null)
         {
-            Debug.LogError("eventSpawnItem: No se ha asignado ning˙n ItemData para instanciar.");
+            Debug.LogError("eventSpawnItem: No se ha asignado ning√∫n ItemData para instanciar.");
             return;
         }
 
@@ -51,10 +55,13 @@ public class eventSpawnItem : NetworkBehaviour, IGameEvent
         {
             int spawnedCount = 0;
 
-            // Recorremos CADA UNO de los puntos de la lista para instanciar un pl·tano en cada posiciÛn
+            // Recorremos CADA UNO de los puntos de la lista para instanciar un pl√°tano en cada posici√≥n
+            // Si el evento se repite, los pl√°tanos que siguen en el suelo ocupan su punto.
+            Racoon.Items.BananaTrap[] existing = FindObjectsByType<Racoon.Items.BananaTrap>(FindObjectsSortMode.None);
+
             foreach (var sp in spawnPoints)
             {
-                if (sp != null)
+                if (sp != null && !IsOccupied(sp.position, existing))
                 {
                     GameObject spawnedInstance = Instantiate(prefabToInstantiate, sp.position, sp.rotation);
 
@@ -68,49 +75,35 @@ public class eventSpawnItem : NetworkBehaviour, IGameEvent
                 }
             }
 
-            Debug.Log($"°EVENTO DE ÕTEM! Se han instanciado {spawnedCount} pl·tanos en el mapa.");
+            Debug.Log($"¬°EVENTO DE √çTEM! Se han instanciado {spawnedCount} pl√°tanos en el mapa.");
         }
         else
         {
-            // Si por alguna razÛn la lista est· vacÌa, al menos saca uno en la posiciÛn del objeto
+            // Si por alguna raz√≥n la lista est√° vac√≠a, al menos saca uno en la posici√≥n del objeto
             GameObject spawnedInstance = Instantiate(prefabToInstantiate, transform.position, transform.rotation);
             NetworkObject netObj = spawnedInstance.GetComponent<NetworkObject>();
             if (netObj != null)
             {
                 netObj.Spawn();
             }
-            Debug.LogWarning("eventSpawnItem: La lista de SpawnPoints est· vacÌa. Se ha instanciado solo 1 pl·tano en el origen.");
+            Debug.LogWarning("eventSpawnItem: La lista de SpawnPoints est√° vac√≠a. Se ha instanciado solo 1 pl√°tano en el origen.");
         }
 
         TriggerSpawnClientRpc(itemToSpawnData.displayName);
     }
 
+    bool IsOccupied(Vector3 point, Racoon.Items.BananaTrap[] existing)
+    {
+        foreach (var trap in existing)
+            if (trap != null && Vector3.Distance(trap.transform.position, point) < occupiedRadius)
+                return true;
+        return false;
+    }
+
     [ClientRpc]
     void TriggerSpawnClientRpc(string itemName)
     {
-        if (PopUpPanel != null)
-        {
-            PopUpPanel.SetActive(true);
-
-            if (displayDuration > 0)
-            {
-                CancelInvoke(nameof(HideUI));
-                Invoke(nameof(HideUI), displayDuration);
-            }
-        }
-
-        if (PopUpText != null)
-        {
-            PopUpText.text = $"°APARICI”N DE ÕTEM!\n°Han aparecido varios/as {itemName} en el mapa!";
-        }
-    }
-
-    void HideUI()
-    {
-        if (PopUpPanel != null)
-        {
-            PopUpPanel.SetActive(false);
-        }
+        GameEventAnnouncer.Announce(this, title, string.Format(subtitle, itemName.ToLowerInvariant()), accent, colorSkin);
     }
 
     // Dibuja esferas verdes en TODOS los puntos configurados para que los veas en la escena

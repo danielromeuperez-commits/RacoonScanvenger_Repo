@@ -41,6 +41,14 @@ public class LootPoint : MonoBehaviour, IRepeatableInteractable
     bool isDoublePoints = false;
     int currentDoublePointsCollections = 0;
 
+    /// <summary>Solo servidor. Salta al activar o apagar el x2 y en cada recolección doble (para los visuales del evento).</summary>
+    public event System.Action<LootPoint> DoublePointsChanged;
+
+    public bool IsDoublePoints => isDoublePoints;
+    public int MaxDoublePointsCollections => maxDoublePointsCollections;
+    /// <summary>Recolecciones dobles que quedan (0 si el x2 no está activo).</summary>
+    public int DoublePointsRemaining => isDoublePoints ? Mathf.Max(0, maxDoublePointsCollections - currentDoublePointsCollections) : 0;
+
     // Siguiente momento en que puede saquear cada jugador (por NetworkObjectId). Solo servidor.
     readonly Dictionary<ulong, float> nextInteractTimeByPlayer = new();
 
@@ -80,6 +88,7 @@ public class LootPoint : MonoBehaviour, IRepeatableInteractable
         {
             currentDoublePointsCollections = 0; // Reiniciar contador al activarse el evento
         }
+        DoublePointsChanged?.Invoke(this);
     }
 
     public bool CanInteract(PlayerController player)
@@ -116,7 +125,7 @@ public class LootPoint : MonoBehaviour, IRepeatableInteractable
             return;
 
         // Sonido de saquear, en todos los clientes.
-        playerLoot.ServerNotifyLootGrabbed(doubled, transform.position);
+        playerLoot.ServerNotifyLootGrabbed(doubled, transform.position, finalPoints);
 
         // Aplicar el tiempo de espera (cooldown) correspondiente a este jugador
         float activeCooldown = doubled ? doublePointsCooldown : normalCooldown;
@@ -129,6 +138,10 @@ public class LootPoint : MonoBehaviour, IRepeatableInteractable
             if (currentDoublePointsCollections >= maxDoublePointsCollections)
             {
                 SetDoublePoints(false); // Desactiva el x2 al alcanzar el límite de recolecciones
+            }
+            else
+            {
+                DoublePointsChanged?.Invoke(this);
             }
         }
 

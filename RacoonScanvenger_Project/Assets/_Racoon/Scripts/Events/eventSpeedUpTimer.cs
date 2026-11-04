@@ -1,75 +1,60 @@
 using Unity.Netcode;
 using UnityEngine;
-using TMPro;
+using Racoon.Events;
 
 public class eventSpeedUpTimer : NetworkBehaviour, IGameEvent
 {
-    [Header("Configuración del Evento de Velocidad")]
-    [Tooltip("Multiplicador de velocidad permanente (ej: 2 para el doble de rápido, 3 para el triple).")]
+    [Header("ConfiguraciÃ³n del Evento de Velocidad")]
+    [Tooltip("Multiplicador de velocidad permanente (ej: 2 para el doble de rÃ¡pido, 3 para el triple).")]
     [SerializeField] float speedMultiplier = 2f;
+    [Tooltip("Si el evento se repite en la misma partida, el ritmo se multiplica otra vez, hasta este tope.")]
+    [SerializeField, Min(1f)] float maxTimeScale = 4f;
 
-    [Header("Configuración de UI")]
-    [SerializeField] GameObject PopUpPanel;
-    [SerializeField] TextMeshProUGUI PopUpText;
-    [SerializeField] float displayDuration = 5f;
+    [Header("PresentaciÃ³n (anuncio comÃºn: GameEventAnnouncer)")]
+    [SerializeField] string title = "Â¡RITMO ACELERADO!";
+    [Tooltip("{0} = multiplicador.")]
+    [SerializeField] string subtitle = "El reloj corre x{0} hasta el final de la partida.";
+    [Tooltip("Color del evento (golpe de cÃ¡mara): rojo pastel, el de la cinta.")]
+    [SerializeField] Color accent = new(1f, 0.68f, 0.7f);
+    [Tooltip("Piel de color de la cinta (Verde, Amarillo o Rojo; sprites del PSD, sin teÃ±ir).")]
+    [SerializeField] string colorSkin = "Rojo";
 
     public bool HasTriggered { get; private set; } = false;
 
-    public override void OnNetworkSpawn()
-    {
-        if (PopUpPanel != null)
-            PopUpPanel.SetActive(false);
-    }
+    MatchTimer matchTimer;
+
+    MatchTimer Timer => matchTimer != null ? matchTimer : matchTimer = FindFirstObjectByType<MatchTimer>();
+
+    /// <summary>Con el reloj ya al tope no tiene sentido repetirlo.</summary>
+    public bool IsBusy => Timer != null && Timer.TimeScale >= maxTimeScale - 0.001f;
 
     public void TriggerEventManually()
     {
-        if (HasTriggered || !IsServer)
+        if (!IsServer || IsBusy)
             return;
 
         HasTriggered = true;
 
-        MatchTimer matchTimer = FindFirstObjectByType<MatchTimer>();
-
-        if (matchTimer != null)
+        float newScale = speedMultiplier;
+        if (Timer != null)
         {
-            // Aplica la velocidad permanente en el MatchTimer
-            matchTimer.ApplyTimeMultiplier(speedMultiplier);
+            // Aplica la velocidad permanente en el MatchTimer (si ya iba acelerado, se acumula hasta el tope).
+            newScale = Mathf.Min(maxTimeScale, Timer.TimeScale * speedMultiplier);
+            Timer.ApplyTimeMultiplier(newScale);
         }
         else
         {
-            Debug.LogError("eventSpeedUpTimer: No se encontró ningún MatchTimer para acelerar.");
+            Debug.LogError("eventSpeedUpTimer: No se encontrÃ³ ningÃºn MatchTimer para acelerar.");
         }
 
-        TriggerSpeedUpClientRpc(speedMultiplier);
+        TriggerSpeedUpClientRpc(newScale);
 
-        Debug.Log($"¡EVENTO DE VELOCIDAD PERMANENTE! El cronómetro irá a x{speedMultiplier} hasta el final de la partida.");
+        Debug.Log($"Â¡EVENTO DE VELOCIDAD PERMANENTE! El cronÃ³metro irÃ¡ a x{speedMultiplier} hasta el final de la partida.");
     }
 
     [ClientRpc]
     void TriggerSpeedUpClientRpc(float multiplier)
     {
-        if (PopUpPanel != null)
-        {
-            PopUpPanel.SetActive(true);
-
-            if (displayDuration > 0)
-            {
-                CancelInvoke(nameof(HideUI));
-                Invoke(nameof(HideUI), displayDuration);
-            }
-        }
-
-        if (PopUpText != null)
-        {
-            PopUpText.text = $"¡RITMO ACELERADO (x{multiplier})!\n¡El tiempo irá más rápido el resto de la partida!";
-        }
-    }
-
-    void HideUI()
-    {
-        if (PopUpPanel != null)
-        {
-            PopUpPanel.SetActive(false);
-        }
+        GameEventAnnouncer.Announce(this, title, string.Format(subtitle, multiplier), accent, colorSkin);
     }
 }

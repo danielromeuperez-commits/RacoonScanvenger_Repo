@@ -1,18 +1,24 @@
 using UnityEngine;
 using Unity.Netcode;
 
-public class SpawnerMechItem : NetworkBehaviour
+public class SpawnerMechItem : NetworkBehaviour, IGameEvent
 {
     [SerializeField] private GameObject[] prefabs;
     [SerializeField] private Transform spawnPoint;
     [SerializeField] private float segundos = 10f;
 
-    public override void OnNetworkSpawn()
+    public bool HasTriggered { get; private set; } = false;
+
+    /// <summary>Ocupado mientras espera para sacar el objeto.</summary>
+    public bool IsBusy => IsInvoking(nameof(SpawnRandomPrefab));
+
+    // Lo lanza el EventManager (solo en el servidor): sale el objeto pasados "segundos".
+    public void TriggerEventManually()
     {
-        // SOLO el servidor ejecuta el temporizador y decide qué sale
-        if (!IsServer)
+        if (!IsServer || IsBusy)
             return;
 
+        HasTriggered = true;
         Invoke(nameof(SpawnRandomPrefab), segundos);
     }
 

@@ -2,28 +2,56 @@ using Unity.Netcode;
 using UnityEngine;
 using System.Collections.Generic;
 
+/// <summary>
+/// Lanza los eventos de partida (solo servidor). Pasado <c>initialDelay</c>, cada <c>checkInterval</c> segundos tira
+/// el dado (<c>eventProbability</c>) y, si sale, lanza un evento de la lista seg√∫n la secuencia elegida, hasta
+/// <c>eventsPerMatch</c> eventos o hasta <c>maxTimeLimit</c>. Tras cada evento espera <c>cooldownAfterEvent</c>.
+/// Un evento que sigue en marcha (<see cref="IGameEvent.IsBusy"/>) no se elige.
+/// </summary>
 public class EventManager : NetworkBehaviour
 {
-    [Header("ConfiguraciÛn de Tiempos y Ciclos (en segundos)")]
+    public enum EventSequence
+    {
+        [Tooltip("Cualquiera de la lista cada vez (puede repetirse seguido).")]
+        Aleatorio,
+        [Tooltip("Cualquiera menos el √∫ltimo que sali√≥ (si solo hay uno, se repite).")]
+        AleatorioSinRepetirAnterior,
+        [Tooltip("Cada evento sale como mucho una vez: cuando se acaban, se acaban.")]
+        NoRepetirNunca,
+    }
+
+    [Header("Configuraci√≥n de Tiempos y Ciclos (en segundos)")]
     [Tooltip("Segundos de partida que deben pasar antes de empezar a buscar eventos (ej: 60s = Minuto 1).")]
     [SerializeField] float initialDelay = 60f;
-    [Tooltip("Cada cu·ntos segundos se intentar· activar un evento una vez pasado el retraso inicial (ej: cada 10s).")]
+    [Tooltip("Cada cu√°ntos segundos se intentar√° activar un evento una vez pasado el retraso inicial (ej: cada 10s).")]
     [SerializeField] float checkInterval = 10f;
-    [Tooltip("Segundo lÌmite de la partida para dejar de intentar activar eventos (ej: 240s = Minuto 4).")]
+    [Tooltip("Segundo l√≠mite de la partida para dejar de intentar activar eventos (ej: 240s = Minuto 4).")]
     [SerializeField] float maxTimeLimit = 240f;
+    [Tooltip("Segundos de espera tras un evento antes de volver a intentar otro.")]
+    [SerializeField, Min(0f)] float cooldownAfterEvent = 30f;
 
-    [Header("ConfiguraciÛn de Probabilidad")]
+    [Header("Eventos por partida")]
+    [Tooltip("Cu√°ntos eventos pueden salir como m√°ximo en una partida.")]
+    [SerializeField, Min(1)] int eventsPerMatch = 1;
+    [Tooltip("C√≥mo se elige el siguiente evento.")]
+    [SerializeField] EventSequence sequence = EventSequence.NoRepetirNunca;
+
+    [Header("Configuraci√≥n de Probabilidad")]
     [Tooltip("Probabilidad (de 0 a 1) de que ocurra un evento en cada intento (ej: 0.4 = 40%).")]
     [Range(0f, 1f)][SerializeField] float eventProbability = 0.4f;
 
     [Header("Listado de Eventos")]
-    [Tooltip("Arrastra aquÌ los GameObjects o componentes que implementen IGameEvent.")]
+    [Tooltip("Arrastra aqu√≠ los GameObjects o componentes que implementen IGameEvent.")]
     [SerializeField] List<MonoBehaviour> availableEventScripts = new List<MonoBehaviour>();
 
     MatchTimer matchTimer;
     float nextCheckTimer = 0f;
-    bool eventHasTriggeredGlobal = false;
     bool searchingStopped = false;
+    int eventsTriggered = 0;
+    IGameEvent lastEvent;
+    readonly HashSet<IGameEvent> usedEvents = new HashSet<IGameEvent>();
+
+    public int EventsTriggered => eventsTriggered;
 
     public override void OnNetworkSpawn()
     {
@@ -33,26 +61,39 @@ public class EventManager : NetworkBehaviour
         matchTimer = FindFirstObjectByType<MatchTimer>();
         if (matchTimer == null)
         {
-            Debug.LogError("No se encontrÛ ning˙n MatchTimer en la escena.");
+            Debug.LogError("No se encontr√≥ ning√∫n MatchTimer en la escena.");
+        }
+    }
+
+    void OnValidate()
+    {
+        if (sequence == EventSequence.NoRepetirNunca && availableEventScripts != null)
+        {
+            int count = 0;
+            foreach (var script in availableEventScripts)
+                if (script != null) count++;
+            if (count > 0 && eventsPerMatch > count)
+                Debug.LogWarning($"EventManager: con ¬´No repetir nunca¬ª solo pueden salir {count} eventos, " +
+                                 $"aunque eventsPerMatch sea {eventsPerMatch}.", this);
         }
     }
 
     void Update()
     {
-        if (!IsServer || matchTimer == null || !matchTimer.IsRunning || eventHasTriggeredGlobal || searchingStopped)
+        if (!IsServer || matchTimer == null || !matchTimer.IsRunning || searchingStopped)
             return;
 
         // Tiempo transcurrido de partida
         float timeElapsed = matchTimer.Duration - matchTimer.TimeRemaining;
 
-        // 1. Si a˙n no llegamos al retraso inicial, esperamos
+        // 1. Si a√∫n no llegamos al retraso inicial, esperamos
         if (timeElapsed < initialDelay)
             return;
 
-        // 2. Si superamos el tiempo lÌmite de b˙squeda, dejamos de intentar
+        // 2. Si superamos el tiempo l√≠mite de b√∫squeda, dejamos de intentar
         if (timeElapsed >= maxTimeLimit)
         {
-            Debug.Log("NO SALI” EVENTO EN NINGUN MOMENTO, SE DEJA DE BUSCAR");
+            Debug.Log($"EventManager: fin del tiempo de eventos ({eventsTriggered}/{eventsPerMatch} lanzados).");
             searchingStopped = true;
             return;
         }
@@ -60,50 +101,79 @@ public class EventManager : NetworkBehaviour
         // 3. Control de intervalos basado en el tiempo transcurrido de la partida
         if (timeElapsed >= nextCheckTimer)
         {
-            TryTriggerRandomEvent();
-            // Programamos el siguiente chequeo sumando el intervalo
-            nextCheckTimer = timeElapsed + checkInterval;
+            bool triggered = TryTriggerRandomEvent();
+            nextCheckTimer = timeElapsed + (triggered ? Mathf.Max(checkInterval, cooldownAfterEvent) : checkInterval);
         }
     }
 
-    void TryTriggerRandomEvent()
+    bool TryTriggerRandomEvent()
     {
         if (Random.value > eventProbability)
         {
             Debug.Log("NO SALE EVENTO (Probabilidad fallida)");
-            return;
+            return false;
         }
 
-        List<IGameEvent> validEvents = new List<IGameEvent>();
+        List<IGameEvent> allEvents = CollectEvents();
+        List<IGameEvent> candidates = new List<IGameEvent>();
+        foreach (IGameEvent gameEvent in allEvents)
+        {
+            if (gameEvent.IsBusy) continue;
+            if (sequence == EventSequence.NoRepetirNunca && usedEvents.Contains(gameEvent)) continue;
+            candidates.Add(gameEvent);
+        }
 
+        if (sequence == EventSequence.NoRepetirNunca && usedEvents.Count >= allEvents.Count)
+        {
+            Debug.Log("EventManager: ya han salido todos los eventos (no se repiten).");
+            searchingStopped = true;
+            return false;
+        }
+
+        // Sin repetir el anterior: se quita de los candidatos salvo que sea el √∫nico posible.
+        if (sequence == EventSequence.AleatorioSinRepetirAnterior && lastEvent != null && candidates.Count > 1)
+            candidates.Remove(lastEvent);
+
+        if (candidates.Count == 0)
+        {
+            Debug.Log("EventManager: ahora mismo no hay ning√∫n evento disponible (todos en marcha o la lista est√° vac√≠a).");
+            if (allEvents.Count == 0) searchingStopped = true;
+            return false;
+        }
+
+        IGameEvent chosen = candidates[Random.Range(0, candidates.Count)];
+        chosen.TriggerEventManually();
+
+        lastEvent = chosen;
+        usedEvents.Add(chosen);
+        eventsTriggered++;
+        Debug.Log($"Evento activado con √©xito: {(chosen as MonoBehaviour)?.name} ({eventsTriggered}/{eventsPerMatch}).");
+
+        if (eventsTriggered >= eventsPerMatch)
+        {
+            Debug.Log("EventManager: alcanzado el m√°ximo de eventos por partida.");
+            searchingStopped = true;
+        }
+        return true;
+    }
+
+    List<IGameEvent> CollectEvents()
+    {
+        List<IGameEvent> events = new List<IGameEvent>();
         foreach (var evtScript in availableEventScripts)
         {
             if (evtScript == null) continue;
 
-            if (evtScript is IGameEvent gameEvent)
-            {
-                if (!gameEvent.HasTriggered)
-                {
-                    validEvents.Add(gameEvent);
-                }
-            }
-            else
+            // Si se arrastra el GameObject a la lista, Unity guarda su primer MonoBehaviour (normalmente el
+            // NetworkObject), no el script del evento: lo buscamos en el mismo objeto.
+            IGameEvent gameEvent = evtScript as IGameEvent ?? evtScript.GetComponent<IGameEvent>();
+            if (gameEvent == null)
             {
                 Debug.LogWarning($"El script {evtScript.name} asignado en el EventManager no implementa IGameEvent.");
+                continue;
             }
+            if (!events.Contains(gameEvent)) events.Add(gameEvent);
         }
-
-        if (validEvents.Count == 0)
-        {
-            Debug.Log("EventManager: No quedan eventos disponibles en la lista o la lista est· vacÌa.");
-            searchingStopped = true;
-            return;
-        }
-
-        int randomIndex = Random.Range(0, validEvents.Count);
-        validEvents[randomIndex].TriggerEventManually();
-
-        eventHasTriggeredGlobal = true;
-        Debug.Log("Evento activado con Èxito");
+        return events;
     }
 }

@@ -17,13 +17,15 @@ Material:
   - _GRADIENTSPACE_WORLD
   - _OUTLINESPACE_SCREEN
   - _TEXTUREBLENDINGMODE_MULTIPLY
-  m_InvalidKeywords:
-  - _UNITYSHADOWMODE_NONE
+  - _UNITYSHADOWMODE_MULTIPLY
+  - _UNITYSHADOW_OCCLUSION
+  m_InvalidKeywords: []
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
-  m_CustomRenderQueue: -1
-  stringTagMap: {}
+  m_CustomRenderQueue: 2000
+  stringTagMap:
+    RenderType: Opaque
   disabledShaderPasses:
   - MOTIONVECTORS
   - Outline
@@ -169,9 +171,9 @@ Material:
     - _Surface: 0
     - _TextureBlendingMode: 0
     - _TextureImpact: 1
-    - _UnityShadowMode: 0
-    - _UnityShadowOcclusion: 0
-    - _UnityShadowPower: 0.2
+    - _UnityShadowMode: 1
+    - _UnityShadowOcclusion: 1
+    - _UnityShadowPower: 0.5
     - _UnityShadowSharpness: 1
     - _VertexColorsEnabled: 0
     - _VertexExtrusionSmoothNormals: 0
@@ -181,7 +183,7 @@ Material:
     m_Colors:
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
-    - _ColorDim: {r: 0.85023, g: 0.85034, b: 0.8504499, a: 0.85056}
+    - _ColorDim: {r: 1, g: 1, b: 1, a: 1}
     - _ColorDimCurve: {r: 0.85023, g: 0.85034, b: 0.8504499, a: 0.85056}
     - _ColorDimExtra: {r: 0.85023, g: 0.85034, b: 0.8504499, a: 0.85056}
     - _ColorDimSteps: {r: 0.85023, g: 0.85034, b: 0.8504499, a: 0.85056}

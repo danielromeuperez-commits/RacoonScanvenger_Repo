@@ -58,6 +58,12 @@ namespace Racoon.Player
         /// <summary>Solo en el dueño. Ha intentado saquear con la bolsa llena.</summary>
         public event Action BagFullRejected;
 
+        /// <summary>
+        /// En todos los clientes: alguien ha saqueado una estantería (quién, si era x2, dónde y cuántos puntos).
+        /// Lo usan los visuales de los eventos (p. ej. el «+20» del x2).
+        /// </summary>
+        public static event Action<PlayerLoot, bool, Vector3, int> AnyLootGrabbed;
+
         public int BankedPoints => bankedPoints.Value;
         public int PendingPoints => pendingPoints.Value;
         public float CarriedWeight => carriedWeight.Value;
@@ -191,17 +197,18 @@ namespace Racoon.Player
         /// Solo servidor. Sonido de haber saqueado un objeto en <paramref name="sourcePosition"/> (la estantería).
         /// Lo oyen todos los clientes.
         /// </summary>
-        public void ServerNotifyLootGrabbed(bool doubled, Vector3 sourcePosition)
+        public void ServerNotifyLootGrabbed(bool doubled, Vector3 sourcePosition, int points = 0)
         {
             if (!IsServer) return;
 
-            LootGrabbedRpc(doubled, sourcePosition);
+            LootGrabbedRpc(doubled, sourcePosition, points);
         }
 
         [Rpc(SendTo.Everyone, InvokePermission = RpcInvokePermission.Server)]
-        void LootGrabbedRpc(bool doubled, Vector3 sourcePosition)
+        void LootGrabbedRpc(bool doubled, Vector3 sourcePosition, int points)
         {
             (doubled && !lootGrabDoubleSfx.IsEmpty ? lootGrabDoubleSfx : lootGrabSfx).Play(sourcePosition);
+            AnyLootGrabbed?.Invoke(this, doubled, sourcePosition, points);
         }
 
         /// <summary>
