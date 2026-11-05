@@ -587,7 +587,9 @@ namespace Racoon.Items
 
             // Anillo: solo mientras espera a reaparecer.
             bool waiting = shown == false && respawnTime > 0f && popRoutine == null;
-            respawnRing.Visible = waiting;
+            // Sin anillo de reaparición (decisión de diseño): la caja simplemente vuelve a salir.
+            respawnRing.Visible = false;
+            waiting = false;
 
             if (waiting)
             {

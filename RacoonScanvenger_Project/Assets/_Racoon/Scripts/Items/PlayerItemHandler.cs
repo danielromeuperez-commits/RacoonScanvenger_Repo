@@ -274,7 +274,8 @@ namespace Racoon.Player
 
         void UpdateAim()
         {
-            bool aiming = controller != null && (controller.IsAimingItem || controller.IsAimingTarget);
+            // Solo al apuntar a mano: el toque rápido (autoapuntado) no enseña arco.
+            bool aiming = controller != null && controller.IsAimingTarget;
             aimHeldTime = aiming ? aimHeldTime + Time.deltaTime : 0f;
             bool show = aiming && aimHeldTime >= aimArrowDelay;
 
