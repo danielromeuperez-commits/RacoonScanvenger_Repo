@@ -70,7 +70,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 0502780ac968b35418a02023b12fabe6, type: 3}
       propertyPath: m_Name
-      value: SM_FruitStand
+      value: PF_SM_FruitStand
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 0502780ac968b35418a02023b12fabe6, type: 3}
       propertyPath: m_StaticEditorFlags
@@ -90,14 +90,14 @@ PrefabInstance:
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 0502780ac968b35418a02023b12fabe6, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 3735616722331689119}
+      addedObject: {fileID: 961091258040691349}
   m_SourcePrefab: {fileID: 100100000, guid: 0502780ac968b35418a02023b12fabe6, type: 3}
 --- !u!1 &2981409924158900164 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 0502780ac968b35418a02023b12fabe6, type: 3}
   m_PrefabInstance: {fileID: 2711573066032216725}
   m_PrefabAsset: {fileID: 0}
---- !u!65 &3735616722331689119
+--- !u!65 &961091258040691349
 BoxCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -116,5 +116,5 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.012912168, y: 0.012805493, z: 0.011236769}
-  m_Center: {x: 0.0062311282, y: -0.006239449, z: 0.0056181406}
+  m_Size: {x: 1.2494135, y: 1.1026524, z: 1.2527878}
+  m_Center: {x: 0.6268563, y: 0.5539541, z: 0.62522453}

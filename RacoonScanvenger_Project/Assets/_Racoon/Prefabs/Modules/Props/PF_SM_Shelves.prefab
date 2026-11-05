@@ -279,7 +279,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3453257572856900914}
-  - component: {fileID: 1237734502292487005}
+  - component: {fileID: 8875733068625356194}
   m_Layer: 0
   m_Name: PF_SM_Shelves
   m_TagString: Untagged
@@ -312,7 +312,7 @@ Transform:
   - {fileID: 583689188588889650}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!65 &1237734502292487005
+--- !u!65 &8875733068625356194
 BoxCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -331,8 +331,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.005547597, y: 0.010115592, z: 0.02042609}
-  m_Center: {x: -0.002542684, y: -0.004943843, z: 0.010065381}
+  m_Size: {x: 0.5137696, y: 2.0023303, z: 1.0113277}
+  m_Center: {x: -0.2433269, y: 1.0097668, z: 0.49652767}
 --- !u!1 &4237460984285092208
 GameObject:
   m_ObjectHideFlags: 0

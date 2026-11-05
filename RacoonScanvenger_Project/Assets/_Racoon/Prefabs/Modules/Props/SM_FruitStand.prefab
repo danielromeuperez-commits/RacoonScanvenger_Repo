@@ -639,7 +639,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6313859097964225115}
-  - component: {fileID: 1380620410325167722}
+  - component: {fileID: 480448698420046597}
   m_Layer: 0
   m_Name: SM_FruitStand
   m_TagString: Untagged
@@ -670,7 +670,7 @@ Transform:
   - {fileID: 1916825907917217723}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 180, z: 0}
---- !u!65 &1380620410325167722
+--- !u!65 &480448698420046597
 BoxCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -689,8 +689,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.012912168, y: 0.012805493, z: 0.011236769}
-  m_Center: {x: 0.0062311282, y: -0.006239449, z: 0.0056181406}
+  m_Size: {x: 1.2447634, y: 1.1070383, z: 1.2635477}
+  m_Center: {x: 0.6263089, y: 0.5516536, z: 0.62122}
 --- !u!1 &8229236227358477652
 GameObject:
   m_ObjectHideFlags: 0

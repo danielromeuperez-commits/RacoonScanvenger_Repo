@@ -8879,8 +8879,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.65, y: 1, z: 2.9}
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Size: {x: 0.9856136, y: 2.0112605, z: 5.0066032}
+  m_Center: {x: -0.31210792, y: 0.009479046, z: 0.0955863}
 --- !u!114 &952598069
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -8893,7 +8893,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2539b1eb63f315a46a89f343c6f06cdb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LootPoint
-  pointsPerItem: 10
+  pointsPerItem: 2
   weightPerItem: 5
   minItems: 4
   maxItems: 7
@@ -14842,8 +14842,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.65, y: 1, z: 2.9}
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Size: {x: 0.9857374, y: 2.0112605, z: 5.0066032}
+  m_Center: {x: -0.48282334, y: 0.009479046, z: 0.0955863}
 --- !u!114 &1580186167
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -14856,13 +14856,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2539b1eb63f315a46a89f343c6f06cdb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LootPoint
-  pointsPerItem: 10
+  pointsPerItem: 5
   weightPerItem: 5
   minItems: 4
   maxItems: 7
   respawnTime: 1
   maxDoublePointsCollections: 10
-  normalCooldown: 0
+  normalCooldown: 0.2
   doublePointsCooldown: 2
 --- !u!1001 &1580344792
 PrefabInstance:
@@ -18618,8 +18618,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.65, y: 1, z: 2.9}
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Size: {x: 0.98464656, y: 2.0112605, z: 5.0066032}
+  m_Center: {x: -0.6078688, y: 0.009479046, z: 0.0955863}
 --- !u!114 &2028382471
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -18632,13 +18632,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2539b1eb63f315a46a89f343c6f06cdb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LootPoint
-  pointsPerItem: 10
+  pointsPerItem: 20
   weightPerItem: 5
   minItems: 4
   maxItems: 7
   respawnTime: 1
   maxDoublePointsCollections: 10
-  normalCooldown: 0
+  normalCooldown: 0.5
   doublePointsCooldown: 2
 --- !u!4 &2028382472
 Transform:
