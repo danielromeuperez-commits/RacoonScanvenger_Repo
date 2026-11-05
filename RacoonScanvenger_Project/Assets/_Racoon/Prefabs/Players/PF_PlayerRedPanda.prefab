@@ -652,7 +652,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 3468908988
+  GlobalObjectIdHash: 3183137445
   InScenePlacedSourceGlobalObjectIdHash: 0
   m_InScenePlacedDisabledByDefault: 0
   DeferredDespawnTick: 0
@@ -760,11 +760,9 @@ MonoBehaviour:
   punchChargeTime: 2
   chargedKnockbackMultiplier: 1
   chargedPunchExtraStaminaCost: 0.15
-  chargeMoveMultiplier: 0.5
-  aimMoveMultiplier: 0.6
-  dropBehindAngle: 120
-  aimTargetSpeed: 7
+  manualAimDelay: 0.18
   aimTargetStartDistance: 4
+  aimTargetMinDistance: 1.3
   hitsForHeavy: 3
   comboResetTime: 10
   lightHit:
@@ -776,9 +774,9 @@ MonoBehaviour:
   heavyHit:
     knockbackMultiplier: 1.8
     upwardVelocity: 4
-    stunDuration: 5
+    stunDuration: 1.4
     invulnerableWhileStunned: 1
-    recoveryInvulnerability: 15
+    recoveryInvulnerability: 6
   dashSpeed: 14
   dashDuration: 0.25
   dashSpeedCurve:
@@ -1069,8 +1067,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Racoon.Player.PlayerLoot
   ShowTopMostFoldoutHeaderGroup: 1
-  bagCapacity: 100
-  fullWeightPoints: 80
+  bagCapacity: 200
+  fullWeightPoints: 150
   bagFullNoticeInterval: 0.6
   droppedLootPrefab: {fileID: 1293847561029384712, guid: 4c8b917fba4e41f0b989918777e76e4c, type: 3}
   heavyHitDropFraction: 0.3

@@ -119,6 +119,8 @@ namespace Racoon.Player
         [SerializeField, Min(0f)] float aimTargetStartDistance = 4f;
         [Tooltip("Lo más cerca que puede quedar el punto de caída al apuntar a mano (metros).")]
         [SerializeField, Min(0f)] float aimTargetMinDistance = 1.3f;
+        [Tooltip("Mando: metros por segundo a los que el stick derecho mueve el punto de caída (bajo = más control).")]
+        [SerializeField, Min(0.1f)] float aimStickSpeed = 4f;
 
         /// <summary>Cómo reacciona el jugador a un tipo de golpe.</summary>
         [Serializable]
@@ -435,6 +437,14 @@ namespace Racoon.Player
         // Solo para gizmos: último golpe recibido (todos los clientes).
         int debugComboHits;
         float debugLastHitTime = float.NegativeInfinity;
+
+        // Velocidad vista desde esta máquina (también en rivales, cuyo Rigidbody es kinematic): para el autoapuntado.
+        Vector3 observedPosition;
+        Vector3 observedVelocity;
+        bool hasObservedPosition;
+
+        /// <summary>Velocidad horizontal suavizada, medida por el movimiento del transform. Vale en todos los clientes.</summary>
+        public Vector3 ObservedVelocity => observedVelocity;
 
         bool IsInAction => actionTimer > 0f;
         // Solo en el dueño (el estado lo escribe él, así que su copia siempre está al día).
@@ -781,6 +791,20 @@ namespace Racoon.Player
         // Botón de objeto: un toque lanza con autoapuntado al rival más cercano dentro del alcance (si no hay,
         // hacia delante). Mantenido pasa a apuntar a mano (ratón o stick derecho) y el autoapuntado se pierde.
         // Apuntar no gasta nada y no frena: se puede andar mientras.
+        void LateUpdate()
+        {
+            Vector3 position = transform.position;
+            float dt = Time.deltaTime;
+            if (hasObservedPosition && dt > 0f)
+            {
+                Vector3 velocity = Vector3.ProjectOnPlane((position - observedPosition) / dt, Vector3.up);
+                // Suavizado corto: quita el ruido de la interpolación de red sin ir muy por detrás.
+                observedVelocity = Vector3.Lerp(observedVelocity, velocity, 1f - Mathf.Exp(-20f * dt));
+            }
+            observedPosition = position;
+            hasObservedPosition = true;
+        }
+
         void UpdateItemAim(float dt)
         {
             if (!aimingItem) return;
@@ -805,13 +829,13 @@ namespace Racoon.Player
                     aimTargetOffset = Vector3.ProjectOnPlane(transform.forward, Vector3.up).normalized *
                                       Mathf.Min(aimTargetStartDistance, aimTargetRange);
                 }
-                if (aimingTarget) UpdateManualAimPoint();
+                if (aimingTarget) UpdateManualAimPoint(dt);
                 return;
             }
 
             bool hasTarget = aimingTarget;
             Vector3 target = AimTarget;
-            if (!hasTarget && aimTargetRange > 0f && TryFindAutoAimTarget(aimTargetRange, out Vector3 autoTarget))
+            if (!hasTarget && aimTargetRange > 0f && TryFindAutoAimTarget(equipped, aimTargetRange, out Vector3 autoTarget))
             {
                 hasTarget = true;
                 target = autoTarget;
@@ -825,7 +849,7 @@ namespace Racoon.Player
         }
 
         // Ratón: el punto bajo el cursor (en el plano de los pies). Mando: el stick derecho marca dirección y distancia.
-        void UpdateManualAimPoint()
+        void UpdateManualAimPoint(float dt)
         {
             Vector3 offset = aimTargetOffset;
 
@@ -842,10 +866,10 @@ namespace Racoon.Player
             }
             else
             {
+                // El stick mueve el punto poco a poco (no lo coloca donde apunta): más control.
                 Vector2 stick = input.AimStick;
                 if (stick.sqrMagnitude > moveDeadzone * moveDeadzone)
-                    offset = GetCameraRelativeDirection(stick.normalized) *
-                             Mathf.Lerp(aimTargetMinDistance, aimTargetRange, Mathf.Clamp01(stick.magnitude));
+                    offset += GetCameraRelativeDirection(stick) * (aimStickSpeed * dt);
             }
 
             float distance = offset.magnitude;
@@ -853,12 +877,12 @@ namespace Racoon.Player
             aimTargetOffset = offset / distance * Mathf.Clamp(distance, Mathf.Min(aimTargetMinDistance, aimTargetRange), aimTargetRange);
         }
 
-        // Rival más cercano dentro del alcance (en horizontal).
-        bool TryFindAutoAimTarget(float range, out Vector3 target)
+        // Rival más cercano dentro del alcance (en horizontal), adelantándose a donde estará cuando caiga el objeto.
+        bool TryFindAutoAimTarget(ItemData item, float range, out Vector3 target)
         {
             target = default;
             float best = range * range;
-            bool found = false;
+            PlayerController victim = null;
 
             foreach (PlayerController other in FindObjectsByType<PlayerController>(FindObjectsSortMode.None))
             {
@@ -867,11 +891,25 @@ namespace Racoon.Player
                 float sqr = offset.sqrMagnitude;
                 if (sqr > best) continue;
                 best = sqr;
-                target = other.transform.position;
-                found = true;
+                victim = other;
             }
 
-            return found;
+            if (victim == null) return false;
+
+            // Intercepción: el tiempo de vuelo depende de la distancia y la distancia del tiempo; converge en pocas vueltas.
+            Vector3 start = victim.transform.position;
+            Vector3 velocity = victim.ObservedVelocity;
+            target = start;
+            if (item != null && item.Effect != null && velocity.sqrMagnitude > 0.01f)
+            {
+                for (int i = 0; i < 6; i++)
+                {
+                    if (!item.Effect.TryGetFlightTime(this, target, out float flightTime)) break;
+                    target = start + velocity * flightTime;
+                }
+            }
+
+            return true;
         }
 
         void UpdateInvulnerability()
@@ -1086,12 +1124,13 @@ namespace Racoon.Player
 
         void StartAction(PlayerState action, float duration, bool chargedPunch = false)
         {
+            // Antes de replicar: si un suscriptor de StateChanged falla, la acción no se pierde.
+            actionTimer = duration;
             NetState value = netState.Value;
             value.State = action;
             value.ActionSequence++;
             value.ChargedPunch = chargedPunch;
             netState.Value = value;
-            actionTimer = duration;
         }
 
         /// <summary>Solo el dueño. Útil para respawns (el spawn inicial lo hace el servidor en la aprobación).</summary>

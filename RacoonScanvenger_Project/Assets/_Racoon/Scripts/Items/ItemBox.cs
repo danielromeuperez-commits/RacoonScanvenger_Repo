@@ -264,6 +264,18 @@ namespace Racoon.Items
             // Si no hay objetos configurados, no hacemos nada.
             ItemData item = GetRandomItem(player);
 
+            // Ya lleva todos los objetos posibles (no se repiten): como con el inventario lleno.
+            if (item == null && HasAnyItem())
+            {
+                if (Time.time - lastInventoryFullTime >= InventoryFullCooldown)
+                {
+                    lastInventoryFullTime = Time.time;
+                    InventoryFullRpc(player.NetworkObjectId);
+                }
+
+                return;
+            }
+
             if (item == null)
             {
                 Debug.LogWarning(
@@ -297,6 +309,15 @@ namespace Racoon.Items
 
         // Elige con peso según la posición en puntos: cada objeto pesa entre boxWeightLeader (va primero)
         // y boxWeightLast (va último). Con todo a 1 es al azar puro.
+        bool HasAnyItem()
+        {
+            if (possibleItems == null) return false;
+            foreach (ItemData item in possibleItems)
+                if (item != null) return true;
+            return false;
+        }
+
+        // Sin repetidos: no salen los objetos que el jugador ya lleva.
         ItemData GetRandomItem(PlayerController player)
         {
             if (possibleItems == null || possibleItems.Length == 0)
@@ -304,10 +325,11 @@ namespace Racoon.Items
 
             float position = PositionFromLeader(player);
             float total = 0f;
+            PlayerInventory inventory = player.Inventory;
 
             foreach (ItemData item in possibleItems)
             {
-                if (item != null)
+                if (item != null && !inventory.Contains(item))
                     total += item.BoxWeight(position);
             }
 
@@ -318,7 +340,7 @@ namespace Racoon.Items
 
             foreach (ItemData item in possibleItems)
             {
-                if (item == null)
+                if (item == null || inventory.Contains(item))
                     continue;
 
                 pick -= item.BoxWeight(position);
@@ -330,7 +352,7 @@ namespace Racoon.Items
             // Por redondeo: el último válido.
             for (int i = possibleItems.Length - 1; i >= 0; i--)
             {
-                if (possibleItems[i] != null)
+                if (possibleItems[i] != null && !inventory.Contains(possibleItems[i]))
                     return possibleItems[i];
             }
 
