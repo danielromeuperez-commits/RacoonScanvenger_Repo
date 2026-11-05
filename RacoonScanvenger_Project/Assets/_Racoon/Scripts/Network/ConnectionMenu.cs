@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using UnityEngine.InputSystem;
 
 /// <summary>
 /// Menú de conexión y selección de personaje.
@@ -135,6 +136,14 @@ public class ConnectionMenu : MonoBehaviour
     // no se repite en la página nueva.
     string dismissedStatus;
 
+    [Header("Navegación")]
+    [Tooltip("Cuánto hay que mover el stick para activar la navegación con mando.")]
+    [SerializeField, Range(0.1f, 1f)] float gamepadDeadzone = 0.35f;
+
+    CanvasGroup menuCanvasGroup;
+
+    bool navigationMode;
+
     // ============================================================
     // INICIO
     // ============================================================
@@ -163,22 +172,301 @@ public class ConnectionMenu : MonoBehaviour
         // Ocultamos los textos de espera al empezar.
         SetLocalWaitingUI(false);
 
+        // Preparamos el CanvasGroup que nos permitirá
+        // bloquear el ratón mientras usamos mando.
+        SetupNavigationCanvasGroup();
+
         Refresh();
+
+        // Al entrar empezamos en modo ratón.
+        SetMouseMode();
     }
 
     void Update()
     {
         Refresh();
+
+        HandleInputMode();
+
+        HandleBackInput();
+    }
+
+    void LateUpdate()
+    {
+        // Mientras utilizamos ratón, ningún botón
+        // debe quedarse seleccionado por el EventSystem.
+        if (!navigationMode &&
+            EventSystem.current != null &&
+            EventSystem.current.currentSelectedGameObject != null)
+        {
+            EventSystem.current.SetSelectedGameObject(null);
+        }
+    }
+
+    // ============================================================
+    // NAVEGACIÓN RATÓN / TECLADO / MANDO
+    // ============================================================
+
+    void SetupNavigationCanvasGroup()
+    {
+        GameObject menuRoot =
+            connectionMenu != null
+                ? connectionMenu
+                : gameObject;
+
+        menuCanvasGroup =
+            menuRoot.GetComponent<CanvasGroup>();
+
+        // Si no existe, lo creamos automáticamente.
+        if (menuCanvasGroup == null)
+        {
+            menuCanvasGroup =
+                menuRoot.AddComponent<CanvasGroup>();
+        }
+
+        menuCanvasGroup.alpha = 1f;
+        menuCanvasGroup.interactable = true;
+        menuCanvasGroup.blocksRaycasts = true;
+    }
+
+    void HandleInputMode()
+    {
+        // ========================================================
+        // RATÓN
+        // ========================================================
+
+        if (MouseUsedThisFrame())
+        {
+            SetMouseMode();
+            return;
+        }
+
+        // ========================================================
+        // MANDO
+        // ========================================================
+
+        if (GamepadUsedThisFrame())
+        {
+            SetNavigationMode();
+            return;
+        }
+
+        // ========================================================
+        // TECLADO
+        // ========================================================
+
+        if (KeyboardNavigationUsedThisFrame())
+        {
+            SetNavigationMode();
+        }
+    }
+
+    bool MouseUsedThisFrame()
+    {
+        if (Mouse.current == null)
+            return false;
+
+        bool moved =
+            Mouse.current.delta.ReadValue().sqrMagnitude >
+            0.01f;
+
+        bool clicked =
+            Mouse.current.leftButton.wasPressedThisFrame ||
+            Mouse.current.rightButton.wasPressedThisFrame ||
+            Mouse.current.middleButton.wasPressedThisFrame;
+
+        bool scrolled =
+            Mouse.current.scroll.ReadValue().sqrMagnitude >
+            0.01f;
+
+        return
+            moved ||
+            clicked ||
+            scrolled;
+    }
+
+    bool GamepadUsedThisFrame()
+    {
+        if (Gamepad.current == null)
+            return false;
+
+        Vector2 leftStick =
+            Gamepad.current.leftStick.ReadValue();
+
+        Vector2 dpad =
+            Gamepad.current.dpad.ReadValue();
+
+        bool stickMoved =
+            leftStick.sqrMagnitude >
+            gamepadDeadzone * gamepadDeadzone;
+
+        bool dpadMoved =
+            dpad.sqrMagnitude > 0.01f;
+
+        bool buttonPressed =
+            Gamepad.current.buttonSouth.wasPressedThisFrame ||
+            Gamepad.current.buttonEast.wasPressedThisFrame;
+
+        return
+            stickMoved ||
+            dpadMoved ||
+            buttonPressed;
+    }
+
+    bool KeyboardNavigationUsedThisFrame()
+    {
+        if (Keyboard.current == null)
+            return false;
+
+        return
+            Keyboard.current.upArrowKey.wasPressedThisFrame ||
+            Keyboard.current.downArrowKey.wasPressedThisFrame ||
+            Keyboard.current.leftArrowKey.wasPressedThisFrame ||
+            Keyboard.current.rightArrowKey.wasPressedThisFrame ||
+
+            Keyboard.current.wKey.wasPressedThisFrame ||
+            Keyboard.current.aKey.wasPressedThisFrame ||
+            Keyboard.current.sKey.wasPressedThisFrame ||
+            Keyboard.current.dKey.wasPressedThisFrame ||
+
+            Keyboard.current.enterKey.wasPressedThisFrame ||
+            Keyboard.current.spaceKey.wasPressedThisFrame ||
+            Keyboard.current.tabKey.wasPressedThisFrame;
+    }
+
+    void SetMouseMode()
+    {
+        navigationMode = false;
+
+        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.None;
+
+        // El ratón vuelve a poder hacer hover y click.
+        if (menuCanvasGroup != null)
+        {
+            menuCanvasGroup.blocksRaycasts = true;
+        }
+
+        // Quitamos la selección del mando.
+        if (EventSystem.current != null)
+        {
+            EventSystem.current.SetSelectedGameObject(null);
+        }
+    }
+
+    void SetNavigationMode()
+    {
+        navigationMode = true;
+
+        // Ocultamos el cursor.
+        Cursor.visible = false;
+        Cursor.lockState = CursorLockMode.None;
+
+        // El ratón deja de poder hacer hover/click.
+        // La navegación con mando sigue funcionando.
+        if (menuCanvasGroup != null)
+        {
+            menuCanvasGroup.blocksRaycasts = false;
+        }
+
+        if (EventSystem.current == null)
+            return;
+
+        // Si ya existe un botón seleccionado,
+        // mantenemos la navegación actual.
+        if (EventSystem.current.currentSelectedGameObject != null)
+            return;
+
+        // Seleccionamos el primer botón del panel
+        // que se está viendo actualmente.
+        GameObject currentPanel =
+            shownPanel != null
+                ? shownPanel
+                : modeSelectionPanel;
+
+        SelectFirstButton(currentPanel);
+    }
+
+    // ============================================================
+    // VOLVER ATRÁS CON B / ESCAPE
+    // ============================================================
+
+    void HandleBackInput()
+    {
+        bool keyboardBack =
+            Keyboard.current != null &&
+            Keyboard.current.escapeKey.wasPressedThisFrame;
+
+        bool controllerBack =
+            Gamepad.current != null &&
+            Gamepad.current.buttonEast.wasPressedThisFrame;
+
+        // Escape en teclado o B en mando Xbox.
+        if (!keyboardBack &&
+            !controllerBack)
+        {
+            return;
+        }
+
+        // Cuando ya estamos jugando,
+        // ConnectionMenu no gestiona B/Escape.
+        if (gameplayStarted)
+            return;
+
+        NetworkManager manager =
+            NetworkManager.Singleton;
+
+        CharacterLobbyManager lobby =
+            Lobby;
+
+        bool listening =
+            manager != null &&
+            manager.IsListening;
+
+        bool selecting =
+            listening &&
+            lobby != null &&
+            lobby.IsSpawned &&
+            lobby.CharacterSelectionActive;
+
+        if (selecting)
+        {
+            // Conservamos si veníamos de Local u Online
+            // para cerrar correctamente la conexión.
+            if (page == Page.Online)
+            {
+                ReturnFromOnline();
+            }
+            else
+            {
+                ReturnFromLocal();
+            }
+
+            return;
+        }
+
+        if (page == Page.Local)
+        {
+            ReturnFromLocal();
+            return;
+        }
+
+        if (page == Page.Online)
+        {
+            ReturnFromOnline();
+            return;
+        }
+
+        if (page == Page.Mode)
+        {
+            BackToMainMenu();
+        }
     }
 
     CharacterLobbyManager Lobby =>
         characterLobbyManager != null
             ? characterLobbyManager
             : CharacterLobbyManager.Current;
-
-    // ============================================================
-    // NAVEGACIÓN (botones)
-    // ============================================================
 
     public void OpenMainSelection()
     {
@@ -494,19 +782,39 @@ public class ConnectionMenu : MonoBehaviour
             // la espera se queda dentro del panel
             // Local u Online correspondiente.
 
-            target =
-                waiting &&
-                waitingPanel == null
-                    ? (
+            if (waiting &&
+    waitingPanel == null)
+            {
+                // Mientras se está cerrando una conexión,
+                // mantenemos visible el panel del que veníamos.
+                //
+                // Así evitamos que Online pase temporalmente
+                // por Local mientras Relay termina de cerrarse.
+                if (shownPanel == onlinePanel)
+                {
+                    target = onlinePanel;
+                }
+                else if (shownPanel == localPanel)
+                {
+                    target = localPanel;
+                }
+                else
+                {
+                    target =
                         page == Page.Online
                             ? onlinePanel
-                            : localPanel
-                      )
-                    : page == Page.Local
+                            : localPanel;
+                }
+            }
+            else
+            {
+                target =
+                    page == Page.Local
                         ? localPanel
                         : page == Page.Online
                             ? onlinePanel
                             : modeSelectionPanel;
+            }
         }
 
         ShowOnly(target);
