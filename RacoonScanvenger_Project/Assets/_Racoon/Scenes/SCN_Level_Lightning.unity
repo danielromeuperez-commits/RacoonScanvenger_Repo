@@ -3332,6 +3332,10 @@ PrefabInstance:
       propertyPath: autoStart
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 1801710388523901476, guid: 75f4a93bc44f4bf47a48de458577d515, type: 3}
+      propertyPath: matchDuration
+      value: 240
+      objectReference: {fileID: 0}
     - target: {fileID: 5078787472057169058, guid: 75f4a93bc44f4bf47a48de458577d515, type: 3}
       propertyPath: m_InScenePlaced
       value: 1
@@ -3925,6 +3929,18 @@ PrefabInstance:
       propertyPath: GlobalObjectIdHash
       value: 3449933280
       objectReference: {fileID: 0}
+    - target: {fileID: 6104069040340872997, guid: e185b00cef693244b8e59f86c8dbb52d, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -3.658
+      objectReference: {fileID: 0}
+    - target: {fileID: 6104069040340872997, guid: e185b00cef693244b8e59f86c8dbb52d, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.354
+      objectReference: {fileID: 0}
+    - target: {fileID: 6104069040340872997, guid: e185b00cef693244b8e59f86c8dbb52d, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 4.86
+      objectReference: {fileID: 0}
     - target: {fileID: 6260103628168877547, guid: e185b00cef693244b8e59f86c8dbb52d, type: 3}
       propertyPath: m_InScenePlaced
       value: 1
@@ -3949,6 +3965,18 @@ PrefabInstance:
       propertyPath: m_LocalPosition.z
       value: 3
       objectReference: {fileID: 0}
+    - target: {fileID: 8416453354013684392, guid: e185b00cef693244b8e59f86c8dbb52d, type: 3}
+      propertyPath: segundos
+      value: 120
+      objectReference: {fileID: 0}
+    - target: {fileID: 8416453354013684392, guid: e185b00cef693244b8e59f86c8dbb52d, type: 3}
+      propertyPath: prefabs.Array.size
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 8416453354013684392, guid: e185b00cef693244b8e59f86c8dbb52d, type: 3}
+      propertyPath: 'prefabs.Array.data[1]'
+      value: 
+      objectReference: {fileID: 5220392856531122104, guid: ee689aad5e9f25b42a8ef910f73200f5, type: 3}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -15983,27 +16011,31 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 2078652030045823054, guid: d27ad4ba62c69d749bd3494e167d84c0, type: 3}
       propertyPath: sequence
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 2078652030045823054, guid: d27ad4ba62c69d749bd3494e167d84c0, type: 3}
-      propertyPath: initialDelay
       value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 2078652030045823054, guid: d27ad4ba62c69d749bd3494e167d84c0, type: 3}
+      propertyPath: initialDelay
+      value: 30
+      objectReference: {fileID: 0}
+    - target: {fileID: 2078652030045823054, guid: d27ad4ba62c69d749bd3494e167d84c0, type: 3}
+      propertyPath: maxTimeLimit
+      value: 210
+      objectReference: {fileID: 0}
+    - target: {fileID: 2078652030045823054, guid: d27ad4ba62c69d749bd3494e167d84c0, type: 3}
       propertyPath: checkInterval
-      value: 3
+      value: 15
       objectReference: {fileID: 0}
     - target: {fileID: 2078652030045823054, guid: d27ad4ba62c69d749bd3494e167d84c0, type: 3}
       propertyPath: eventsPerMatch
-      value: 3
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 2078652030045823054, guid: d27ad4ba62c69d749bd3494e167d84c0, type: 3}
       propertyPath: eventProbability
-      value: 0.33
+      value: 0.2
       objectReference: {fileID: 0}
     - target: {fileID: 2078652030045823054, guid: d27ad4ba62c69d749bd3494e167d84c0, type: 3}
       propertyPath: availableEventScripts.Array.size
-      value: 4
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 2078652030045823054, guid: d27ad4ba62c69d749bd3494e167d84c0, type: 3}
       propertyPath: 'availableEventScripts.Array.data[0]'
