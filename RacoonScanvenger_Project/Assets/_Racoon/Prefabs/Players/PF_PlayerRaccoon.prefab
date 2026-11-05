@@ -1010,6 +1010,8 @@ MonoBehaviour:
   chargeMoveMultiplier: 0.5
   aimMoveMultiplier: 0.6
   dropBehindAngle: 120
+  aimTargetSpeed: 7
+  aimTargetStartDistance: 4
   hitsForHeavy: 3
   comboResetTime: 1.5
   lightHit:
@@ -2240,11 +2242,11 @@ PrefabInstance:
     - target: {fileID: -11820259134055355, guid: d8b1305a1f1b9da4caeb1d3cceaa53c7, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
-      objectReference: {fileID: 2100000, guid: f57de837bf33b7e419ea658fc8e1cd70, type: 2}
+      objectReference: {fileID: 2100000, guid: 26708e3498874bf9920b6eeb3e66fda8, type: 2}
     - target: {fileID: -11820259134055355, guid: d8b1305a1f1b9da4caeb1d3cceaa53c7, type: 3}
       propertyPath: 'm_Materials.Array.data[1]'
       value: 
-      objectReference: {fileID: 2100000, guid: 26708e3498874bf9920b6eeb3e66fda8, type: 2}
+      objectReference: {fileID: 2100000, guid: 28c8f4d42ededd24086a682a30c9d541, type: 2}
     - target: {fileID: 336543876944929190, guid: d8b1305a1f1b9da4caeb1d3cceaa53c7, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
       value: -45.002
