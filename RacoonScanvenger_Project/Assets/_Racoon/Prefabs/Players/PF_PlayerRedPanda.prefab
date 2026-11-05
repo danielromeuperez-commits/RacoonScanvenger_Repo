@@ -86,7 +86,7 @@ Transform:
   m_GameObject: {fileID: 1271328000957281394}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.82, z: 0.36}
+  m_LocalPosition: {x: 0, y: 0.483, z: 0.257}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -315,10 +315,10 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 0.39838994
-  m_Height: 0.94516283
+  m_Radius: 0.5
+  m_Height: 1.31
   m_Direction: 1
-  m_Center: {x: 0.0016128421, y: 0.38386008, z: 0}
+  m_Center: {x: 0.0016128421, y: 0.44, z: 0}
 --- !u!1 &2845768556135604907
 GameObject:
   m_ObjectHideFlags: 0
@@ -712,7 +712,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Racoon.Player.PlayerController
   ShowTopMostFoldoutHeaderGroup: 1
-  walkSpeed: 3.5
+  walkSpeed: 4.2
   runSpeed: 6.5
   groundAcceleration: 16
   groundDeceleration: 24
@@ -724,59 +724,61 @@ MonoBehaviour:
   extraGravity: 10
   moveDeadzone: 0.15
   actionMoveMultiplier: 0.3
-  maxStamina: 100
+  maxStamina: 200
   staminaDrainPerSecond: 30
   staminaRegenPerSecond: 20
-  staminaRegenDelay: 0.75
-  exhaustedRecoverThreshold: 0.3
-  fullBagSpeedMultiplier: 0.75
-  fullBagDashMultiplier: 0.75
+  staminaRegenDelay: 0.5
+  exhaustedRecoverThreshold: 0.25
+  fullBagSpeedMultiplier: 0.55
+  fullBagDashMultiplier: 0.4
   fullBagStaminaCostMultiplier: 1.5
   interactDuration: 0.4
   switchItemDuration: 0.25
   punchDuration: 0.45
   useItemDuration: 0.5
-  frontInteractRange: 0.8
-  frontInteractRadius: 0.55
+  frontInteractRange: 0.5
+  frontInteractRadius: 0.69
   interactMask:
     serializedVersion: 2
     m_Bits: 64
-  interactRepeatInterval: 0.25
+  interactRepeatInterval: 0.2
   hitCollider: {fileID: 1915715330208840307}
-  punchHitDelay: 0.15
-  punchRange: 0.9
-  punchHeight: 0
-  punchRadius: 0.6
+  punchHitDelay: 0
+  punchRange: 0.5
+  punchHeight: 0.38
+  punchRadius: 0.75
   punchKnockback: 8
   knockbackDamping: 6
-  punchCooldown: 0.2
+  punchCooldown: 0.05
   hitValidationTolerance: 1.5
   hitMask:
     serializedVersion: 2
     m_Bits: 384
   punchStaminaCost: 0.1
-  punchMoveMultiplier: 0.9
+  punchMoveMultiplier: 1
   chargeThreshold: 0.2
-  punchChargeTime: 3
+  punchChargeTime: 2
   chargedKnockbackMultiplier: 1
   chargedPunchExtraStaminaCost: 0.15
   chargeMoveMultiplier: 0.5
   aimMoveMultiplier: 0.6
   dropBehindAngle: 120
+  aimTargetSpeed: 7
+  aimTargetStartDistance: 4
   hitsForHeavy: 3
-  comboResetTime: 1.5
+  comboResetTime: 10
   lightHit:
     knockbackMultiplier: 0.6
     upwardVelocity: 0
-    stunDuration: 0.45
+    stunDuration: 0.25
     invulnerableWhileStunned: 0
     recoveryInvulnerability: 0
   heavyHit:
     knockbackMultiplier: 1.8
     upwardVelocity: 4
-    stunDuration: 1
+    stunDuration: 5
     invulnerableWhileStunned: 1
-    recoveryInvulnerability: 0.8
+    recoveryInvulnerability: 15
   dashSpeed: 14
   dashDuration: 0.25
   dashSpeedCurve:
@@ -804,7 +806,7 @@ MonoBehaviour:
     m_PostInfinity: 2
     m_RotationOrder: 4
   dashCooldown: 0.35
-  dashStaminaCostFraction: 0.33
+  dashStaminaCostFraction: 0.2
   invincibilityStart: 0
   invincibilityDuration: 0.2
   drawRuntimeGizmos: 1
@@ -815,7 +817,7 @@ MonoBehaviour:
   itemRecoveryDecayPerSecond: 0.5
   itemRecoveryJumpVelocity: 3
   recoveryDashLock: 0.4
-  slipMomentumMultiplier: 1.2
+  slipMomentumMultiplier: 1.4
   slipMinSpeed: 3
   slipDamping: 2.5
   slipDuration: 0.6
@@ -1284,7 +1286,7 @@ MonoBehaviour:
   dustParticles: {fileID: 0}
   dustMaterial: {fileID: 2100000, guid: e2f4a6b8c0d24f6e8a1b3c5d7e9f0a56, type: 2}
   dustMesh: {fileID: 0}
-  smokeColor: {r: 0.47843137, g: 0.13333334, b: 0.17572565, a: 1}
+  smokeColor: {r: 0.83137256, g: 0.8509804, b: 0.9019608, a: 1}
   dustCount: {x: 1, y: 4}
   dustSize: {x: 0.18, y: 0.32}
   dustSpeed: {x: 0.4, y: 1.2}
@@ -1301,7 +1303,7 @@ MonoBehaviour:
   dashTrailSize: 0.9
   wisps: 1
   wispMaterial: {fileID: 0}
-  wispColor: {r: 0.83137256, g: 0.45784822, b: 0.43529412, a: 1}
+  wispColor: {r: 0.83137256, g: 0.8509804, b: 0.9019608, a: 1}
   dashWispCount: 3
   skidWispCount: 2
   wispSpeed: {x: 3, y: 5}
@@ -1882,7 +1884,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4740964242122882613, guid: fe14c9d6220a9224fbe7b7ecf9708898, type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5078413208416302845, guid: fe14c9d6220a9224fbe7b7ecf9708898, type: 3}
       propertyPath: m_IsActive
