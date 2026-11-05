@@ -13120,10 +13120,34 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: -5964838864221697887, guid: 219bdceb6d3992941bc9a83eba8afbb3, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 223985d6a2648e14bbd3409834e6ac5b, type: 2}
+    - target: {fileID: -5244195063630760456, guid: 219bdceb6d3992941bc9a83eba8afbb3, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 223985d6a2648e14bbd3409834e6ac5b, type: 2}
+    - target: {fileID: 845826043243115683, guid: 219bdceb6d3992941bc9a83eba8afbb3, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 223985d6a2648e14bbd3409834e6ac5b, type: 2}
     - target: {fileID: 919132149155446097, guid: 219bdceb6d3992941bc9a83eba8afbb3, type: 3}
       propertyPath: m_Name
       value: SM_Bakery
       objectReference: {fileID: 0}
+    - target: {fileID: 3388032051453978487, guid: 219bdceb6d3992941bc9a83eba8afbb3, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 223985d6a2648e14bbd3409834e6ac5b, type: 2}
+    - target: {fileID: 3416647289793868858, guid: 219bdceb6d3992941bc9a83eba8afbb3, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 223985d6a2648e14bbd3409834e6ac5b, type: 2}
+    - target: {fileID: 5052876897122935655, guid: 219bdceb6d3992941bc9a83eba8afbb3, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 223985d6a2648e14bbd3409834e6ac5b, type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
