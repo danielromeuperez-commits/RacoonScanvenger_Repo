@@ -143,16 +143,7 @@ public class MainMenu : MonoBehaviour
             Keyboard.current.upArrowKey.wasPressedThisFrame ||
             Keyboard.current.downArrowKey.wasPressedThisFrame ||
             Keyboard.current.leftArrowKey.wasPressedThisFrame ||
-            Keyboard.current.rightArrowKey.wasPressedThisFrame ||
-
-            Keyboard.current.wKey.wasPressedThisFrame ||
-            Keyboard.current.aKey.wasPressedThisFrame ||
-            Keyboard.current.sKey.wasPressedThisFrame ||
-            Keyboard.current.dKey.wasPressedThisFrame ||
-
-            Keyboard.current.enterKey.wasPressedThisFrame ||
-            Keyboard.current.spaceKey.wasPressedThisFrame ||
-            Keyboard.current.tabKey.wasPressedThisFrame;
+            Keyboard.current.rightArrowKey.wasPressedThisFrame;
     }
 
     // ============================================================

@@ -1,11 +1,13 @@
 using Racoon.Network;
+using Racoon.Player;
+using System.Collections;
 using TMPro;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
-using UnityEngine.InputSystem;
 
 /// <summary>
 /// Menú de conexión y selección de personaje.
@@ -111,6 +113,9 @@ public class ConnectionMenu : MonoBehaviour
     [Header("Gameplay UI")]
     [SerializeField] GameObject gameplayUI;
 
+    [Header("Cuenta atrás")]
+    [SerializeField] MatchCountdownUI countdownUI;
+
     // ============================================================
     // MENSAJES
     // ============================================================
@@ -193,12 +198,18 @@ public class ConnectionMenu : MonoBehaviour
 
     void LateUpdate()
     {
-        // Mientras utilizamos ratón, ningún botón
-        // debe quedarse seleccionado por el EventSystem.
         if (!navigationMode &&
             EventSystem.current != null &&
             EventSystem.current.currentSelectedGameObject != null)
         {
+            GameObject selected =
+                EventSystem.current.currentSelectedGameObject;
+
+            // Si estamos escribiendo en un InputField,
+            // NO quitamos la selección.
+            if (selected.GetComponent<TMP_InputField>() != null)
+                return;
+
             EventSystem.current.SetSelectedGameObject(null);
         }
     }
@@ -322,16 +333,7 @@ public class ConnectionMenu : MonoBehaviour
             Keyboard.current.upArrowKey.wasPressedThisFrame ||
             Keyboard.current.downArrowKey.wasPressedThisFrame ||
             Keyboard.current.leftArrowKey.wasPressedThisFrame ||
-            Keyboard.current.rightArrowKey.wasPressedThisFrame ||
-
-            Keyboard.current.wKey.wasPressedThisFrame ||
-            Keyboard.current.aKey.wasPressedThisFrame ||
-            Keyboard.current.sKey.wasPressedThisFrame ||
-            Keyboard.current.dKey.wasPressedThisFrame ||
-
-            Keyboard.current.enterKey.wasPressedThisFrame ||
-            Keyboard.current.spaceKey.wasPressedThisFrame ||
-            Keyboard.current.tabKey.wasPressedThisFrame;
+            Keyboard.current.rightArrowKey.wasPressedThisFrame;
     }
 
     void SetMouseMode()
@@ -350,11 +352,19 @@ public class ConnectionMenu : MonoBehaviour
         // Quitamos la selección del mando.
         if (EventSystem.current != null)
         {
-            EventSystem.current.SetSelectedGameObject(null);
+            GameObject selected =
+                EventSystem.current.currentSelectedGameObject;
+
+            // Si hemos pulsado sobre un InputField,
+            // dejamos que mantenga el foco para escribir.
+            if (selected == null ||
+                selected.GetComponent<TMP_InputField>() == null)
+            {
+                EventSystem.current.SetSelectedGameObject(null);
+            }
         }
     }
-
-    void SetNavigationMode()
+        void SetNavigationMode()
     {
         navigationMode = true;
 
@@ -1274,17 +1284,144 @@ public class ConnectionMenu : MonoBehaviour
         gameplayStarted = true;
         shownPanel = null;
 
+        StartCoroutine(
+            BeginGameplayTransition()
+        );
+    }
+
+    IEnumerator BeginGameplayTransition()
+    {
         // ========================================================
-        // EMPEZAR TIMER DE PARTIDA
+        // BLOQUEAR JUGADOR
         // ========================================================
+
+        if (PlayerController.Local != null)
+        {
+            PlayerController.Local
+                .InputHandler
+                .SetInputEnabled(false);
+        }
+
+        // ========================================================
+        // FADE A NEGRO
+        // ========================================================
+
+        if (SceneTransitionManager.Instance != null)
+        {
+            yield return SceneTransitionManager.Instance
+                .FadeToBlack();
+        }
+
+        // Ahora que todo está negro,
+        // quitamos Character Selection.
+        SetMenuVisible(false);
+
+        // Activamos el HUD/gameplay detrás del negro.
+        if (gameplayUI != null)
+            gameplayUI.SetActive(true);
+
+        // Esperamos a que Netcode haya creado
+        // nuestro jugador local.
+        while (PlayerController.Local == null)
+        {
+            yield return null;
+        }
+
+        // Nos aseguramos de que sigue bloqueado.
+        PlayerController.Local
+            .InputHandler
+            .SetInputEnabled(false);
+
+        // Dejamos un frame para que todo el gameplay
+        // termine de aparecer.
+        yield return null;
+
+        // ========================================================
+        // FADE DESDE NEGRO
+        // ========================================================
+
+        if (SceneTransitionManager.Instance != null)
+        {
+            yield return SceneTransitionManager.Instance
+                .FadeFromBlack();
+        }
 
         MatchTimer matchTimer =
             FindFirstObjectByType<MatchTimer>();
 
+        // ========================================================
+        // CUENTA ATRÁS
+        // ========================================================
+
+        if (countdownUI != null)
+        {
+            yield return countdownUI.PlayCountdown(
+                () =>
+                {
+                    StartActualMatch(matchTimer);
+                }
+            );
+        }
+        else
+        {
+            Debug.LogWarning(
+                "ConnectionMenu: no hay MatchCountdownUI asignado."
+            );
+
+            StartActualMatch(matchTimer);
+        }
+    }
+    IEnumerator BeginGameplayCountdown()
+    {
+        // Esperamos a que el Player local
+        // haya sido creado por Netcode.
+        while (PlayerController.Local == null)
+        {
+            yield return null;
+        }
+
+        // Durante 3, 2, 1 no se puede mover.
+        PlayerController.Local
+            .InputHandler
+            .SetInputEnabled(false);
+
+        MatchTimer matchTimer =
+            FindFirstObjectByType<MatchTimer>();
+
+        // ========================================================
+        // CUENTA ATRÁS
+        // ========================================================
+
+        if (countdownUI != null)
+        {
+            yield return countdownUI.PlayCountdown(
+                () =>
+                {
+                    StartActualMatch(matchTimer);
+                }
+            );
+        }
+        else
+        {
+            Debug.LogWarning(
+                "ConnectionMenu: no hay MatchCountdownUI asignado."
+            );
+
+            StartActualMatch(matchTimer);
+        }
+    }
+
+    void StartActualMatch(
+    MatchTimer matchTimer)
+    {
+        // ========================================================
+        // AQUÍ EMPIEZA REALMENTE LA PARTIDA
+        // ========================================================
+
+        // El Server es el único que arrancará
+        // realmente el MatchTimer.
         if (matchTimer != null)
         {
-            // ServerStartMatch ya comprueba internamente
-            // si somos servidor.
             matchTimer.ServerStartMatch();
         }
         else
@@ -1294,16 +1431,16 @@ public class ConnectionMenu : MonoBehaviour
             );
         }
 
-        // Ocultamos la UI de selección / conexión.
-        SetMenuVisible(false);
-
-        // Si tienes el Gameplay UI que añadimos:
-        if (gameplayUI != null)
-            gameplayUI.SetActive(true);
+        // Cada PC habilita a su propio jugador.
+        if (PlayerController.Local != null)
+        {
+            PlayerController.Local
+                .InputHandler
+                .SetInputEnabled(true);
+        }
 
         Debug.Log(
-            "Todos los jugadores están READY. " +
-            "Comienza la partida."
+            "START!! La partida ha comenzado."
         );
     }
 
