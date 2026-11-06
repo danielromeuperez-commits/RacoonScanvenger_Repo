@@ -325,7 +325,8 @@ namespace Racoon.Items
 
             if (armedRing != null)
             {
-                armedRing.Visible = armedVisual && on;
+                // Sin anillo amarillo (decisión de diseño).
+                armedRing.Visible = false;
 
                 if (armedVisual)
                 {

@@ -71,6 +71,7 @@ namespace Racoon.Player
         [SerializeField] SfxCue switchSfx = new();
 
         const int MaxArcDots = 36;
+        const float RevealGrace = 0.1f;
         const float ArcMaxTime = 2f, ArcStep = 0.03f, ArcMarchSpeed = 1.2f;
 
         GameObject currentHeldVisual;
@@ -79,6 +80,9 @@ namespace Racoon.Player
         float heldPopStart = -99f;
         int lastCount;
         float aimHeldTime;
+        // El objeto recién cogido espera a que la ruleta del HUD lo descubra (solo el nuevo, no uno que ya llevaba).
+        bool heldAwaitingReveal;
+        float heldCreatedTime;
 
         // Apuntado (solo dueño)
         GameObject arcRoot;
@@ -126,6 +130,7 @@ namespace Racoon.Player
         {
             int count = inventory.Count;
             bool used = count < lastCount;
+            bool picked = count > lastCount;
             lastCount = count;
 
             // El inventario puede avisar dos veces seguidas con el mismo objeto.
@@ -152,6 +157,8 @@ namespace Racoon.Player
                 return;
 
             currentHeldVisual = InstantiateVisual(item.heldVisualPrefab);
+            heldAwaitingReveal = picked;
+            heldCreatedTime = Time.time;
             heldRestScale = currentHeldVisual.transform.localScale;
             StartCoroutine(AttachNextFrame(currentHeldVisual));
         }
@@ -215,6 +222,22 @@ namespace Racoon.Player
                 return;
 
             Transform held = currentHeldVisual.transform;
+
+            // Mientras la ruleta del HUD no lo ha descubierto, no se ve; al pararse entra con su pop.
+            // (Margen corto por si la ruleta arranca un frame después; sin HUD sale enseguida.)
+            if (heldAwaitingReveal)
+            {
+                bool spinning = inventory != null && inventory.IsRouletteSpinning;
+                if (spinning || Time.time - heldCreatedTime < RevealGrace)
+                {
+                    held.localScale = Vector3.zero;
+                    return;
+                }
+
+                heldAwaitingReveal = false;
+                heldPopStart = Time.time;
+            }
+
             float pop = FlatFx.OutBack((Time.time - heldPopStart) / equipPopTime, 2.2f);
             held.localScale = heldRestScale * pop;
 
@@ -274,7 +297,8 @@ namespace Racoon.Player
 
         void UpdateAim()
         {
-            bool aiming = controller != null && (controller.IsAimingItem || controller.IsAimingTarget);
+            // Solo al apuntar a mano: el toque rápido (autoapuntado) no enseña arco.
+            bool aiming = controller != null && controller.IsAimingTarget;
             aimHeldTime = aiming ? aimHeldTime + Time.deltaTime : 0f;
             bool show = aiming && aimHeldTime >= aimArrowDelay;
 

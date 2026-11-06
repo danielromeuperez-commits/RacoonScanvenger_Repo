@@ -180,9 +180,9 @@ MonoBehaviour:
   m_Transition: 1
   m_Colors:
     m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
-    m_HighlightedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
-    m_PressedColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 1}
-    m_SelectedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
+    m_HighlightedColor: {r: 0.62352943, g: 0.5686275, b: 0.5686275, a: 1}
+    m_PressedColor: {r: 0.45882353, g: 0.8, b: 0.54901963, a: 1}
+    m_SelectedColor: {r: 0.62352943, g: 0.5686275, b: 0.5686275, a: 1}
     m_DisabledColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 0.5019608}
     m_ColorMultiplier: 1
     m_FadeDuration: 0.1
@@ -515,9 +515,9 @@ MonoBehaviour:
   m_Transition: 1
   m_Colors:
     m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
-    m_HighlightedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
-    m_PressedColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 1}
-    m_SelectedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
+    m_HighlightedColor: {r: 0.62352943, g: 0.5686275, b: 0.5686275, a: 1}
+    m_PressedColor: {r: 0.45882353, g: 0.8, b: 0.54901963, a: 1}
+    m_SelectedColor: {r: 0.62352943, g: 0.5686275, b: 0.5686275, a: 1}
     m_DisabledColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 0.5019608}
     m_ColorMultiplier: 1
     m_FadeDuration: 0.1
@@ -1348,6 +1348,7 @@ GameObject:
   - component: {fileID: 1554784422}
   - component: {fileID: 1554784421}
   - component: {fileID: 1554784420}
+  - component: {fileID: 1554784424}
   m_Layer: 5
   m_Name: UI_MainMenu
   m_TagString: Untagged
@@ -1442,6 +1443,18 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
+--- !u!225 &1554784424
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1554784419}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!1 &1598167805
 GameObject:
   m_ObjectHideFlags: 0
@@ -1657,9 +1670,9 @@ MonoBehaviour:
   m_Transition: 1
   m_Colors:
     m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
-    m_HighlightedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
-    m_PressedColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 1}
-    m_SelectedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
+    m_HighlightedColor: {r: 0.62352943, g: 0.5686275, b: 0.5686275, a: 1}
+    m_PressedColor: {r: 0.45882353, g: 0.8, b: 0.54901963, a: 1}
+    m_SelectedColor: {r: 0.62352943, g: 0.5686275, b: 0.5686275, a: 1}
     m_DisabledColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 0.5019608}
     m_ColorMultiplier: 1
     m_FadeDuration: 0.1
@@ -1876,8 +1889,16 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -8742558273962548880, guid: f8636e61bb9304a4c94bb4bce9c65956, type: 3}
       propertyPath: gameSceneName
-      value: SCN_Level_Polish
+      value: SCN_Level_Lightning
       objectReference: {fileID: 0}
+    - target: {fileID: -8742558273962548880, guid: f8636e61bb9304a4c94bb4bce9c65956, type: 3}
+      propertyPath: menuCanvasGroup
+      value: 
+      objectReference: {fileID: 1554784424}
+    - target: {fileID: -8742558273962548880, guid: f8636e61bb9304a4c94bb4bce9c65956, type: 3}
+      propertyPath: firstSelectedButton
+      value: 
+      objectReference: {fileID: 2051957737}
     - target: {fileID: 4130605362715180219, guid: f8636e61bb9304a4c94bb4bce9c65956, type: 3}
       propertyPath: m_Name
       value: PF_MainMenuManager
