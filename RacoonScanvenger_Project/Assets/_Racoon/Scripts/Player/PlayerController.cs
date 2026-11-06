@@ -942,33 +942,21 @@ namespace Racoon.Player
 
         void FixedUpdate()
         {
-            // En el rival el Rigidbody es kinematic y lo mueve NetworkRigidbody: no tocar.
             if (!IsSpawned || !IsOwner || body.isKinematic)
                 return;
 
             if (extintorActive)
             {
-                // Usamos la dirección que ya calcula tu movimiento normal
-                Vector3 inputDirection = desiredDirection;
+                Vector3 inputDir = desiredDirection;
+                inputDir.y = 0f;
 
-                if (inputDirection.sqrMagnitude > 0.01f)
+                if (inputDir.sqrMagnitude > 0.01f)
                 {
-                    inputDirection.y = 0f;
-                    inputDirection.Normalize();
-
-                    // Girar poco a poco hacia donde está pulsando el jugador
-                    extintorDirection = Vector3.RotateTowards(
-                        extintorDirection,
-                        inputDirection,
-                        extintorTurnSpeed * Mathf.Deg2Rad * Time.fixedDeltaTime,
-                        0f
-                    );
-
+                    extintorDirection = Vector3.Slerp(extintorDirection, inputDir.normalized, 3f * Time.fixedDeltaTime);
                     extintorDirection.y = 0f;
                     extintorDirection.Normalize();
                 }
 
-                // Mantener velocidad constante
                 body.linearVelocity = new Vector3(
                     extintorDirection.x * extintorBounceSpeed,
                     body.linearVelocity.y,
@@ -1249,7 +1237,7 @@ namespace Racoon.Player
 
             ContactPoint contact = collision.GetContact(0);
 
-            // Refleja la dirección respecto a la superficie golpeada (paredes, etc.)
+            // 2. Refleja la dirección respecto a la superficie golpeada (paredes, etc.)
             Vector3 reflected = Vector3.Reflect(
                 extintorDirection,
                 contact.normal
@@ -1262,6 +1250,10 @@ namespace Racoon.Player
                 return;
 
             extintorDirection = reflected.normalized;
+
+            // 3. CORRECCIÓN DE ATASCOS: Despegar ligeramente al jugador de la pared
+            transform.position += contact.normal * 0.1f;
+            body.position = transform.position;
         }
 
         // RPC para gestionar el empuje al otro jugador de forma segura en el servidor
