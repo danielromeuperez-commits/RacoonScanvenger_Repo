@@ -1,5 +1,6 @@
 using Racoon.Network;
 using Racoon.Player;
+using Racoon.UI;
 using System.Collections;
 using TMPro;
 using Unity.Netcode;
@@ -88,6 +89,18 @@ public class ConnectionMenu : MonoBehaviour
     [SerializeField] Button nextCharacterButton;
     [SerializeField] Button readyButton;
 
+    [Header("Visor 3D y rival (se buscan solos por nombre si están vacíos)")]
+    [Tooltip("RawImage del visor del personaje propio (RAW_Preview dentro de IMG_CharacterPortrait).")]
+    [SerializeField] RawImage localPreviewImage;
+    [Tooltip("RawImage del visor del rival (RAW_Preview dentro de IMG_RivalPortrait).")]
+    [SerializeField] RawImage rivalPreviewImage;
+    [SerializeField] Image rivalPortraitImage;
+    [SerializeField] TMP_Text rivalNameText;
+
+    [Header("Buscador de partidas online (se buscan solos por nombre si están vacíos)")]
+    [SerializeField] Button searchSessionsButton;
+    [SerializeField] Button[] sessionRowButtons;
+
     // ============================================================
     // PANELES
     // ============================================================
@@ -134,6 +147,12 @@ public class ConnectionMenu : MonoBehaviour
 
     bool navigationMode;
 
+    CharacterPreviewStage localPreview;
+    CharacterPreviewStage rivalPreview;
+    TMP_Text onlineWaitingLabel;
+    string onlineWaitingDefaultText;
+    bool searchRequested;
+
     // ============================================================
     // INICIO
     // ============================================================
@@ -155,6 +174,8 @@ public class ConnectionMenu : MonoBehaviour
                 this
             );
         }
+
+        AutoWireExtras();
 
         SetMenuVisible(true);
         SetLocalWaitingUI(false);
@@ -183,6 +204,70 @@ public class ConnectionMenu : MonoBehaviour
 
             EventSystem.current.SetSelectedGameObject(null);
         }
+    }
+
+    // ============================================================
+    // VISOR 3D, RIVAL Y BUSCADOR: ENGANCHE
+    // ============================================================
+
+    // Los elementos están en PF_HUD_Connection_Menu; se buscan por nombre para no tener que tocar las escenas.
+    void AutoWireExtras()
+    {
+        Transform selection = characterSelectionPanel != null ? characterSelectionPanel.transform : null;
+        Transform online = onlinePanel != null ? onlinePanel.transform : null;
+
+        if (localPreviewImage == null) localPreviewImage = FindIn<RawImage>(selection, "IMG_CharacterPortrait/RAW_Preview");
+        if (rivalPreviewImage == null) rivalPreviewImage = FindIn<RawImage>(selection, "IMG_RivalPortrait/RAW_Preview");
+        if (rivalPortraitImage == null) rivalPortraitImage = FindIn<Image>(selection, "IMG_RivalPortrait");
+        if (rivalNameText == null) rivalNameText = FindIn<TMP_Text>(selection, "TXT_RivalName");
+
+        // Cada visor con su capa y su peana para que no se vean el uno al otro.
+        localPreview = SetupPreview(localPreviewImage, 30, new Vector3(-20f, -500f, 0f));
+        rivalPreview = SetupPreview(rivalPreviewImage, 31, new Vector3(20f, -500f, 0f));
+
+        if (searchSessionsButton == null) searchSessionsButton = FindIn<Button>(online, "BTN_SearchOnline");
+        if (sessionRowButtons == null || sessionRowButtons.Length == 0)
+        {
+            var rows = new System.Collections.Generic.List<Button>();
+            for (int i = 0; ; i++)
+            {
+                Button row = FindIn<Button>(online, $"BTN_SessionRow_{i}");
+                if (row == null) break;
+                rows.Add(row);
+            }
+            sessionRowButtons = rows.ToArray();
+        }
+
+        if (searchSessionsButton != null) searchSessionsButton.onClick.AddListener(SearchOnlineGames);
+        for (int i = 0; i < sessionRowButtons.Length; i++)
+        {
+            int index = i;
+            if (sessionRowButtons[i] != null) sessionRowButtons[i].onClick.AddListener(() => JoinFoundGame(index));
+        }
+
+        if (onlineWaitingPlayerText != null)
+        {
+            onlineWaitingLabel = onlineWaitingPlayerText.GetComponent<TMP_Text>();
+            if (onlineWaitingLabel != null) onlineWaitingDefaultText = onlineWaitingLabel.text;
+        }
+    }
+
+    static T FindIn<T>(Transform root, string path) where T : Component
+    {
+        if (root == null) return null;
+        Transform t = root.Find(path);
+        return t != null ? t.GetComponent<T>() : null;
+    }
+
+    static CharacterPreviewStage SetupPreview(RawImage image, int layer, Vector3 stagePosition)
+    {
+        if (image == null) return null;
+        if (!image.TryGetComponent(out CharacterPreviewStage stage))
+            stage = image.gameObject.AddComponent<CharacterPreviewStage>();
+        // La peana se monta al mostrar el primer personaje: aquí aún se pueden fijar capa y posición.
+        stage.Layer = layer;
+        stage.StagePosition = stagePosition;
+        return stage;
     }
 
     // ============================================================
@@ -386,6 +471,21 @@ public class ConnectionMenu : MonoBehaviour
         networkTestMenu.JoinOnlineGame();
     }
 
+    /// <summary>Busca partidas online públicas (BTN_SearchOnline).</summary>
+    public void SearchOnlineGames()
+    {
+        if (!CanStartNetwork()) return;
+        searchRequested = true;
+        networkTestMenu.SearchOnlineGames();
+    }
+
+    /// <summary>Entra en la partida de la fila <paramref name="index"/> (BTN_SessionRow_N).</summary>
+    public void JoinFoundGame(int index)
+    {
+        if (!CanStartNetwork()) return;
+        networkTestMenu.JoinFoundGame(index);
+    }
+
     public void CopySessionCode()
     {
         if (networkTestMenu != null && !string.IsNullOrEmpty(networkTestMenu.SessionCode))
@@ -500,7 +600,61 @@ public class ConnectionMenu : MonoBehaviour
         if (waiting) RefreshWaitingUI(manager);
 
         SetLocalWaitingUI(waiting && waitingPanel == null);
+        RefreshSessionList(target == onlinePanel && !listening, busy);
         RefreshStatus(selecting, waiting);
+    }
+
+    // Filas del buscador: «Nombre · 1/2». Sin partida, la fila se oculta; llena o cerrada, no se puede pulsar.
+    void RefreshSessionList(bool browsing, bool busy)
+    {
+        var sessions = networkTestMenu != null ? networkTestMenu.FoundSessions : null;
+        if (!browsing) searchRequested = false;
+
+        if (searchSessionsButton != null)
+        {
+            SetActive(searchSessionsButton.gameObject, browsing);
+            searchSessionsButton.interactable = !busy;
+            TMP_Text label = searchSessionsButton.GetComponentInChildren<TMP_Text>();
+            if (label != null) label.text = sessions == null ? "SEARCH" : "REFRESH";
+        }
+
+        if (sessionRowButtons != null)
+        {
+            for (int i = 0; i < sessionRowButtons.Length; i++)
+            {
+                Button row = sessionRowButtons[i];
+                if (row == null) continue;
+                bool show = browsing && sessions != null && i < sessions.Count;
+                SetActive(row.gameObject, show);
+                if (!show) continue;
+
+                var info = sessions[i];
+                bool canJoin = NetworkTestMenu.CanJoin(info);
+                row.interactable = canJoin && !busy;
+                TMP_Text label = row.GetComponentInChildren<TMP_Text>();
+                if (label != null)
+                {
+                    int players = info.MaxPlayers - info.AvailableSlots;
+                    string state = canJoin ? "" : info.AvailableSlots > 0 ? " · CLOSED" : " · FULL";
+                    label.text = $"{info.Name} · {players}/{info.MaxPlayers}{state}";
+                }
+            }
+        }
+
+        // Estado de la búsqueda en el texto de espera del panel (fuera de la búsqueda vuelve a su texto de siempre).
+        if (onlineWaitingLabel == null) return;
+        if (browsing && searchRequested)
+        {
+            string message = busy && sessions == null ? "SEARCHING..."
+                : sessions != null && sessions.Count == 0 ? "NO GAMES FOUND"
+                : busy ? "SEARCHING..." : "";
+            onlineWaitingLabel.text = message;
+            SetActive(onlineWaitingPlayerText, !string.IsNullOrEmpty(message));
+        }
+        else if (onlineWaitingLabel.text != onlineWaitingDefaultText)
+        {
+            onlineWaitingLabel.text = onlineWaitingDefaultText;
+        }
     }
 
     void ShowOnly(GameObject target)
@@ -627,6 +781,22 @@ public class ConnectionMenu : MonoBehaviour
         if (characterRingImage != null && characterColors != null && characterColors.Length > 0)
         {
             characterRingImage.color = characterColors[Mathf.Clamp(lobby.LocalSelectedCharacter, 0, characterColors.Length - 1)];
+        }
+
+        // Visor 3D propio y del rival (lo que tiene marcado ahora mismo).
+        if (localPreview != null) localPreview.Show(lobby.SelectedCharacter);
+        var rival = lobby.RivalCharacter;
+        if (rivalPreview != null) rivalPreview.Show(rival);
+        if (rivalPortraitImage != null)
+        {
+            Sprite rivalSprite = rival != null ? rival.portrait : null;
+            rivalPortraitImage.sprite = rivalSprite;
+            rivalPortraitImage.enabled = rivalSprite != null;
+        }
+        if (rivalNameText != null)
+        {
+            rivalNameText.text = rival == null ? "RIVAL..."
+                : lobby.IsRivalReady ? $"RIVAL: {rival.displayName} · READY!" : $"RIVAL: {rival.displayName}";
         }
 
         if (readyStatusText != null) readyStatusText.text = $"PLAYERS READY: {lobby.ReadyCount}/{lobby.MaxPlayers}";

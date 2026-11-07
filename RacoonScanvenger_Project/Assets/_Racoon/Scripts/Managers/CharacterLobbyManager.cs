@@ -30,6 +30,23 @@ namespace Racoon.Network
         readonly NetworkVariable<bool> gameStarted = new(false);
         readonly NetworkVariable<bool> characterSelectionActive = new(false);
 
+        /// <summary>Lo que tiene marcado cada jugador ahora mismo (para ver al rival elegir en tiempo real).</summary>
+        public struct LobbyPick : INetworkSerializable, System.IEquatable<LobbyPick>
+        {
+            public ulong clientId;
+            public int characterIndex;
+
+            public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
+            {
+                serializer.SerializeValue(ref clientId);
+                serializer.SerializeValue(ref characterIndex);
+            }
+
+            public bool Equals(LobbyPick other) => clientId == other.clientId && characterIndex == other.characterIndex;
+        }
+
+        readonly NetworkList<LobbyPick> picks = new();
+
         readonly Dictionary<ulong, int> selections = new();
         readonly HashSet<ulong> readyClients = new();
 
@@ -62,6 +79,30 @@ namespace Racoon.Network
         public Sprite SelectedCharacterPortrait =>
             SelectedCharacter != null ? SelectedCharacter.portrait : null;
 
+        /// <summary>Personaje que tiene marcado el rival ahora mismo (-1 si no hay rival).</summary>
+        public int RivalSelectedCharacter
+        {
+            get
+            {
+                if (!IsSpawned) return -1;
+                ulong me = NetworkManager.LocalClientId;
+                foreach (LobbyPick pick in picks)
+                    if (pick.clientId != me) return pick.characterIndex;
+                return -1;
+            }
+        }
+
+        public PlayerCharacterDefinition RivalCharacter
+        {
+            get
+            {
+                int index = RivalSelectedCharacter;
+                return index >= 0 && Roster != null ? Roster.Get(index) : null;
+            }
+        }
+
+        public string RivalCharacterName => RivalCharacter != null ? RivalCharacter.displayName : "";
+
         void Awake()
         {
             Current = this;
@@ -84,8 +125,13 @@ namespace Racoon.Network
             localSelectedCharacter = 0;
 
             if (!IsServer)
+            {
+                // Que el rival vea desde ya lo que tengo marcado.
+                SelectRpc(localSelectedCharacter);
                 return;
+            }
 
+            picks.Clear();
             selections.Clear();
             readyClients.Clear();
             readyCount.Value = 0;
@@ -95,6 +141,9 @@ namespace Racoon.Network
             NetworkManager.OnClientDisconnectCallback += OnClientDisconnected;
 
             UpdateConnectedCount(null);
+
+            if (IsClient)
+                SelectRpc(localSelectedCharacter);
         }
 
         public override void OnNetworkDespawn()
@@ -121,6 +170,8 @@ namespace Racoon.Network
         {
             selections.Remove(clientId);
             readyClients.Remove(clientId);
+            for (int i = picks.Count - 1; i >= 0; i--)
+                if (picks[i].clientId == clientId) picks.RemoveAt(i);
 
             readyCount.Value = readyClients.Count;
 
@@ -152,6 +203,27 @@ namespace Racoon.Network
                 return;
 
             localSelectedCharacter = (localSelectedCharacter + step + Roster.Count) % Roster.Count;
+
+            if (IsSpawned)
+                SelectRpc(localSelectedCharacter);
+        }
+
+        // El servidor apunta lo que tiene marcado cada jugador y lo replica a todos.
+        [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
+        void SelectRpc(int characterIndex, RpcParams rpcParams = default)
+        {
+            ulong clientId = rpcParams.Receive.SenderClientId;
+            if (gameStarted.Value || readyClients.Contains(clientId))
+                return;
+
+            var pick = new LobbyPick { clientId = clientId, characterIndex = characterIndex };
+            for (int i = 0; i < picks.Count; i++)
+            {
+                if (picks[i].clientId != clientId) continue;
+                if (!picks[i].Equals(pick)) picks[i] = pick;
+                return;
+            }
+            picks.Add(pick);
         }
 
         // ============================================================

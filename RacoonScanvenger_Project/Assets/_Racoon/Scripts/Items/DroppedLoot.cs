@@ -5,7 +5,8 @@ using UnityEngine;
 namespace Racoon.Items
 {
     /// <summary>
-    /// Bolsita de loot que suelta un jugador al recibir un golpe fuerte (PlayerLoot.ServerDropLoot).
+    /// Producto que suelta un jugador al recibir un golpe fuerte (PlayerLoot.ServerDropLoot): uno de los que llevaba en
+    /// la bolsa (manzana, naranja, pan, patatas, NukiProd, lata), con el modelo y el valor de su estantería.
     /// Sale despedida con física, se queda quieta al tocar el suelo y la recoge el primero que pase por
     /// encima (trigger), sin pulsar nada. Quien la ha soltado tarda un poco más en poder recuperarla.
     /// El SERVIDOR lo decide todo; los clientes solo ven la posición (NetworkTransform).
@@ -28,6 +29,18 @@ namespace Racoon.Items
         [Tooltip("Normal mínima para considerar que ha tocado el suelo (no una pared).")]
         [SerializeField, Range(0f, 1f)] float groundNormalThreshold = 0.5f;
 
+        [Header("Producto")]
+        [Tooltip("Modelo genérico (la bolsita): se ve con Variant 0, cuando no se sabe qué producto es.")]
+        [SerializeField] Renderer genericVisual;
+        [Tooltip("Hijo con el modelo de cada producto. Variant 1 = el primero (ver LootPoint > Drop Variant).")]
+        [SerializeField] GameObject[] variants = new GameObject[0];
+
+        readonly NetworkVariable<byte> variant = new(0);
+
+        /// <summary>Qué producto es (0 = genérico; 1.. = variants).</summary>
+        public int Variant => variant.Value;
+        public int Points => points;
+
         Rigidbody body;
         int points;
         float weight;
@@ -39,8 +52,9 @@ namespace Racoon.Items
         void Awake() => body = GetComponent<Rigidbody>();
 
         /// <summary>Solo servidor. Sobre una instancia recién creada: guarda el contenido, la spawnea y la lanza.</summary>
-        public void ServerInitialize(int points, float weight, PlayerLoot droppedBy, Vector3 velocity)
+        public void ServerInitialize(int points, float weight, PlayerLoot droppedBy, Vector3 velocity, int kind = 0)
         {
+            variant.Value = (byte)Mathf.Clamp(kind, 0, variants.Length);
             this.points = points;
             this.weight = weight;
             this.droppedBy = droppedBy;
@@ -52,6 +66,9 @@ namespace Racoon.Items
 
         public override void OnNetworkSpawn()
         {
+            ApplyVariant(0, variant.Value);
+            variant.OnValueChanged += ApplyVariant;
+
             // En los clientes la física la apaga NetworkRigidbody (kinematic) y la mueve NetworkTransform con lo que
             // simula el servidor: así todos la ven en el mismo sitio. El sólido tampoco debe empujar a nadie allí.
             if (!IsServer)
@@ -61,6 +78,18 @@ namespace Racoon.Items
             }
 
             if (lifeTime > 0f) Invoke(nameof(ServerRemove), lifeTime);
+        }
+
+        public override void OnNetworkDespawn() => variant.OnValueChanged -= ApplyVariant;
+
+        // Se ve el modelo del producto (o la bolsita si no se sabe cuál es).
+        void ApplyVariant(byte _, byte current)
+        {
+            int index = current - 1;
+            bool known = index >= 0 && index < variants.Length && variants[index] != null;
+            if (genericVisual != null) genericVisual.enabled = !known;
+            for (int i = 0; i < variants.Length; i++)
+                if (variants[i] != null) variants[i].SetActive(i == index);
         }
 
         void OnCollisionEnter(Collision collision)
@@ -100,7 +129,7 @@ namespace Racoon.Items
             if (loot == droppedBy && age < dropperPickupDelay) return;
 
             // Lo que no cabe en la bolsa se queda en el suelo para otro (o para cuando venda).
-            int accepted = loot.ServerAddLootUpTo(points, weight);
+            int accepted = loot.ServerAddLootUpTo(points, weight, variant.Value);
             if (accepted <= 0) return;
             weight -= weight * accepted / points;
             points -= accepted;

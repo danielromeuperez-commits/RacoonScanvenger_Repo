@@ -22,6 +22,8 @@ namespace Racoon.UI
     [DefaultExecutionOrder(1000)]
     public class PlayerStatusUI : MonoBehaviour
     {
+        static readonly int CompactId = Animator.StringToHash("Compact");
+
         [Tooltip("Vacío = el del jugador en el que está anidado.")]
         [SerializeField] PlayerController controller;
 
@@ -34,6 +36,20 @@ namespace Racoon.UI
         public RectTransform weightMark;
         public Image weightMarkImage;
         public P5Text bagLabel;
+
+        [Header("Indicador «YOU» (encima del jugador local)")]
+        [Tooltip("Ficha + flecha (arte de Photoshop, balanceo en su Animator). Se coloca encima de la cabeza.")]
+        public RectTransform youGroup;
+        [Tooltip("Partes «_Tinte» que se tiñen del color del jugador.")]
+        public Image[] youTinted = new Image[0];
+        [Tooltip("Rótulo «YOU» (letras recortadas en el color del jugador).")]
+        public P5Text youLabel;
+        [Tooltip("Altura sobre los pies (m) de la punta de la flecha.")]
+        [SerializeField] float youHeight = 1.05f;
+        [Tooltip("Animator del indicador: con Compact se va el rótulo y queda solo la flecha, más pequeña.")]
+        public Animator youAnimator;
+        [Tooltip("Segundos con el rótulo «YOU» antes de quedarse solo con la flecha.")]
+        [SerializeField] float youLabelTime = 5f;
 
         [Header("Textos")]
         [SerializeField] string bagFullText = "¡LLENA!";
@@ -69,7 +85,7 @@ namespace Racoon.UI
         // Cómo está colocado en el prefab: la animación va encima.
         Vector3 bagScale, bagLabelScale;
 
-        float bagShown, bagAlpha, bagShake = -10f, nextColorTry;
+        float bagShown, bagAlpha, bagShake = -10f, nextColorTry, youShownSince = -1f;
         bool layered, colored;
 
         void Awake()
@@ -129,6 +145,7 @@ namespace Racoon.UI
             if (loot == null || bagGroup == null || !controller.IsSpawned || !controller.IsOwner)
             {
                 SetVisible(0f);
+                SetYouVisible(false);
                 return;
             }
 
@@ -150,11 +167,22 @@ namespace Racoon.UI
 
             UpdateBag(time, dt);
             Follow();
+            SetYouVisible(true);
+            if (youShownSince < 0f) youShownSince = time;
+            if (youAnimator != null) youAnimator.SetBool(CompactId, time - youShownSince >= youLabelTime);
+            FollowYou();
         }
 
         void ApplyLabelColor(Color color)
         {
             colored = true;
+            foreach (Image image in youTinted)
+                if (image != null) image.color = color;
+            if (youLabel != null)
+            {
+                youLabel.colorJugador = color;
+                youLabel.Rebuild();
+            }
             if (bagLabel == null) return;
             bagLabel.colorJugador = color;
             bagLabel.Rebuild();
@@ -213,6 +241,28 @@ namespace Racoon.UI
             bagGroup.anchoredPosition = new Vector2(
                 Mathf.Clamp(target.x, -half.x + screenMargin, half.x - screenMargin),
                 Mathf.Clamp(target.y, -half.y + screenMargin, half.y - screenMargin));
+        }
+
+        void SetYouVisible(bool on)
+        {
+            if (youGroup != null && youGroup.gameObject.activeSelf != on) youGroup.gameObject.SetActive(on);
+        }
+
+        // La punta de la flecha, encima de la cabeza (la animación del Animator va en los hijos).
+        void FollowYou()
+        {
+            if (youGroup == null) return;
+            Camera cam = canvas.worldCamera != null ? canvas.worldCamera : Camera.main;
+            if (cam == null) return;
+            Vector3 screen = cam.WorldToScreenPoint(controller.transform.position + Vector3.up * youHeight);
+            if (screen.z < 0f) return;
+            float scale = Mathf.Max(canvas.scaleFactor, 0.0001f);
+            Rect pixels = cam.pixelRect;
+            Vector2 local = (new Vector2(screen.x, screen.y) - pixels.center) / scale;
+            Vector2 half = pixels.size * 0.5f / scale;
+            youGroup.anchoredPosition = new Vector2(
+                Mathf.Clamp(local.x, -half.x + screenMargin, half.x - screenMargin),
+                Mathf.Clamp(local.y, -half.y + screenMargin, half.y - screenMargin));
         }
 
         void SetVisible(float alpha)

@@ -376,6 +376,10 @@ namespace Racoon.Items
             if (!IsServer || !armed || !landed || consumed)
                 return;
 
+            // Solo la cápsula física del jugador (la que pisa), no su Hit Collider (trigger más grande para los golpes).
+            if (other.isTrigger)
+                return;
+
             PlayerController player =
                 other.GetComponentInParent<PlayerController>();
 

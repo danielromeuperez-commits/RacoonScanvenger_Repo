@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4b95c968f6254721a3c11e2c2ebdfbf0, type: 3}
+  m_Name: LOOT_Comun
+  m_EditorClassIdentifier: Assembly-CSharp::LootRarityPreset
+  displayName: "Común"
+  pointsPerItem: 5
+  weightPerItem: 0.6
+  minItems: 6
+  maxItems: 9
+  respawnTimeMin: 20
+  respawnTimeMax: 30
+  normalCooldown: 0
+  maxDoublePointsCollections: 10
+  doublePointsCooldown: 1.5

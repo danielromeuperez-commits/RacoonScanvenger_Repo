@@ -737,11 +737,11 @@ GameObject:
   - component: {fileID: 3453257572856900914}
   - component: {fileID: 8875733068625356194}
   m_Layer: 0
-  m_Name: PF_SM_Shelves_Potatoes 1
+  m_Name: PF_SM_Shelves_NukiProd
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 2147483647
+  m_StaticEditorFlags: 2147483643
   m_IsActive: 1
 --- !u!4 &3453257572856900914
 Transform:
@@ -1245,7 +1245,7 @@ GameObject:
   - component: {fileID: 8913388872596892420}
   - component: {fileID: 1100107453808195210}
   - component: {fileID: 2942092292299160134}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: LootPoint
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1279,6 +1279,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2539b1eb63f315a46a89f343c6f06cdb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LootPoint
+  preset: {fileID: 11400000, guid: e725bb53c8484c17804df9b3d3696d82, type: 2}
+  dropVariant: 5
+  lootPromptPrefab: {fileID: 8350599379450749252, guid: a958dcd884a34c12be52a4874297522e, type: 3}
+  visualRoot: {fileID: 0}
+  itemVisuals: []
+  itemNamePrefixes:
+  - SM_Potato
+  itemPopDuration: 0.25
   pointsPerItem: 10
   weightPerItem: 1
   minItems: 4
@@ -1302,7 +1310,7 @@ BoxCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3

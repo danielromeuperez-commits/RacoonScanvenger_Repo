@@ -24,6 +24,8 @@ public class eventDoublePoints : NetworkBehaviour, IGameEvent
     // Declaradas en este orden a propósito: se replican en orden, así que cuando llega «remaining» (lo que arranca
     // los visuales) la posición y el total ya están. -1 = aún no ha empezado; 0 = se acabó; >0 = activo.
     readonly NetworkVariable<Vector3> shelfPosition = new();
+    // Índice en LootPoint.All (mismo orden en todas las instancias). -1 = usar la posición.
+    readonly NetworkVariable<int> shelfIndex = new(-1);
     readonly NetworkVariable<int> total = new(0);
     readonly NetworkVariable<int> remaining = new(-1);
 
@@ -40,6 +42,26 @@ public class eventDoublePoints : NetworkBehaviour, IGameEvent
     public int Remaining => Mathf.Max(0, remaining.Value);
     public int Total => total.Value;
     public Vector3 ShelfPosition => shelfPosition.Value;
+
+    /// <summary>La estantería de la oferta en esta instancia (por índice; si no, la más cercana a la posición).</summary>
+    public LootPoint Shelf
+    {
+        get
+        {
+            var all = LootPoint.All;
+            int i = shelfIndex.Value;
+            if (i >= 0 && i < all.Count) return all[i];
+
+            LootPoint best = null;
+            float bestDistance = 1f;
+            foreach (LootPoint lp in all)
+            {
+                float d = Vector3.Distance(lp.transform.position, shelfPosition.Value);
+                if (d < bestDistance) { bestDistance = d; best = lp; }
+            }
+            return best;
+        }
+    }
     public Color Accent => accent;
 
     /// <summary>En cada cliente: empieza (true) o cambia lo que queda / se acaba (false).</summary>
@@ -67,18 +89,28 @@ public class eventDoublePoints : NetworkBehaviour, IGameEvent
 
         HasTriggered = true;
 
-        LootPoint[] lootPoints = FindObjectsByType<LootPoint>(FindObjectsSortMode.None);
-        if (lootPoints.Length == 0)
+        var lootPoints = LootPoint.All;
+        if (lootPoints.Count == 0)
         {
             Debug.LogWarning("EventDoublePoints: No se encontraron LootPoints en la escena.");
             return;
         }
 
-        serverShelf = lootPoints[UnityEngine.Random.Range(0, lootPoints.Length)];
+        // Preferimos una estantería con producto; si todas están vacías, cualquiera (la oferta la rellena).
+        var candidates = new System.Collections.Generic.List<LootPoint>();
+        foreach (LootPoint lp in lootPoints)
+        {
+            lp.EnsureInitialized();
+            if (lp.IsAvailable) candidates.Add(lp);
+        }
+        if (candidates.Count == 0) candidates.AddRange(lootPoints);
+
+        serverShelf = candidates[UnityEngine.Random.Range(0, candidates.Count)];
         serverShelf.DoublePointsChanged += OnServerShelfChanged;
 
         // Primero dónde y cuántas; lo último, «remaining», que es lo que arranca los visuales.
         shelfPosition.Value = serverShelf.transform.position;
+        shelfIndex.Value = LootPoint.IndexOf(serverShelf);
         total.Value = serverShelf.MaxDoublePointsCollections;
         serverShelf.SetDoublePoints(true);
 

@@ -4736,23 +4736,23 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -6763858364670572316, guid: 0502780ac968b35418a02023b12fabe6, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 2147483647
+      value: 2147483643
       objectReference: {fileID: 0}
     - target: {fileID: -2045257923548263128, guid: 0502780ac968b35418a02023b12fabe6, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 2147483647
+      value: 2147483643
       objectReference: {fileID: 0}
     - target: {fileID: -1599826595754709761, guid: 0502780ac968b35418a02023b12fabe6, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 2147483647
+      value: 2147483643
       objectReference: {fileID: 0}
     - target: {fileID: -466329591000292508, guid: 0502780ac968b35418a02023b12fabe6, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 2147483647
+      value: 2147483643
       objectReference: {fileID: 0}
     - target: {fileID: 281855664364225751, guid: 0502780ac968b35418a02023b12fabe6, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 2147483647
+      value: 2147483643
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 0502780ac968b35418a02023b12fabe6, type: 3}
       propertyPath: m_Name
@@ -4760,19 +4760,22 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 0502780ac968b35418a02023b12fabe6, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 2147483647
+      value: 2147483643
       objectReference: {fileID: 0}
     - target: {fileID: 8009987137999418058, guid: 0502780ac968b35418a02023b12fabe6, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 2147483647
+      value: 2147483643
       objectReference: {fileID: 0}
     - target: {fileID: 8485173162082002552, guid: 0502780ac968b35418a02023b12fabe6, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 2147483647
+      value: 2147483643
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: -8679921383154817045, guid: 0502780ac968b35418a02023b12fabe6, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5291551848930799213}
     - targetCorrespondingSourceObject: {fileID: -8679921383154817045, guid: 0502780ac968b35418a02023b12fabe6, type: 3}
       insertIndex: -1
       addedObject: {fileID: 4661145712993605274}
@@ -4875,3 +4878,85 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1.2494135, y: 1.1026524, z: 1.2527878}
   m_Center: {x: 0.6268563, y: 0.5539541, z: 0.62522453}
+--- !u!1 &8671258490621894101
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5291551848930799213}
+  - component: {fileID: 4402742999170670871}
+  - component: {fileID: 7842663511347350616}
+  m_Layer: 6
+  m_Name: LootPoint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5291551848930799213
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8671258490621894101}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2462281709268278654}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &4402742999170670871
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8671258490621894101}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2539b1eb63f315a46a89f343c6f06cdb, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::LootPoint
+  preset: {fileID: 11400000, guid: ef6f5f52dbe84c62aeaecda92a656eeb, type: 2}
+  dropVariant: 1
+  lootPromptPrefab: {fileID: 8350599379450749252, guid: a958dcd884a34c12be52a4874297522e, type: 3}
+  visualRoot: {fileID: 0}
+  itemVisuals: []
+  itemNamePrefixes:
+  - SM_Aplee
+  itemPopDuration: 0.25
+  pointsPerItem: 10
+  weightPerItem: 1
+  minItems: 4
+  maxItems: 7
+  respawnTime: 0
+  maxDoublePointsCollections: 10
+  normalCooldown: 0
+  doublePointsCooldown: 2
+--- !u!65 &7842663511347350616
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8671258490621894101}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1.7494, y: 1.1027, z: 1.7528}
+  m_Center: {x: 0.6269, y: 0.5540, z: 0.6252}

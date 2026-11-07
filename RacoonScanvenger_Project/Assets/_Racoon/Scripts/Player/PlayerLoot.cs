@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Racoon.Feedback;
 using Racoon.Items;
 using Unity.Netcode;
@@ -95,6 +96,15 @@ namespace Racoon.Player
         MatchHUD hud;
         float nextBagFullNotice;
 
+        // Solo servidor: qué productos lleva en la bolsa (de qué estantería y cuánto vale cada uno), para soltar
+        // esos mismos productos al recibir un golpe. kind = DroppedLoot.Variant (0 = genérico, sin producto).
+        struct BagEntry
+        {
+            public int kind;
+            public int points;
+        }
+        readonly List<BagEntry> bag = new();
+
         public override void OnNetworkSpawn()
         {
             bankedPoints.OnValueChanged += OnBankedPointsChanged;
@@ -149,13 +159,20 @@ namespace Racoon.Player
         /// Sus puntos quedan pendientes hasta venderlo.
         /// Si no cabe entero entra lo que quepa; con la bolsa llena no entra nada (false) y se avisa al dueño.
         /// </summary>
-        public bool ServerAddLoot(int points, float weight) => ServerAddLootUpTo(points, weight) > 0 || points <= 0 && weight > 0f;
+        public bool ServerAddLoot(int points, float weight) => ServerAddLoot(points, weight, 0);
+
+        /// <summary>Igual, apuntando qué producto es (<paramref name="kind"/> = DroppedLoot.Variant) para poder soltarlo luego.</summary>
+        public bool ServerAddLoot(int points, float weight, int kind) =>
+            ServerAddLootUpTo(points, weight, kind) > 0 || points <= 0 && weight > 0f;
 
         /// <summary>
         /// Solo servidor. Como ServerAddLoot, pero devuelve los puntos que han entrado (lo que no cabe se queda fuera:
         /// una bolsita del suelo puede quedarse con el resto). El peso entra en la misma proporción.
         /// </summary>
-        public int ServerAddLootUpTo(int points, float weight)
+        public int ServerAddLootUpTo(int points, float weight) => ServerAddLootUpTo(points, weight, 0);
+
+        /// <summary>Igual, apuntando qué producto es (<paramref name="kind"/> = DroppedLoot.Variant).</summary>
+        public int ServerAddLootUpTo(int points, float weight, int kind)
         {
             if (!IsServer)
             {
@@ -180,6 +197,7 @@ namespace Racoon.Player
 
             pendingPoints.Value += accepted;
             carriedWeight.Value += weight * accepted / points;
+            bag.Add(new BagEntry { kind = kind, points = accepted });
             return accepted;
         }
 
@@ -230,6 +248,7 @@ namespace Racoon.Player
             bankedPoints.Value += pendingPoints.Value;
             pendingPoints.Value = 0;
             carriedWeight.Value = 0f;
+            bag.Clear();
 
             return true;
         }
@@ -253,7 +272,12 @@ namespace Racoon.Player
             if (droppedLootPrefab == null || fraction <= 0f || pendingPoints.Value <= 0)
                 return 0;
 
-            int points = Mathf.Clamp(Mathf.RoundToInt(pendingPoints.Value * fraction), 1, pendingPoints.Value);
+            int target = Mathf.Clamp(Mathf.RoundToInt(pendingPoints.Value * fraction), 1, pendingPoints.Value);
+            List<BagEntry> dropped = ServerTakeFromBag(target);
+            int points = 0;
+            foreach (BagEntry entry in dropped) points += entry.points;
+            if (points <= 0) return 0;
+
             // El peso sale en la misma proporción que los puntos.
             float weight = carriedWeight.Value * points / pendingPoints.Value;
 
@@ -264,13 +288,11 @@ namespace Racoon.Player
             if (direction.sqrMagnitude < 0.0001f) direction = -transform.forward;
             direction.Normalize();
 
-            int pickups = Mathf.Clamp(points / minPointsPerPickup, 1, maxDroppedPickups);
-            int pointsLeft = points;
+            // Un producto por pieza: cada una vale lo de su estantería (una manzana, más que una lata).
+            int pickups = dropped.Count;
             for (int i = 0; i < pickups; i++)
             {
-                // La última se lleva el resto del redondeo.
-                int pickupPoints = i == pickups - 1 ? pointsLeft : points / pickups;
-                pointsLeft -= pickupPoints;
+                int pickupPoints = dropped[i].points;
 
                 // En abanico alrededor de la dirección del empujón.
                 float angle = pickups > 1 ? Mathf.Lerp(-0.5f, 0.5f, i / (pickups - 1f)) * dropSpreadAngle : 0f;
@@ -281,11 +303,71 @@ namespace Racoon.Player
                     droppedLootPrefab,
                     transform.position + Vector3.up * 1f + scatter * 0.3f,
                     Quaternion.LookRotation(scatter));
-                pickup.ServerInitialize(pickupPoints, weight / pickups, this,
-                    scatter * dropScatterSpeed + Vector3.up * dropUpwardSpeed);
+                pickup.ServerInitialize(pickupPoints, weight * pickupPoints / points, this,
+                    scatter * dropScatterSpeed + Vector3.up * dropUpwardSpeed, dropped[i].kind);
             }
 
             return points;
+        }
+
+        // Saca de la bolsa productos enteros al azar hasta unos «target» puntos (como mucho maxDroppedPickups piezas).
+        // Si no cabe ninguno entero, parte uno. Lo que no estaba apuntado cuenta como genérico.
+        List<BagEntry> ServerTakeFromBag(int target)
+        {
+            SyncBagWithPending();
+            var taken = new List<BagEntry>();
+            int sum = 0;
+
+            // Orden al azar.
+            for (int i = bag.Count - 1; i > 0; i--)
+            {
+                int j = UnityEngine.Random.Range(0, i + 1);
+                (bag[i], bag[j]) = (bag[j], bag[i]);
+            }
+
+            for (int i = bag.Count - 1; i >= 0 && sum < target && taken.Count < maxDroppedPickups; i--)
+            {
+                BagEntry entry = bag[i];
+                // Se acepta pasarse un poco (media pieza), no más.
+                if (sum + entry.points - target > entry.points / 2) continue;
+                taken.Add(entry);
+                sum += entry.points;
+                bag.RemoveAt(i);
+            }
+
+            if (taken.Count == 0 && bag.Count > 0)
+            {
+                // Ninguno entra entero: se parte el más pequeño.
+                int smallest = 0;
+                for (int i = 1; i < bag.Count; i++)
+                    if (bag[i].points < bag[smallest].points) smallest = i;
+                BagEntry entry = bag[smallest];
+                int part = Mathf.Clamp(target, 1, entry.points);
+                taken.Add(new BagEntry { kind = entry.kind, points = part });
+                entry.points -= part;
+                if (entry.points > 0) bag[smallest] = entry;
+                else bag.RemoveAt(smallest);
+            }
+
+            return taken;
+        }
+
+        // La lista y los puntos de la bolsa tienen que cuadrar (por si algo los ha tocado sin pasar por aquí).
+        void SyncBagWithPending()
+        {
+            int sum = 0;
+            foreach (BagEntry entry in bag) sum += entry.points;
+            int pending = pendingPoints.Value;
+            if (sum < pending) bag.Add(new BagEntry { kind = 0, points = pending - sum });
+            for (int i = bag.Count - 1; i >= 0 && sum > pending; i--)
+            {
+                BagEntry entry = bag[i];
+                int cut = Mathf.Min(entry.points, sum - pending);
+                entry.points -= cut;
+                sum -= cut;
+                if (entry.points > 0) bag[i] = entry;
+                else bag.RemoveAt(i);
+            }
         }
 
         // ---------------- Resultado de partida ----------------

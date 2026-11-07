@@ -1042,10 +1042,12 @@ namespace Racoon.UI.HUD
         {
             var icon = main ? pv.mainItemIcon : pv.reserveItemIcon;
             var empty = main ? pv.mainItemEmpty : pv.reserveItemEmpty;
-            bool has = item && item.icon;
+            // El icono sale del modelo 3D del objeto (ItemModelIcons); sin modelo, su sprite.
+            Sprite sprite = ItemModelIcons.Get(item);
+            bool has = sprite != null;
             if (icon)
             {
-                icon.sprite = has ? item.icon : null;
+                icon.sprite = sprite;
                 icon.enabled = has;
             }
             if (empty) empty.SetActive(!has);
@@ -1084,7 +1086,8 @@ namespace Racoon.UI.HUD
                     if (Now >= next)
                     {
                         var item = pool[k++ % pool.Count];
-                        if (item && item.icon) icon.sprite = item.icon;
+                        Sprite sprite = ItemModelIcons.Get(item);
+                        if (sprite) icon.sprite = sprite;
                         // Frena con ease-in: cada vez más espacio entre iconos, y el «tic» algo más grave
                         float progress = (Now - start) / RouletteTime;
                         view.rouletteTickSfx.Play2D(Mathf.Lerp(1.15f, .9f, progress));
@@ -1102,7 +1105,7 @@ namespace Racoon.UI.HUD
             view.rouletteStopSfx.Play2D();
 
             // Destello del color del objeto que ha tocado
-            if (final && final.icon)
+            if (ItemModelIcons.Get(final))
             {
                 var flash = Clone(icon);
                 if (flash) host.StartCoroutine(RouletteFlash(flash, final.rarityColor));
