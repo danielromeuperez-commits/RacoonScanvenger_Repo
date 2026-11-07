@@ -48,10 +48,34 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: -8285071758450248554, guid: ddd0ef3ac373e494b8905a04e470d3a9, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 466044acd0f4b1d469acc857d26c2e8f, type: 2}
+    - target: {fileID: -7240360430818204754, guid: ddd0ef3ac373e494b8905a04e470d3a9, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 466044acd0f4b1d469acc857d26c2e8f, type: 2}
+    - target: {fileID: -6470638722971849055, guid: ddd0ef3ac373e494b8905a04e470d3a9, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 466044acd0f4b1d469acc857d26c2e8f, type: 2}
+    - target: {fileID: -6191023613956437622, guid: ddd0ef3ac373e494b8905a04e470d3a9, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 466044acd0f4b1d469acc857d26c2e8f, type: 2}
     - target: {fileID: 919132149155446097, guid: ddd0ef3ac373e494b8905a04e470d3a9, type: 3}
       propertyPath: m_Name
       value: SM_Extinguisher
       objectReference: {fileID: 0}
+    - target: {fileID: 6254428311232834775, guid: ddd0ef3ac373e494b8905a04e470d3a9, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 466044acd0f4b1d469acc857d26c2e8f, type: 2}
+    - target: {fileID: 6800695536941219368, guid: ddd0ef3ac373e494b8905a04e470d3a9, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 466044acd0f4b1d469acc857d26c2e8f, type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -135,5 +159,6 @@ MonoBehaviour:
   duration: 10
   bounceSpeed: 15
   validationDistance: 3
+  holdTime: 0.8
   lootPoints: 100
   lootWeight: 0
