@@ -469,11 +469,12 @@ namespace Racoon.Network
             Event current = Event.current;
             if (current.type == EventType.KeyDown && current.keyCode == toggleKey)
             {
+                AudioManager.Instance.PauseMusic();
                 hidden = !hidden;
                 current.Use();
             }
             if (hidden) return;
-
+            AudioManager.Instance.PlayMusic(2);
             float scale = Scale;
             GUI.matrix = Matrix4x4.Scale(new Vector3(scale, scale, 1f));
 
