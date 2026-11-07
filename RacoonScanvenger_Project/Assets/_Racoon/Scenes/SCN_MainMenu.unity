@@ -148,6 +148,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PersistentMusicBkgr
   countdownTickSfx: {fileID: 8300000, guid: e7548f74c1c820f479a234f211ce8995, type: 3}
   countdownStartSfx: {fileID: 8300000, guid: f4f33050ec2c0f54083b7f3da64218b7, type: 3}
+  musicVolume: 0.3
 --- !u!1 &332557005
 GameObject:
   m_ObjectHideFlags: 0
@@ -2037,6 +2038,18 @@ PrefabInstance:
       propertyPath: musicSource
       value: 
       objectReference: {fileID: 64894394}
+    - target: {fileID: 6341054698668197357, guid: 4be3fdd9c945d2640bd90d326628ccb5, type: 3}
+      propertyPath: sfxLibrary.Array.size
+      value: 25
+      objectReference: {fileID: 0}
+    - target: {fileID: 6341054698668197357, guid: 4be3fdd9c945d2640bd90d326628ccb5, type: 3}
+      propertyPath: 'sfxLibrary.Array.data[23]'
+      value: 
+      objectReference: {fileID: 8300000, guid: ef3df61c1522ff84e8f327bf00792187, type: 3}
+    - target: {fileID: 6341054698668197357, guid: 4be3fdd9c945d2640bd90d326628ccb5, type: 3}
+      propertyPath: 'sfxLibrary.Array.data[24]'
+      value: 
+      objectReference: {fileID: 8300000, guid: 7f1427182178425479850d57d27b04ae, type: 3}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
