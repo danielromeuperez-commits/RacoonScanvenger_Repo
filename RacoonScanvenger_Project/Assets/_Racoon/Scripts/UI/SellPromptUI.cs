@@ -42,11 +42,7 @@ namespace Racoon.UI
         [SerializeField] string sellingText = "VENDIENDO";
         [SerializeField] string soldText = "¡VENDIDO!";
 
-        [Header("Distancias (m, en el suelo)")]
-        [Tooltip("A esta distancia del punto de venta aparece el aviso (si lleva algo en la bolsa).")]
-        [SerializeField] float showDistance = 3.2f;
-        [Tooltip("A esta distancia ya puede vender: el anillo se llena si mantiene.")]
-        [SerializeField] float sellDistance = 1.9f;
+        // Solo sale si el punto de venta está al alcance de la interacción del jugador (PlayerController.InteractReach).
 
         [Tooltip("Toques en vez de mantener: cada toque cuenta como mantener durante estos segundos " +
                  "(igual que el margen del servidor entre interacciones).")]
@@ -135,13 +131,13 @@ namespace Racoon.UI
             bool visible = false, holding = false;
             if (local != null && localLoot != null)
             {
-                Vector3 offset = local.transform.position - sellPoint.transform.position;
-                offset.y = 0f;
-                float distance = offset.magnitude;
+                // Solo al alcance de la interacción del jugador (borde de la esfera de interacción).
+                float distance = FlatDistanceTo(local.transform.position, sellPoint);
+                float reach = local.InteractReach;
                 int pending = localLoot.PendingPoints;
 
                 // Acaba de vender aquí: «¡VENDIDO!» (el Animator lo enseña aunque ya no quede nada en la bolsa).
-                if (pending == 0 && lastPending > 0 && distance <= sellDistance)
+                if (pending == 0 && lastPending > 0 && distance <= reach + 0.5f)
                 {
                     animator.SetTrigger(SoldId);
                     SetLabel(soldText);
@@ -149,12 +145,12 @@ namespace Racoon.UI
                 }
                 lastPending = pending;
 
-                visible = pending > 0 && distance <= showDistance;
-                holding = visible && distance <= sellDistance && localInput != null && (localInput.InteractHeld || Time.time - lastPress <= tapWindow);
+                visible = pending > 0 && distance <= reach;
+                holding = visible && localInput != null && (localInput.InteractHeld || Time.time - lastPress <= tapWindow);
             }
 
             // Mismo tiempo que pide el SellPoint en el servidor; al soltar se vacía rápido.
-            float holdTime = Mathf.Max(0.05f, sellPoint.HoldToSellTime);
+            float holdTime = Mathf.Max(0.05f, sellPoint.HoldTimeFor(localLoot != null ? localLoot.PendingPoints : 0));
             held = holding ? Mathf.Min(1f, held + Time.deltaTime / holdTime)
                 : Mathf.MoveTowards(held, 0f, Time.deltaTime * 4f);
             if (ringFill != null) ringFill.fillAmount = held;
@@ -172,6 +168,26 @@ namespace Racoon.UI
             if (label == null || text == shownText) return;
             shownText = text;
             label.SetText(text);
+        }
+
+        // Distancia en el suelo desde el jugador hasta el borde del collider más cercano del objeto.
+        static float FlatDistanceTo(Vector3 from, Component target)
+        {
+            float best = float.MaxValue;
+            foreach (Collider col in target.GetComponentsInChildren<Collider>())
+            {
+                if (!col.enabled) continue;
+                Vector3 offset = col.ClosestPoint(from) - from;
+                offset.y = 0f;
+                best = Mathf.Min(best, offset.magnitude);
+            }
+            if (best == float.MaxValue)
+            {
+                Vector3 offset = target.transform.position - from;
+                offset.y = 0f;
+                best = offset.magnitude;
+            }
+            return best;
         }
 
         void Place()

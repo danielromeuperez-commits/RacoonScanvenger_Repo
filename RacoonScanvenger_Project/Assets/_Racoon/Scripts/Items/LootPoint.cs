@@ -24,6 +24,14 @@ public class LootPoint : MonoBehaviour, IRepeatableInteractable
     [Tooltip("PF_HUD_AvisoSaquear: aviso de «mantén para saquear» (uno solo por partida, lo crea la primera estantería).")]
     [SerializeField] Racoon.UI.LootPromptUI lootPromptPrefab;
 
+    [Header("Uso exclusivo (neveras)")]
+    [Tooltip("Solo un jugador a la vez: mientras alguien la saquea (y hasta Exclusive Release después de su última " +
+             "interacción), los demás no pueden. Quien la saquea se queda quieto mientras mantiene (PlayerController) y " +
+             "FridgeLoot abre las puertas.")]
+    [SerializeField] bool exclusiveUse;
+    [Tooltip("Segundos sin interactuar tras los que deja de estar en uso.")]
+    [SerializeField, Min(0.1f)] float exclusiveRelease = 0.7f;
+
     [Header("Visuales")]
     [Tooltip("Raíz del mueble: todo lo que brilla durante la oferta x2. Vacío = el padre de este objeto.")]
     [SerializeField] Transform visualRoot;
@@ -223,6 +231,10 @@ public class LootPoint : MonoBehaviour, IRepeatableInteractable
             player == null)
             return false;
 
+        // Exclusiva y la está usando otro.
+        if (exclusiveUse && userPlayer != null && userPlayer != player && Time.time - lastUseTime <= exclusiveRelease)
+            return false;
+
         // Comprobar si este jugador está en tiempo de espera (cooldown)
         if (nextInteractTimeByPlayer.TryGetValue(player.NetworkObjectId, out float nextTime) &&
             Time.time < nextTime)
@@ -239,6 +251,18 @@ public class LootPoint : MonoBehaviour, IRepeatableInteractable
             return;
 
         PlayerLoot playerLoot = player.GetComponent<PlayerLoot>();
+
+        // Exclusiva: pasa a ser suya mientras siga interactuando.
+        if (exclusiveUse)
+        {
+            lastUseTime = Time.time;
+            if (userPlayer != player)
+            {
+                userPlayer = player;
+                userClient = (int)player.OwnerClientId;
+                PublishState();
+            }
+        }
 
         // Calcular puntos según si el evento x2 está activo
         bool doubled = isDoublePoints;
@@ -291,7 +315,41 @@ public class LootPoint : MonoBehaviour, IRepeatableInteractable
     void PublishState()
     {
         ApplyVisualState(itemsRemaining, itemsTotal);
-        LootPointSync.ServerReport(this, itemsRemaining, itemsTotal);
+        LootPointSync.ServerReport(this, itemsRemaining, itemsTotal, userClient);
+    }
+
+    // ---------------- Uso exclusivo ----------------
+
+    PlayerController userPlayer;   // servidor
+    float lastUseTime;             // servidor
+    int userClient = -1;           // todos: clientId de quien la está usando (-1 = nadie)
+
+    /// <summary>Exclusiva (nevera): solo un jugador a la vez.</summary>
+    public bool ExclusiveUse => exclusiveUse;
+
+    /// <summary>ClientId de quien la está usando ahora (-1 = nadie). En todos los clientes.</summary>
+    public int CurrentUserClientId => userClient;
+
+    /// <summary>Clientes: estado replicado por LootPointSync.</summary>
+    public void ApplyUser(int clientId) => userClient = clientId;
+
+    /// <summary>Hay una LootPoint exclusiva (nevera) que está usando este cliente.</summary>
+    public static bool IsInUseBy(ulong clientId)
+    {
+        foreach (LootPoint point in All)
+            if (point != null && point.exclusiveUse && point.userClient == (int)clientId) return true;
+        return false;
+    }
+
+    void Update()
+    {
+        // Servidor: suelta la exclusiva cuando deja de interactuar.
+        if (!exclusiveUse || userPlayer == null) return;
+        if (NetworkManager.Singleton == null || !NetworkManager.Singleton.IsServer) return;
+        if (Time.time - lastUseTime <= exclusiveRelease && userPlayer.IsSpawned) return;
+        userPlayer = null;
+        userClient = -1;
+        PublishState();
     }
 
     // Productos en el orden en que se van quitando (barajado fijo: igual en todas las instancias).

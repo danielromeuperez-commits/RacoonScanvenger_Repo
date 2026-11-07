@@ -29,6 +29,15 @@ namespace Racoon.Items
         [Tooltip("Normal mínima para considerar que ha tocado el suelo (no una pared).")]
         [SerializeField, Range(0f, 1f)] float groundNormalThreshold = 0.5f;
 
+        [Header("Resbalar de los props")]
+        [Tooltip("Solo se queda quieto a esta altura (m) o menos sobre el suelo (los pies de quien lo soltó). " +
+                 "Encima de una estantería o un mostrador resbala hasta caer.")]
+        [SerializeField, Min(0f)] float floorTolerance = 0.25f;
+        [Tooltip("Velocidad (m/s) con la que se aparta del centro del prop en el que ha caído.")]
+        [SerializeField, Min(0f)] float slideSpeed = 1.6f;
+        [Tooltip("Segundos máximos resbalando: si no llega al suelo, se queda donde esté.")]
+        [SerializeField, Min(0.5f)] float maxSlideTime = 5f;
+
         [Header("Producto")]
         [Tooltip("Modelo genérico (la bolsita): se ve con Variant 0, cuando no se sabe qué producto es.")]
         [SerializeField] Renderer genericVisual;
@@ -48,6 +57,8 @@ namespace Racoon.Items
         float spawnTime;
         bool landed;
         bool consumed;
+        float floorY = float.NegativeInfinity;
+        static PhysicsMaterial slippery;
 
         void Awake() => body = GetComponent<Rigidbody>();
 
@@ -59,6 +70,19 @@ namespace Racoon.Items
             this.weight = weight;
             this.droppedBy = droppedBy;
             spawnTime = Time.time;
+            // Altura del suelo: los pies de quien lo suelta.
+            if (droppedBy != null) floorY = droppedBy.transform.position.y;
+            // Casi sin rozamiento: resbala de los bordes en vez de quedarse enganchado.
+            if (solidCollider != null)
+            {
+                if (slippery == null)
+                    slippery = new PhysicsMaterial("DroppedLoot_Resbala")
+                    {
+                        dynamicFriction = 0.05f, staticFriction = 0.05f, bounciness = 0.15f,
+                        frictionCombine = PhysicsMaterialCombine.Minimum,
+                    };
+                solidCollider.sharedMaterial = slippery;
+            }
 
             GetComponent<NetworkObject>().Spawn(true);
             body.linearVelocity = velocity;
@@ -92,17 +116,39 @@ namespace Racoon.Items
                 if (variants[i] != null) variants[i].SetActive(i == index);
         }
 
-        void OnCollisionEnter(Collision collision)
+        void OnCollisionEnter(Collision collision) => CheckContacts(collision);
+
+        // Stay: también mientras resbala por encima de un prop (pocas bolsitas y solo hasta que se paran: barato).
+        void OnCollisionStay(Collision collision) => CheckContacts(collision);
+
+        void CheckContacts(Collision collision)
         {
             if (!IsServer || landed) return;
+            if (collision.collider.GetComponentInParent<PlayerController>() != null) return;   // rebota en los jugadores
 
-            foreach (ContactPoint contact in collision.contacts)
+            for (int i = 0; i < collision.contactCount; i++)
             {
-                // Rebota en los jugadores y las paredes; solo se para en el suelo.
-                if (contact.normal.y < groundNormalThreshold || collision.collider.GetComponentInParent<PlayerController>() != null)
-                    continue;
+                ContactPoint contact = collision.GetContact(i);
+                // Paredes: rebota y sigue.
+                if (contact.normal.y < groundNormalThreshold) continue;
 
-                Land();
+                // En el suelo (o se le acabó el tiempo): se queda quieta.
+                bool onFloor = contact.point.y <= floorY + floorTolerance;
+                if (onFloor || Time.time - spawnTime > maxSlideTime)
+                {
+                    Land();
+                    return;
+                }
+
+                // Encima de un prop: se aparta de su centro hasta caer por el borde.
+                Vector3 away = transform.position - collision.collider.bounds.center;
+                away.y = 0f;
+                if (away.sqrMagnitude < 0.0001f) away = Random.insideUnitSphere;
+                away.y = 0f;
+                Vector3 velocity = body.linearVelocity;
+                Vector3 push = away.normalized * slideSpeed;
+                if (new Vector2(velocity.x, velocity.z).sqrMagnitude < slideSpeed * slideSpeed)
+                    body.linearVelocity = new Vector3(push.x, velocity.y, push.z);
                 return;
             }
         }

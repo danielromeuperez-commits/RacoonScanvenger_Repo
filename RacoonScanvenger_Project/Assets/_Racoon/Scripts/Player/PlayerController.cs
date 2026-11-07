@@ -371,6 +371,20 @@ namespace Racoon.Player
         public event Action<ItemData> ItemUseRefused;
         /// <summary>Propulsado por el extintor. Solo tiene sentido en el dueño.</summary>
         public bool IsExtintorActive => extintorActive;
+
+        // Objeto mecánico (extintor, despertador) que lleva hasta venderlo. Lo pone el servidor al cogerlo y lo
+        // quita al vender (PlayerLoot.ServerSellLoot). Mientras lo lleva, los objetos de las cajas no se ven ni se usan.
+        readonly NetworkVariable<byte> carriedMech = new(0);
+
+        /// <summary>Objeto mecánico que lleva (None = ninguno). Todos los clientes.</summary>
+        public MechKind CarriedMech => (MechKind)carriedMech.Value;
+        public bool IsCarryingMech => carriedMech.Value != 0;
+
+        /// <summary>Solo servidor.</summary>
+        public void ServerSetCarriedMech(MechKind kind)
+        {
+            if (IsServer) carriedMech.Value = (byte)kind;
+        }
         /// <summary>Mantiene Usar con un objeto equipado: apuntando, lo usará al soltar. Solo tiene sentido en el dueño.</summary>
         public bool IsAimingItem => aimingItem;
         /// <summary>Apuntando con el stick hacia atrás: al soltar, el objeto cae detrás. Solo tiene sentido en el dueño.</summary>
@@ -480,6 +494,8 @@ namespace Racoon.Player
 
         void Awake()
         {
+            // Modelo y efectos del objeto mecánico que lleve (no es de red: lo manda CarriedMech).
+            if (!TryGetComponent(out PlayerMechCarry _)) gameObject.AddComponent<PlayerMechCarry>();
             body = GetComponent<Rigidbody>();
             capsule = GetComponent<CapsuleCollider>();
             input = GetComponent<PlayerInputHandler>();
@@ -623,6 +639,9 @@ namespace Racoon.Player
             UpdateInvulnerability();
 
             Vector2 move = input.Move;
+            // Saqueando una nevera (LootPoint exclusiva) se queda quieto mientras mantiene: así no se abren y cierran
+            // las puertas de varias a la vez.
+            if (input.InteractHeld && LootPoint.IsInUseBy(OwnerClientId)) move = Vector2.zero;
             bool hasMoveInput = move.sqrMagnitude > moveDeadzone * moveDeadzone;
             // El puñetazo va por el tren superior (capa UpperBody): las piernas siguen andando o corriendo.
             bool upperBodyAction = IsInAction && State == PlayerState.Punch;
@@ -1353,7 +1372,7 @@ namespace Racoon.Player
         {
             // CanSwitch evita desequipar el único objeto que llevas.
             // Mientras apunta no cambia: la flecha es del objeto que tiene en la mano.
-            if (extintorActive || IsInAction || itemRecoveryRequired || chargingPunch || aimingItem || aimingTarget || !inventory.CanSwitch ||
+            if (extintorActive || IsCarryingMech || IsInAction || itemRecoveryRequired || chargingPunch || aimingItem || aimingTarget || !inventory.CanSwitch ||
                 inventory.IsRouletteSpinning) return;
             StartAction(PlayerState.SwitchItem, switchItemDuration);
             SwitchItemRpc();
@@ -1377,6 +1396,9 @@ namespace Racoon.Player
         void OnUseItemPressed()
         {
             if (extintorActive || IsInAction || itemRecoveryRequired || chargingPunch || aimingItem || State.IsGrounded()) return;
+
+            // Llevando un objeto mecánico, los de las cajas están guardados: no se pueden usar.
+            if (IsCarryingMech) return;
 
             // Con un objeto en la ruleta, el botón solo la para (HUDController).
             if (inventory.IsRouletteSpinning || !inventory.HasEquipped) return;
@@ -1503,6 +1525,12 @@ namespace Racoon.Player
 
         // A la misma altura que la esfera del golpe (punchHeight), no por encima del personaje.
         Vector3 InteractCenter => InteractCenterFor(InteractForward);
+
+        /// <summary>
+        /// Hasta dónde llega la interacción desde el jugador (m, en el suelo): el borde de la esfera de interacción.
+        /// Como el autoapuntado le gira hacia el objetivo, vale en cualquier dirección. Lo usan los avisos de «mantén».
+        /// </summary>
+        public float InteractReach => frontInteractRange + frontInteractRadius;
 
         Vector3 InteractCenterFor(Vector3 forward) => transform.position + Vector3.up * punchHeight + forward * frontInteractRange;
 

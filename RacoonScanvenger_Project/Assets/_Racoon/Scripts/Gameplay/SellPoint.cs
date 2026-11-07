@@ -1,10 +1,10 @@
-using System.Collections.Generic;
 using Racoon.Items;
 using Racoon.Player;
 using UnityEngine;
 
 /// <summary>
-/// Punto de venta: hay que MANTENER Interact para vender la bolsa.
+/// Punto de venta: hay que MANTENER Interact para vender la bolsa, más tiempo cuantos más puntos lleve
+/// (<see cref="HoldTimeFor"/>; el aviso SellPromptUI llena su dial con el mismo tiempo).
 ///
 /// No necesita nada en PlayerController: al pulsar llega una interacción y, mientras se mantiene,
 /// PlayerController repite la interacción con los IRepeatableInteractable cada pocas décimas. Aquí se mide cuánto
@@ -12,8 +12,13 @@ using UnityEngine;
 /// </summary>
 public class SellPoint : MonoBehaviour, IRepeatableInteractable
 {
-    [Tooltip("Segundos manteniendo Interact para vender.")]
-    [SerializeField, Min(0f)] float holdToSellTime = 1.2f;
+    [Header("Tiempo a mantener = base + segundos por punto × puntos (con un máximo)")]
+    [Tooltip("Segundos manteniendo Interact con la bolsa casi vacía.")]
+    [SerializeField, Min(0f)] float baseHoldTime = 0.5f;
+    [Tooltip("Segundos extra por cada punto que se vende (100 puntos × 0,013 = 1,3 s más).")]
+    [SerializeField, Min(0f)] float secondsPerPoint = 0.013f;
+    [Tooltip("Lo más que hay que mantener, lleve lo que lleve.")]
+    [SerializeField, Min(0f)] float maxHoldTime = 3f;
     [Tooltip("Si pasa más que esto entre una interacción y la siguiente, ha soltado: se reinicia. " +
              "Tiene que ser mayor que la duración de la acción Interact del jugador (0,4 s).")]
     [SerializeField, Min(0.1f)] float releaseTolerance = 0.7f;
@@ -21,10 +26,12 @@ public class SellPoint : MonoBehaviour, IRepeatableInteractable
     [Tooltip("PF_HUD_AvisoVender: aviso de «mantén para vender» que ve cada jugador en su instancia. Vacío = sin aviso.")]
     [SerializeField] Racoon.UI.SellPromptUI sellPromptPrefab;
 
-    // Por jugador (solo servidor): cuándo empezó a mantener y cuándo llegó la última interacción.
-    readonly Dictionary<ulong, (float start, float last)> holds = new();
+    // Por jugador (solo servidor): cuánto lleva manteniendo.
+    readonly HoldInteraction hold = new();
 
-    public float HoldToSellTime => holdToSellTime;
+    /// <summary>Segundos que hay que mantener para vender <paramref name="points"/> puntos (servidor y aviso).</summary>
+    public float HoldTimeFor(int points) =>
+        Mathf.Min(maxHoldTime, baseHoldTime + secondsPerPoint * Mathf.Max(0, points));
 
     void Start()
     {
@@ -49,7 +56,7 @@ public class SellPoint : MonoBehaviour, IRepeatableInteractable
     }
 
     /// <summary>
-    /// Cuenta el tiempo que lleva manteniendo; al llegar a holdToSellTime vende todo el contenido de la bolsa.
+    /// Cuenta el tiempo que lleva manteniendo; al llegar a HoldTimeFor(puntos) vende todo el contenido de la bolsa.
     /// </summary>
     public void Interact(PlayerController player)
     {
@@ -62,19 +69,7 @@ public class SellPoint : MonoBehaviour, IRepeatableInteractable
         if (playerLoot == null)
             return;
 
-        float now = Time.time;
-        ulong id = player.NetworkObjectId;
-        if (!holds.TryGetValue(id, out var hold) || now - hold.last > releaseTolerance)
-            hold = (now, now);
-        hold.last = now;
-
-        if (now - hold.start + 0.001f < holdToSellTime)
-        {
-            holds[id] = hold;
-            return;
-        }
-
-        holds.Remove(id);
-        playerLoot.ServerSellLoot();
+        if (hold.Tick(player, HoldTimeFor(playerLoot.PendingPoints), releaseTolerance))
+            playerLoot.ServerSellLoot();
     }
 }

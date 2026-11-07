@@ -16,14 +16,17 @@ public class LootPointSync : NetworkBehaviour
     {
         public byte remaining;
         public byte total;
+        /// <summary>Quién la está usando (neveras): clientId + 1; 0 = nadie.</summary>
+        public byte user;
 
         public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
         {
             serializer.SerializeValue(ref remaining);
             serializer.SerializeValue(ref total);
+            serializer.SerializeValue(ref user);
         }
 
-        public bool Equals(LootState other) => remaining == other.remaining && total == other.total;
+        public bool Equals(LootState other) => remaining == other.remaining && total == other.total && user == other.user;
     }
 
     static LootPointSync current;
@@ -62,7 +65,7 @@ public class LootPointSync : NetworkBehaviour
     }
 
     /// <summary>Solo servidor: guarda el estado de un LootPoint para los clientes.</summary>
-    public static void ServerReport(LootPoint lootPoint, int remaining, int total)
+    public static void ServerReport(LootPoint lootPoint, int remaining, int total, int userClientId = -1)
     {
         if (current == null || !current.IsSpawned || !current.IsServer) return;
 
@@ -73,6 +76,7 @@ public class LootPointSync : NetworkBehaviour
         {
             remaining = (byte)Mathf.Clamp(remaining, 0, 255),
             total = (byte)Mathf.Clamp(total, 0, 255),
+            user = (byte)Mathf.Clamp(userClientId + 1, 0, 255),
         };
         if (!current.states[index].Equals(state)) current.states[index] = state;
     }
@@ -100,5 +104,6 @@ public class LootPointSync : NetworkBehaviour
         // total 0 = el servidor aún no la ha rellenado: no tocar.
         if (state.total == 0) return;
         all[index].ApplyVisualState(state.remaining, state.total);
+        all[index].ApplyUser(state.user - 1);
     }
 }

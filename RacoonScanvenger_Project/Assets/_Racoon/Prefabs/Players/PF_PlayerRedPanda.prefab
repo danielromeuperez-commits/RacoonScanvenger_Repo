@@ -652,7 +652,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 3468908988
+  GlobalObjectIdHash: 3183137445
   InScenePlacedSourceGlobalObjectIdHash: 0
   m_InScenePlacedDisabledByDefault: 0
   DeferredDespawnTick: 0
@@ -736,8 +736,8 @@ MonoBehaviour:
   switchItemDuration: 0.25
   punchDuration: 0.45
   useItemDuration: 0.5
-  frontInteractRange: 0.5
-  frontInteractRadius: 0.69
+  frontInteractRange: 0.2
+  frontInteractRadius: 0.4
   interactMask:
     serializedVersion: 2
     m_Bits: 64
@@ -767,9 +767,9 @@ MonoBehaviour:
   punchAssistRange: 2.2
   punchAssistAngle: 110
   interactAssistRange: 1.8
-  interactAssistAngle: 80
+  interactAssistAngle: 90
   assistHoldTime: 0.25
-  interactAssistCenterBias: 0.6
+  interactAssistCenterBias: 0.8
   bounceMinImpact: 5
   bounceStrength: 0.35
   bounceKeepSpeed: 0.25
@@ -1115,6 +1115,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Racoon.Player.PlayerCameraShake
   controller: {fileID: 6147228204243766040}
   intensity: 1
+  basicIntensity: 0.55
   lightHit:
     enabled: 1
     duration: 0.28

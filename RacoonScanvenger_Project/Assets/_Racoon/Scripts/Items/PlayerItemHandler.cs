@@ -71,7 +71,9 @@ namespace Racoon.Player
         [SerializeField] SfxCue switchSfx = new();
 
         const int MaxArcDots = 36;
-        const float RevealGrace = 0.1f;
+        // Sin HUD (o si la ruleta no llega a arrancar), cuánto se espera antes de enseñarlo igualmente.
+        const float RevealGrace = 0.6f;
+        const float RevealTimeout = 6f;
         const float ArcMaxTime = 2f, ArcStep = 0.03f, ArcMarchSpeed = 1.2f;
 
         GameObject currentHeldVisual;
@@ -81,7 +83,7 @@ namespace Racoon.Player
         int lastCount;
         float aimHeldTime;
         // El objeto recién cogido espera a que la ruleta del HUD lo descubra (solo el nuevo, no uno que ya llevaba).
-        bool heldAwaitingReveal;
+        bool heldAwaitingReveal, sawRouletteSpin, hiddenByMech;
         float heldCreatedTime;
 
         // Apuntado (solo dueño)
@@ -158,6 +160,7 @@ namespace Racoon.Player
 
             currentHeldVisual = InstantiateVisual(item.heldVisualPrefab);
             heldAwaitingReveal = picked;
+            sawRouletteSpin = false;
             heldCreatedTime = Time.time;
             heldRestScale = currentHeldVisual.transform.localScale;
             StartCoroutine(AttachNextFrame(currentHeldVisual));
@@ -223,12 +226,30 @@ namespace Racoon.Player
 
             Transform held = currentHeldVisual.transform;
 
-            // Mientras la ruleta del HUD no lo ha descubierto, no se ve; al pararse entra con su pop.
-            // (Margen corto por si la ruleta arranca un frame después; sin HUD sale enseguida.)
+            // Llevando un objeto mecánico (extintor, despertador) el de la caja está guardado; al entregarlo vuelve.
+            if (controller != null && controller.IsCarryingMech)
+            {
+                hiddenByMech = true;
+                held.localScale = Vector3.zero;
+                return;
+            }
+            if (hiddenByMech)
+            {
+                hiddenByMech = false;
+                heldPopStart = Time.time;
+            }
+
+            // Mientras la ruleta del HUD no lo ha descubierto, no se ve («sin definir»); al pararse entra con su pop.
+            // Espera a ver la ruleta girar y pararse (puede arrancar unos frames tarde). Sin HUD, o si no llega a
+            // girar, sale tras RevealGrace; RevealTimeout por si algo se queda colgado.
             if (heldAwaitingReveal)
             {
                 bool spinning = inventory != null && inventory.IsRouletteSpinning;
-                if (spinning || Time.time - heldCreatedTime < RevealGrace)
+                if (spinning) sawRouletteSpin = true;
+                float age = Time.time - heldCreatedTime;
+                bool hud = inventory != null && inventory.HasRouletteChecks;
+                bool revealed = sawRouletteSpin ? !spinning : age >= (hud ? RevealGrace : 0.1f);
+                if (!revealed && age < RevealTimeout)
                 {
                     held.localScale = Vector3.zero;
                     return;

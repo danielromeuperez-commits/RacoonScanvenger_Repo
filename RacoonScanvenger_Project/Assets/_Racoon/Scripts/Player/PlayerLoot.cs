@@ -250,6 +250,10 @@ namespace Racoon.Player
             carriedWeight.Value = 0f;
             bag.Clear();
 
+            // Se entrega también el objeto mecánico que llevara (extintor, despertador): deja de sonar y se va.
+            if (TryGetComponent(out PlayerController controller))
+                controller.ServerSetCarriedMech(MechKind.None);
+
             return true;
         }
 

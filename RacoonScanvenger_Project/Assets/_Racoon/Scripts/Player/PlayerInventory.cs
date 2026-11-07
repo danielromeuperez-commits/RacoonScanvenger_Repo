@@ -61,6 +61,9 @@ namespace Racoon.Player
         /// </summary>
         public bool IsRouletteSpinning => rouletteChecks.Exists(check => check());
 
+        /// <summary>Hay algún HUD enseñando la ruleta de este jugador.</summary>
+        public bool HasRouletteChecks => rouletteChecks.Count > 0;
+
         public void AddRouletteCheck(Func<bool> check) => rouletteChecks.Add(check);
         public void RemoveRouletteCheck(Func<bool> check) => rouletteChecks.Remove(check);
 

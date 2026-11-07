@@ -181,7 +181,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b9053cb4de917c045822e076b39a8b2d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SellPoint
-  holdToSellTime: 1.2
+  baseHoldTime: 0.5
+  secondsPerPoint: 0.013
+  maxHoldTime: 3
   releaseTolerance: 0.7
   sellPromptPrefab: {fileID: 1865474420335011194, guid: dd77867d9f2441ce86a8801d95d39440, type: 3}
 --- !u!95 &5095508471550458271
