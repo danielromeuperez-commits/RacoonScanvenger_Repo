@@ -9,7 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7109881733383856473}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: SM_Chips (5)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -41,7 +41,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6717758890594876037}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: SM_Chips (2)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -73,7 +73,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2789588024398640365}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: SM_Chips (11)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -107,7 +107,7 @@ GameObject:
   - component: {fileID: 1251925960010936716}
   - component: {fileID: 9027559211887315319}
   - component: {fileID: 547301263179927699}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: sm_shelve.004
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -197,7 +197,7 @@ GameObject:
   - component: {fileID: 1367541601210604052}
   - component: {fileID: 4235702325180632066}
   - component: {fileID: 8935437879865512972}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: sm_shelve.001
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -287,7 +287,7 @@ GameObject:
   - component: {fileID: 568603090290989947}
   - component: {fileID: 2869303675829409119}
   - component: {fileID: 711676614217322584}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: SM_Sheeps
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -377,7 +377,7 @@ GameObject:
   - component: {fileID: 5261954918565453966}
   - component: {fileID: 5394153186535521057}
   - component: {fileID: 1964617928159873198}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: SM_Sheeps
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -467,7 +467,7 @@ GameObject:
   - component: {fileID: 7955299920451706567}
   - component: {fileID: 8067131143970003548}
   - component: {fileID: 7625777800474611418}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: SM_Sheeps
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -557,7 +557,7 @@ GameObject:
   - component: {fileID: 5708760372253727578}
   - component: {fileID: 1796263598861552704}
   - component: {fileID: 5782622153337805898}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: sm_shelve.005
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -646,7 +646,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3453257572856900914}
   - component: {fileID: 8875733068625356194}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: PF_SM_Shelves
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -723,7 +723,7 @@ GameObject:
   - component: {fileID: 8941460242870417240}
   - component: {fileID: 6720683644465860149}
   - component: {fileID: 8315352236574982798}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: SM_Sheeps
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -813,7 +813,7 @@ GameObject:
   - component: {fileID: 7970640922843330322}
   - component: {fileID: 6752965451087302019}
   - component: {fileID: 661496181835288917}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: SM_Sheeps
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -903,7 +903,7 @@ GameObject:
   - component: {fileID: 3367550357662045045}
   - component: {fileID: 3541811747550128019}
   - component: {fileID: 1424422532718763401}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: SM_Sheeps
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -993,7 +993,7 @@ GameObject:
   - component: {fileID: 8913388872596892420}
   - component: {fileID: 1100107453808195210}
   - component: {fileID: 2942092292299160134}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: LootPoint
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1067,7 +1067,7 @@ GameObject:
   - component: {fileID: 1215346358219370365}
   - component: {fileID: 6683855107200870456}
   - component: {fileID: 5894074001209893351}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: sm_shelve.002
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1157,7 +1157,7 @@ GameObject:
   - component: {fileID: 7001851394435587669}
   - component: {fileID: 6508725780524678980}
   - component: {fileID: 6488049297401341819}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: sm_shelve
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1245,7 +1245,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2513258763581685590}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: SM_Chips (6)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1277,7 +1277,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5606151141065144415}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: SM_Chips
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1311,7 +1311,7 @@ GameObject:
   - component: {fileID: 1259463022651693844}
   - component: {fileID: 2819805252132283652}
   - component: {fileID: 892017602246342943}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: sm_shelve.008
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1401,7 +1401,7 @@ GameObject:
   - component: {fileID: 345842341211774877}
   - component: {fileID: 8110980371962446312}
   - component: {fileID: 7432991020566718554}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: SM_Sheeps
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1489,7 +1489,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8046128562181918447}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: SM_Chips (9)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1523,7 +1523,7 @@ GameObject:
   - component: {fileID: 1751675067440167329}
   - component: {fileID: 5900362024095261415}
   - component: {fileID: 4418124560838410779}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: SM_Sheeps
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1611,7 +1611,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6139747191378425041}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: SM_Chips (10)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1645,7 +1645,7 @@ GameObject:
   - component: {fileID: 583689188588889650}
   - component: {fileID: 8562998612643460130}
   - component: {fileID: 7044016187221195433}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: sm_shelve.009
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1735,7 +1735,7 @@ GameObject:
   - component: {fileID: 5939241625668119602}
   - component: {fileID: 8955926875295750557}
   - component: {fileID: 6186736320448892306}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: SM_Sheeps
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1825,7 +1825,7 @@ GameObject:
   - component: {fileID: 1696899393693661571}
   - component: {fileID: 7090392579571357669}
   - component: {fileID: 377156992783889835}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: sm_shelve.003
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1915,7 +1915,7 @@ GameObject:
   - component: {fileID: 8923712530476037506}
   - component: {fileID: 5316296100367995912}
   - component: {fileID: 3278006544551744963}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: sm_shelve.006
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2005,7 +2005,7 @@ GameObject:
   - component: {fileID: 3455199504498575929}
   - component: {fileID: 6606787039288693836}
   - component: {fileID: 5483327786578214398}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: SM_Sheeps
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2095,7 +2095,7 @@ GameObject:
   - component: {fileID: 2823386671723348698}
   - component: {fileID: 3918524649028125593}
   - component: {fileID: 7415807164409958662}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: SM_Sheeps
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2183,7 +2183,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1515579883890076556}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: SM_Chips (3)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2215,7 +2215,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 528963034993385661}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: SM_Chips (8)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2247,7 +2247,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7418260508121198075}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: SM_Chips (1)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2281,7 +2281,7 @@ GameObject:
   - component: {fileID: 6662537437805590231}
   - component: {fileID: 4474813790025245067}
   - component: {fileID: 1934203486571013201}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: SM_Sheeps
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2371,7 +2371,7 @@ GameObject:
   - component: {fileID: 3646849662538567915}
   - component: {fileID: 6344892808157803543}
   - component: {fileID: 2993346887229103667}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: sm_shelve.007
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2459,7 +2459,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 796050637646473296}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: SM_Chips (4)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2491,7 +2491,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2850803178701798288}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: SM_Chips (7)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
