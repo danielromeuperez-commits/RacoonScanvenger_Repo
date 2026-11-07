@@ -784,7 +784,7 @@ namespace Racoon.Player
             StartAction(PlayerState.Punch, punchDuration, charged);
             punchHitTimer = punchHitDelay;
             punchCooldownTimer = punchDuration + punchCooldown;
-            AudioManager.Instance.PlaySFX(6);
+            AudioManager.Instance.PlaySFX(19);
         }
 
         // ---------------- Usar objeto (apuntar mientras se mantiene, usar al soltar) ----------------
@@ -1412,21 +1412,30 @@ namespace Racoon.Player
 
         // ---------------- Dash ----------------
 
-        // SendTo.Everyone: los VFX salen al instante en el dueño y con la dirección exacta en el resto.
         [Rpc(SendTo.Everyone, InvokePermission = RpcInvokePermission.Owner)]
         void DashRpc(Vector3 direction)
         {
-            AudioManager.Instance.PlaySFX(5);
+            // El sonido solo suena si eres el dueño local
+            if (IsOwner)
+            {
+                AudioManager.Instance.PlaySFX(5);
+            }
+
+            // El evento y los VFX se ejecutan para todos los clientes
             onDash?.Invoke(direction);
         }
 
         // ---------------- Interactuar ----------------
 
-        // SendTo.Everyone: se ejecuta al instante en el dueño y luego en servidor y rival.
         [Rpc(SendTo.Everyone, InvokePermission = RpcInvokePermission.Owner)]
         void InteractRpc()
         {
-            AudioManager.Instance.PlaySFX(1);
+            // El sonido de interacción solo lo reproduce el jugador local
+            if (IsOwner)
+            {
+                AudioManager.Instance.PlaySFX(1);
+            }
+
             onInteract?.Invoke(this);
 
             if (IsServer)
@@ -1534,7 +1543,16 @@ namespace Racoon.Player
         void ItemUsedRpc(int itemId)
         {
             ItemData item = inventory.Database.Get(itemId);
-            if (item != null) item.useSfx.Play(transform.position);
+            if (item != null)
+            {
+                // El sonido del objeto equipado solo suena localmente para el dueño
+                if (IsOwner)
+                {
+                    item.useSfx.Play(transform.position);
+                    AudioManager.Instance.PlaySFX(23);
+                }
+            }
+
             onItemUsed?.Invoke(item);
         }
 
@@ -1659,6 +1677,19 @@ namespace Racoon.Player
         [Rpc(SendTo.Owner, InvokePermission = RpcInvokePermission.Server)]
         void ItemStunRpc(float duration, bool slip)
         {
+            if (slip)
+            {
+                // 1. Sonido de resbalar con el plátano
+                AudioManager.Instance.PlaySFX(21);
+
+                // 2. Sonido de dizzy al quedarse tirado por el plátano
+                AudioManager.Instance.PlaySFX(15);
+            }
+            //else
+            //{
+                // Si es otro tipo de stun por objeto que no sea plátano
+            //}
+
             // Cancela cualquier golpe que estuviera preparando.
             punchHitTimer = -1f;
 
@@ -1806,6 +1837,14 @@ namespace Racoon.Player
         [Rpc(SendTo.Everyone, InvokePermission = RpcInvokePermission.Owner)]
         void HitReactedRpc(ulong attackerObjectId, byte hitNumber, bool heavy, bool charged)
         {
+            if (IsOwner)
+            {
+                if (heavy)
+                {
+                    AudioManager.Instance.PlaySFX(15);
+
+                }
+            }
             PlayerController attacker = null;
             if (NetworkManager.SpawnManager.SpawnedObjects.TryGetValue(attackerObjectId, out NetworkObject attackerObject))
                 attackerObject.TryGetComponent(out attacker);
@@ -1825,12 +1864,10 @@ namespace Racoon.Player
             onHitReceived?.Invoke(attacker);
             if (heavy)
             {
-                AudioManager.Instance.PlaySFX(7);
                 onHeavyHit?.Invoke(attacker);
             }
             else
             {
-                AudioManager.Instance.PlaySFX(6);
                 onLightHit?.Invoke(attacker, hitNumber);
             }
 

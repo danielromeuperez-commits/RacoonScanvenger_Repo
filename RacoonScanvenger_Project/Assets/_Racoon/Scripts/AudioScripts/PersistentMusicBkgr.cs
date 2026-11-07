@@ -11,7 +11,7 @@ public class PersistentMusic : MonoBehaviour
     [SerializeField] private AudioClip countdownStartSfx;
 
     [Header("Volumen")]
-    [SerializeField, Range(0f, 1f)] private float musicVolume = 0.3f; // 0.3 = 30% de volumen (ajústalo a tu gusto)
+    [SerializeField, Range(0f, 1f)] private float musicVolume = 0.3f;
 
     public static PersistentMusic Instance => instance;
 
@@ -19,6 +19,9 @@ public class PersistentMusic : MonoBehaviour
     {
         if (instance == null)
         {
+            instance = this;
+            DontDestroyOnLoad(gameObject);
+
             audioSource = GetComponent<AudioSource>();
             if (audioSource == null)
             {

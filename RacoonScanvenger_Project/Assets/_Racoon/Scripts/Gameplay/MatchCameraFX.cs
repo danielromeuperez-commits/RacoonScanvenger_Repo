@@ -258,6 +258,7 @@ namespace Racoon.Gameplay
             if (!IsLocal(standing)) return;
             if (standing.OnFire && !localOnFire)
             {
+                AudioManager.Instance.PlaySFX(17);
                 Play(ignite, 1f, PlayerColor(standing.Controller));
                 fireStart = Time.unscaledTime;
             }
@@ -272,6 +273,7 @@ namespace Racoon.Gameplay
         void OnScored(MatchStandings.Standing standing, int points)
         {
             if (!IsLocal(standing) || points <= 0) return;
+            AudioManager.Instance.PlaySFX(20);
             float big = standings.FirePoints > 0 ? (float)points / standings.FirePoints : 1f;
             Play(sell, Mathf.Clamp(0.6f + big * 0.6f, 0.6f, 1.6f));
         }
@@ -283,6 +285,7 @@ namespace Racoon.Gameplay
 
         void OnLeaderChanged()
         {
+            AudioManager.Instance.PlaySFX(24);
             MatchStandings.Standing leader = standings.Leader;
             if (leader == null) return;
             Play(leaderChanged, IsLocal(leader) ? 1f : 0.6f, PlayerColor(leader.Controller));
