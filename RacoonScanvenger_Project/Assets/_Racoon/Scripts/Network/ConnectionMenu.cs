@@ -335,23 +335,9 @@ public class ConnectionMenu : MonoBehaviour
     CharacterLobbyManager Lobby =>
         characterLobbyManager != null ? characterLobbyManager : CharacterLobbyManager.Current;
 
-    public void OpenMainSelection()
-    {
-        if (AudioManager.Instance != null) AudioManager.Instance.PlaySFX(23);
-        OpenPage(Page.Mode);
-    }
-
-    public void OpenLocal()
-    {
-        if (AudioManager.Instance != null) AudioManager.Instance.PlaySFX(23);
-        OpenPage(Page.Local);
-    }
-
-    public void OpenOnline()
-    {
-        if (AudioManager.Instance != null) AudioManager.Instance.PlaySFX(23);
-        OpenPage(Page.Online);
-    }
+    public void OpenMainSelection() => OpenPage(Page.Mode);
+    public void OpenLocal() => OpenPage(Page.Local);
+    public void OpenOnline() => OpenPage(Page.Online);
 
     void OpenPage(Page target)
     {
@@ -367,14 +353,12 @@ public class ConnectionMenu : MonoBehaviour
     public void HostLocal()
     {
         if (!CanStartNetwork()) return;
-        if (AudioManager.Instance != null) AudioManager.Instance.PlaySFX(23);
         networkTestMenu.StartLocalHost();
     }
 
     public void JoinLocal()
     {
         if (!CanStartNetwork()) return;
-        if (AudioManager.Instance != null) AudioManager.Instance.PlaySFX(23);
 
         string address = ipInputField != null ? ipInputField.text.Trim() : "";
         networkTestMenu.SetJoinAddress(string.IsNullOrEmpty(address) ? "127.0.0.1" : address);
@@ -384,7 +368,6 @@ public class ConnectionMenu : MonoBehaviour
     public void CreateOnline()
     {
         if (!CanStartNetwork()) return;
-        if (AudioManager.Instance != null) AudioManager.Instance.PlaySFX(23);
         networkTestMenu.CreateOnlineGame();
     }
 
@@ -399,14 +382,12 @@ public class ConnectionMenu : MonoBehaviour
             return;
         }
 
-        if (AudioManager.Instance != null) AudioManager.Instance.PlaySFX(23);
         networkTestMenu.SetJoinCode(code.ToUpperInvariant());
         networkTestMenu.JoinOnlineGame();
     }
 
     public void CopySessionCode()
     {
-        if (AudioManager.Instance != null) AudioManager.Instance.PlaySFX(23);
         if (networkTestMenu != null && !string.IsNullOrEmpty(networkTestMenu.SessionCode))
         {
             GUIUtility.systemCopyBuffer = networkTestMenu.SessionCode;
@@ -415,7 +396,6 @@ public class ConnectionMenu : MonoBehaviour
 
     public void CancelConnection()
     {
-        if (AudioManager.Instance != null) AudioManager.Instance.PlaySFX(23);
         if (networkTestMenu != null) networkTestMenu.LeaveGame();
         else if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening)
             NetworkManager.Singleton.Shutdown();
@@ -423,7 +403,6 @@ public class ConnectionMenu : MonoBehaviour
 
     public void ReturnFromLocal()
     {
-        if (AudioManager.Instance != null) AudioManager.Instance.PlaySFX(23);
         page = Page.Mode;
         dismissedStatus = null;
         if (networkTestMenu != null) networkTestMenu.LeaveGame();
@@ -434,7 +413,6 @@ public class ConnectionMenu : MonoBehaviour
 
     public void ReturnFromOnline()
     {
-        if (AudioManager.Instance != null) AudioManager.Instance.PlaySFX(23);
         page = Page.Mode;
         dismissedStatus = null;
         if (networkTestMenu != null) networkTestMenu.LeaveGame();
@@ -454,26 +432,9 @@ public class ConnectionMenu : MonoBehaviour
     // SELECCIÓN DE PERSONAJE
     // ============================================================
 
-    public void PreviousCharacter()
-    {
-        if (AudioManager.Instance != null) AudioManager.Instance.PlaySFX(23);
-        if (Lobby != null) Lobby.PreviousCharacter();
-        Refresh();
-    }
-
-    public void NextCharacter()
-    {
-        if (AudioManager.Instance != null) AudioManager.Instance.PlaySFX(23);
-        if (Lobby != null) Lobby.NextCharacter();
-        Refresh();
-    }
-
-    public void ReadyCharacter()
-    {
-        if (AudioManager.Instance != null) AudioManager.Instance.PlaySFX(23);
-        if (Lobby != null) Lobby.ReadyLocalPlayer();
-        Refresh();
-    }
+    public void PreviousCharacter() { if (Lobby != null) Lobby.PreviousCharacter(); Refresh(); }
+    public void NextCharacter() { if (Lobby != null) Lobby.NextCharacter(); Refresh(); }
+    public void ReadyCharacter() { if (Lobby != null) Lobby.ReadyLocalPlayer(); Refresh(); }
 
     // ============================================================
     // ESTADO
@@ -803,14 +764,12 @@ public class ConnectionMenu : MonoBehaviour
 
     public void CloseConnectionMenu()
     {
-        if (AudioManager.Instance != null) AudioManager.Instance.PlaySFX(23);
         gameplayStarted = true;
         SetMenuVisible(false);
     }
 
     public async void BackToMainMenu()
     {
-        if (AudioManager.Instance != null) AudioManager.Instance.PlaySFX(23);
         Time.timeScale = 1f;
         Cursor.visible = true;
         Cursor.lockState = CursorLockMode.None;
