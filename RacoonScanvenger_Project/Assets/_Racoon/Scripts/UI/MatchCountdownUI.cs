@@ -48,6 +48,7 @@ public class MatchCountdownUI : MonoBehaviour
         countdownText.gameObject.SetActive(true);
 
         // 3
+        PersistentMusic.Instance?.PlayTickSound();
         yield return AnimateText(
             "3",
             numberDuration,
@@ -56,6 +57,7 @@ public class MatchCountdownUI : MonoBehaviour
         );
 
         // 2
+        PersistentMusic.Instance?.PlayTickSound();
         yield return AnimateText(
             "2",
             numberDuration,
@@ -64,6 +66,7 @@ public class MatchCountdownUI : MonoBehaviour
         );
 
         // 1
+        PersistentMusic.Instance?.PlayTickSound();
         yield return AnimateText(
             "1",
             numberDuration,
@@ -78,6 +81,7 @@ public class MatchCountdownUI : MonoBehaviour
         onStart?.Invoke();
 
         // START!!
+        PersistentMusic.Instance?.PlayStartSound();
         yield return AnimateText(
             "START!!",
             startDuration,

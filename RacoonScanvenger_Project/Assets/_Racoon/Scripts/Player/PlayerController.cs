@@ -784,6 +784,7 @@ namespace Racoon.Player
             StartAction(PlayerState.Punch, punchDuration, charged);
             punchHitTimer = punchHitDelay;
             punchCooldownTimer = punchDuration + punchCooldown;
+            AudioManager.Instance.PlaySFX(6);
         }
 
         // ---------------- Usar objeto (apuntar mientras se mantiene, usar al soltar) ----------------
@@ -1415,6 +1416,7 @@ namespace Racoon.Player
         [Rpc(SendTo.Everyone, InvokePermission = RpcInvokePermission.Owner)]
         void DashRpc(Vector3 direction)
         {
+            AudioManager.Instance.PlaySFX(5);
             onDash?.Invoke(direction);
         }
 
@@ -1424,6 +1426,7 @@ namespace Racoon.Player
         [Rpc(SendTo.Everyone, InvokePermission = RpcInvokePermission.Owner)]
         void InteractRpc()
         {
+            AudioManager.Instance.PlaySFX(1);
             onInteract?.Invoke(this);
 
             if (IsServer)
@@ -1820,8 +1823,17 @@ namespace Racoon.Player
             }
 
             onHitReceived?.Invoke(attacker);
-            if (heavy) onHeavyHit?.Invoke(attacker);
-            else onLightHit?.Invoke(attacker, hitNumber);
+            if (heavy)
+            {
+                AudioManager.Instance.PlaySFX(7);
+                onHeavyHit?.Invoke(attacker);
+            }
+            else
+            {
+                AudioManager.Instance.PlaySFX(6);
+                onLightHit?.Invoke(attacker, hitNumber);
+            }
+
         }
 
         // Rangos configurados (con el objeto seleccionado, también fuera de Play).

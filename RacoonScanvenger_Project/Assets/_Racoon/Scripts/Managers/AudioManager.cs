@@ -105,6 +105,8 @@ public class AudioManager : MonoBehaviour
 
         ApplyVolumes();
 
+        musicSource.volume *= 0.3f;
+
         if (!musicSource.isPlaying)
             musicSource.Play();
 
