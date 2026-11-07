@@ -913,7 +913,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 627167610808783969, guid: c49dd5596f13ee549a39d01c0e1d3aee, type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 706642438439487748, guid: c49dd5596f13ee549a39d01c0e1d3aee, type: 3}
       propertyPath: m_Colors.m_PressedColor.b
@@ -18094,6 +18094,8 @@ MonoBehaviour:
   preset: {fileID: 0}
   dropVariant: 0
   lootPromptPrefab: {fileID: 0}
+  exclusiveUse: 0
+  exclusiveRelease: 0.7
   visualRoot: {fileID: 0}
   itemVisuals: []
   itemNamePrefixes: []
