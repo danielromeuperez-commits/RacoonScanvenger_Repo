@@ -15,6 +15,8 @@ namespace Racoon.UI.HUD
     {
         const int Layer = 29;          // capa sin uso: solo la ve la cámara de la foto
         const int Size = 256;
+        const int Outline = 9;                                   // grosor del contorno (px del icono)
+        static readonly Color32 Ink = new(75, 67, 102, 255);    // tinta del HUD (#4b4366)
         static readonly Vector3 StudioPosition = new(0f, -900f, 0f);
         static readonly Dictionary<ItemData, Sprite> cache = new();
 
@@ -73,7 +75,7 @@ namespace Racoon.UI.HUD
                 float radius = bounds.extents.magnitude;
                 cam.transform.rotation = view;
                 cam.transform.position = bounds.center - view * Vector3.forward * (radius * 4f);
-                cam.orthographicSize = radius * 1.08f;
+                cam.orthographicSize = radius * 1.2f;   // sitio para el contorno
                 cam.nearClipPlane = 0.01f;
                 cam.farClipPlane = radius * 8f;
 
@@ -90,6 +92,7 @@ namespace Racoon.UI.HUD
                 RenderTexture.active = texture;
                 var pixels = new Texture2D(Size, Size, TextureFormat.RGBA32, true) { name = "Icono " + name };
                 pixels.ReadPixels(new Rect(0, 0, Size, Size), 0, 0);
+                AddOutline(pixels);
                 pixels.Apply(true, false);
                 RenderTexture.active = previous;
                 return Sprite.Create(pixels, new Rect(0, 0, Size, Size), new Vector2(0.5f, 0.5f), 100f);
@@ -102,6 +105,46 @@ namespace Racoon.UI.HUD
                 Object.DestroyImmediate(lightGo);
                 Object.DestroyImmediate(model);
             }
+        }
+
+        // Contorno de tinta alrededor de la silueta, como el resto del HUD: así se ve sobre cualquier color de caja
+        // (p. ej. un objeto verde sobre la caja verde del jugador).
+        static void AddOutline(Texture2D texture)
+        {
+            Color32[] src = texture.GetPixels32();
+            var dst = (Color32[])src.Clone();
+            int r2 = Outline * Outline;
+            for (int y = 0; y < Size; y++)
+            for (int x = 0; x < Size; x++)
+            {
+                int i = y * Size + x;
+                if (src[i].a >= 200) continue;
+                // Opacidad del contorno según lo cerca que quede la silueta (borde suave).
+                float best = 0f;
+                for (int dy = -Outline; dy <= Outline && best < 1f; dy++)
+                {
+                    int yy = y + dy;
+                    if (yy < 0 || yy >= Size) continue;
+                    for (int dx = -Outline; dx <= Outline; dx++)
+                    {
+                        int xx = x + dx, d2 = dx * dx + dy * dy;
+                        if (xx < 0 || xx >= Size || d2 > r2) continue;
+                        if (src[yy * Size + xx].a < 128) continue;
+                        float edge = Mathf.Clamp01(Outline + 0.5f - Mathf.Sqrt(d2));
+                        if (edge > best) best = edge;
+                    }
+                }
+                if (best <= 0f) continue;
+                // El objeto (con su borde antialias) va encima de la tinta.
+                Color ink = Ink;
+                ink.a = best;
+                Color over = src[i];
+                float a = over.a + ink.a * (1f - over.a);
+                Color rgb = a > 0f ? (over * over.a + ink * ink.a * (1f - over.a)) / a : ink;
+                rgb.a = a;
+                dst[i] = rgb;
+            }
+            texture.SetPixels32(dst);
         }
 
         // Solo la malla: sin scripts, red, física ni efectos (se limpia antes de activarlo).

@@ -126,7 +126,7 @@ namespace Racoon.Player
         [Tooltip("Al soltar el golpe, gira hacia el rival más cercano dentro de este alcance (m). 0 = desactivado.")]
         [SerializeField, Min(0f)] float punchAssistRange = 2.2f;
         [Tooltip("Grados a cada lado de hacia donde mira (o hacia donde empuja el stick) en los que engancha al rival.")]
-        [SerializeField, Range(0f, 180f)] float punchAssistAngle = 70f;
+        [SerializeField, Range(0f, 180f)] float punchAssistAngle = 110f;
         [Tooltip("Al interactuar, gira hacia la estantería o punto de venta más cercano dentro de este alcance (m). 0 = desactivado.")]
         [SerializeField, Min(0f)] float interactAssistRange = 1.8f;
         [SerializeField, Range(0f, 180f)] float interactAssistAngle = 80f;

@@ -6,8 +6,8 @@ namespace Racoon.UI
 {
     /// <summary>
     /// Aviso de «mantén para saquear» (PF_HUD_AvisoSaquear: arte en Photoshop, animaciones en su Animator). Uno solo
-    /// por instancia del juego: lo crea la primera estantería (LootPoint) y sigue a la más cercana del jugador LOCAL que
-    /// tenga algo que coger. Solo el botón de Interact y su dial: el dial se llena mientras mantiene y vuelve a cero en
+    /// por instancia del juego: lo crea la primera estantería (LootPoint) y va pegado al jugador LOCAL (junto a la cabeza,
+    /// como la bolsa); se enciende al acercarse a una estantería con algo que coger. Solo el botón de Interact y su dial: el dial se llena mientras mantiene y vuelve a cero en
     /// cada objeto que coge (con un saltito, el parámetro Grab).
     ///
     /// Este script solo coloca el aviso, pone el glifo, rellena el dial y mueve los parámetros del Animator
@@ -18,6 +18,7 @@ namespace Racoon.UI
     {
         static readonly int VisibleId = Animator.StringToHash("Visible");
         static readonly int HoldingId = Animator.StringToHash("Holding");
+        static readonly int PressId = Animator.StringToHash("Press");
         static readonly int GrabId = Animator.StringToHash("Grab");
 
         static LootPromptUI instance;
@@ -42,21 +43,24 @@ namespace Racoon.UI
         [Tooltip("Segundos que tarda el dial en llenarse entre objeto y objeto (lo que dura el gesto de coger).")]
         [SerializeField] float cycleTime = 0.42f;
 
-        [Header("Posición")]
-        [Tooltip("Altura por encima de lo alto de la estantería (m).")]
-        [SerializeField] float heightAboveShelf = 0.25f;
-        [SerializeField] float screenMargin = 120f;
-        [Tooltip("Margen con el borde de arriba (px a 2560×1440): ahí está la franja del HUD.")]
-        [SerializeField] float topMargin = 320f;
+        [Tooltip("Toques en vez de mantener: cada toque cuenta como mantener durante estos segundos " +
+                 "(igual que el margen del servidor entre interacciones).")]
+        [SerializeField] float tapWindow = 0.7f;
+
+        [Header("Posición (pegado al jugador, como la bolsa)")]
+        [Tooltip("Altura de la cabeza sobre los pies (m). La misma que usa la bolsa (PlayerStatusUI).")]
+        [SerializeField] float headHeight = 0.55f;
+        [Tooltip("Desplazamiento en pantalla desde la cabeza (px a 2560×1440): a su izquierda (la bolsa va a la derecha).")]
+        [SerializeField] Vector2 screenOffset = new(-200f, 0f);
+        [SerializeField] float screenMargin = 90f;
 
         Canvas canvas;
         PlayerController local;
         PlayerLoot localLoot;
         PlayerInputHandler localInput;
         LootPoint target;
-        Collider targetCollider;
-        float nextSearch, held, glyphHeight;
-        bool layered;
+        float nextSearch, held, glyphHeight, lastPress = -10f;
+        bool layered, shown;
 
         /// <summary>Lo llama cada LootPoint al empezar: solo se crea uno.</summary>
         public static void EnsureInstance(LootPromptUI prefab)
@@ -93,13 +97,26 @@ namespace Racoon.UI
 
         void SetLocal(PlayerController player)
         {
-            if (localInput != null) localInput.ActiveKindChanged -= OnKindChanged;
+            if (localInput != null)
+            {
+                localInput.ActiveKindChanged -= OnKindChanged;
+                localInput.InteractPressed -= OnInteractPressed;
+            }
             local = player;
             localLoot = player != null ? player.GetComponent<PlayerLoot>() : null;
             localInput = player != null ? player.GetComponent<PlayerInputHandler>() : null;
             if (localInput == null) return;
             localInput.ActiveKindChanged += OnKindChanged;
+            localInput.InteractPressed += OnInteractPressed;
             OnKindChanged(localInput.ActiveKind);
+        }
+
+        // Cada toque: el botón se hunde (Press) y cuenta como «sigue manteniendo» un rato (ver tapWindow).
+        void OnInteractPressed()
+        {
+            lastPress = Time.time;
+            // Solo con el aviso a la vista: si no, el trigger se quedaría pendiente y saltaría luego.
+            if (shown) animator.SetTrigger(PressId);
         }
 
         void OnKindChanged(InputDeviceKind kind)
@@ -128,15 +145,16 @@ namespace Racoon.UI
                 FindTarget(local.transform.position, out distance);
                 visible = target != null && distance <= showDistance;
             }
-            bool holding = visible && distance <= lootDistance && localInput != null && localInput.InteractHeld;
+            bool holding = visible && distance <= lootDistance && localInput != null && (localInput.InteractHeld || Time.time - lastPress <= tapWindow);
 
             held = holding ? Mathf.Min(1f, held + Time.deltaTime / Mathf.Max(0.05f, cycleTime))
                 : Mathf.MoveTowards(held, 0f, Time.deltaTime * 4f);
             if (ringFill != null) ringFill.fillAmount = held;
 
+            shown = visible;
             animator.SetBool(VisibleId, visible);
             animator.SetBool(HoldingId, holding);
-            if (target != null) Place();
+            if (local != null) Place();
         }
 
         // La estantería con algo que coger más cercana (distancia al borde de su zona de saqueo, en el suelo).
@@ -144,7 +162,6 @@ namespace Racoon.UI
         {
             bestDistance = float.MaxValue;
             LootPoint best = null;
-            Collider bestCollider = null;
             foreach (LootPoint point in LootPoint.All)
             {
                 if (point == null || !point.LooksLootable) continue;
@@ -156,13 +173,11 @@ namespace Racoon.UI
                 if (d >= bestDistance) continue;
                 bestDistance = d;
                 best = point;
-                bestCollider = col;
             }
             // Se queda con la última mientras desaparece, para que no salte a otra a media animación.
             if (best != null && bestDistance <= showDistance)
             {
                 target = best;
-                targetCollider = bestCollider;
             }
         }
 
@@ -177,17 +192,16 @@ namespace Racoon.UI
                 CanvasLayering.BringToFront(canvas);
                 layered = true;
             }
-            Bounds bounds = targetCollider != null ? targetCollider.bounds : new Bounds(target.transform.position, Vector3.zero);
-            Vector3 world = new Vector3(bounds.center.x, bounds.max.y + heightAboveShelf, bounds.center.z);
-            Vector3 screen = cam.WorldToScreenPoint(world);
+            Vector3 screen = cam.WorldToScreenPoint(local.transform.position + Vector3.up * headHeight);
             if (screen.z < 0f) return;
+            // Directo de píxeles a unidades del canvas (como PlayerStatusUI), sin pasar por su transform.
             float scale = Mathf.Max(canvas.scaleFactor, 0.0001f);
             Rect pixels = cam.pixelRect;
-            Vector2 local2 = (new Vector2(screen.x, screen.y) - pixels.center) / scale;
+            Vector2 target = (new Vector2(screen.x, screen.y) - pixels.center) / scale + screenOffset;
             Vector2 half = pixels.size * 0.5f / scale;
             content.anchoredPosition = new Vector2(
-                Mathf.Clamp(local2.x, -half.x + screenMargin, half.x - screenMargin),
-                Mathf.Clamp(local2.y, -half.y + screenMargin, half.y - Mathf.Max(screenMargin, topMargin)));
+                Mathf.Clamp(target.x, -half.x + screenMargin, half.x - screenMargin),
+                Mathf.Clamp(target.y, -half.y + screenMargin, half.y - screenMargin));
         }
 
         static PlayerController FindLocalPlayer()

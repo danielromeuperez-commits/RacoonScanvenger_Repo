@@ -148,6 +148,10 @@ public class ConnectionMenu : MonoBehaviour
     bool navigationMode;
 
     CharacterPreviewStage localPreview;
+    // Candado (PF_HUD_Connection_Menu > IMG_CharacterPortrait > IMG_Candado): personaje ya confirmado por el rival.
+    Animator takenLockAnimator;
+    static readonly int LockedId = Animator.StringToHash("Locked");
+    static readonly Color TakenShade = new(0.32f, 0.3f, 0.38f, 1f);
     CharacterPreviewStage rivalPreview;
     TMP_Text onlineWaitingLabel;
     string onlineWaitingDefaultText;
@@ -220,6 +224,7 @@ public class ConnectionMenu : MonoBehaviour
         if (rivalPreviewImage == null) rivalPreviewImage = FindIn<RawImage>(selection, "IMG_RivalPortrait/RAW_Preview");
         if (rivalPortraitImage == null) rivalPortraitImage = FindIn<Image>(selection, "IMG_RivalPortrait");
         if (rivalNameText == null) rivalNameText = FindIn<TMP_Text>(selection, "TXT_RivalName");
+        takenLockAnimator = FindIn<Animator>(selection, "IMG_CharacterPortrait/IMG_Candado");
 
         // Cada visor con su capa y su peana para que no se vean el uno al otro.
         localPreview = SetupPreview(localPreviewImage, 30, new Vector3(-20f, -500f, 0f));
@@ -783,6 +788,12 @@ public class ConnectionMenu : MonoBehaviour
             characterRingImage.color = characterColors[Mathf.Clamp(lobby.LocalSelectedCharacter, 0, characterColors.Length - 1)];
         }
 
+        // Ya lo ha confirmado el rival: sombra sobre el retrato y el visor, candado, y no se puede confirmar.
+        bool taken = lobby.IsSelectedCharacterTaken;
+        if (takenLockAnimator != null) takenLockAnimator.SetBool(LockedId, taken);
+        if (characterPortraitImage != null) characterPortraitImage.color = taken ? TakenShade : Color.white;
+        if (localPreviewImage != null) localPreviewImage.color = taken ? TakenShade : Color.white;
+
         // Visor 3D propio y del rival (lo que tiene marcado ahora mismo).
         if (localPreview != null) localPreview.Show(lobby.SelectedCharacter);
         var rival = lobby.RivalCharacter;
@@ -810,9 +821,9 @@ public class ConnectionMenu : MonoBehaviour
 
         if (readyButton != null)
         {
-            readyButton.interactable = canChange;
+            readyButton.interactable = canChange && !taken;
             TMP_Text buttonText = readyButton.GetComponentInChildren<TMP_Text>();
-            if (buttonText != null) buttonText.text = lobby.IsLocalReady ? "READY!" : "READY";
+            if (buttonText != null) buttonText.text = lobby.IsLocalReady ? "READY!" : taken ? "TAKEN" : "READY";
         }
     }
 

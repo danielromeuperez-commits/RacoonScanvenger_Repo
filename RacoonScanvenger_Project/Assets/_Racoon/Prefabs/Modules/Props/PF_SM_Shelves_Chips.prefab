@@ -1029,7 +1029,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LootPoint
   preset: {fileID: 11400000, guid: dde465218cc44c2ea1661f9482499ccd, type: 2}
   dropVariant: 4
-  lootPromptPrefab: {fileID: 8350599379450749252, guid: a958dcd884a34c12be52a4874297522e, type: 3}
+  lootPromptPrefab: {fileID: 8857641564817344157, guid: a958dcd884a34c12be52a4874297522e, type: 3}
   visualRoot: {fileID: 0}
   itemVisuals: []
   itemNamePrefixes:

@@ -6,7 +6,7 @@ using UnityEngine.UI;
 namespace Racoon.UI
 {
     /// <summary>
-    /// Aviso de «mantén para vender» sobre el punto de venta (PF_HUD_AvisoVender: arte en Photoshop, animaciones en su
+    /// Aviso de «mantén para vender», pegado al jugador local (junto a la cabeza, como la bolsa) (PF_HUD_AvisoVender: arte en Photoshop, animaciones en su
     /// Animator). Lo instancia cada SellPoint en cada instancia del juego y solo mira al jugador LOCAL:
     /// aparece cuando se acerca con algo en la bolsa, el anillo se llena mientras mantiene Interact y, al vender,
     /// salta el «¡VENDIDO!» con las monedas.
@@ -19,6 +19,7 @@ namespace Racoon.UI
     {
         static readonly int VisibleId = Animator.StringToHash("Visible");
         static readonly int HoldingId = Animator.StringToHash("Holding");
+        static readonly int PressId = Animator.StringToHash("Press");
         static readonly int SoldId = Animator.StringToHash("Sold");
 
         [SerializeField] InputGlyphSet glyphs;
@@ -47,21 +48,25 @@ namespace Racoon.UI
         [Tooltip("A esta distancia ya puede vender: el anillo se llena si mantiene.")]
         [SerializeField] float sellDistance = 1.9f;
 
-        [Header("Posición")]
-        [Tooltip("Altura sobre el punto de venta (m).")]
-        [SerializeField] float worldHeight = 1.1f;
-        [SerializeField] float screenMargin = 120f;
-        [Tooltip("Margen con el borde de arriba (px a 2560×1440): ahí está la franja del HUD (tiempo, retratos, puntos).")]
-        [SerializeField] float topMargin = 320f;
+        [Tooltip("Toques en vez de mantener: cada toque cuenta como mantener durante estos segundos " +
+                 "(igual que el margen del servidor entre interacciones).")]
+        [SerializeField] float tapWindow = 0.7f;
+
+        [Header("Posición (pegado al jugador, como la bolsa)")]
+        [Tooltip("Altura de la cabeza sobre los pies (m). La misma que usa la bolsa (PlayerStatusUI).")]
+        [SerializeField] float headHeight = 0.55f;
+        [Tooltip("Desplazamiento en pantalla desde la cabeza (px a 2560×1440): a su izquierda (la bolsa va a la derecha).")]
+        [SerializeField] Vector2 screenOffset = new(-200f, 0f);
+        [SerializeField] float screenMargin = 90f;
 
         Canvas canvas;
         SellPoint sellPoint;
         PlayerController local;
         PlayerLoot localLoot;
         PlayerInputHandler localInput;
-        float nextSearch, held, glyphHeight;
+        float nextSearch, held, glyphHeight, lastPress = -10f;
         int lastPending;
-        bool layered;
+        bool layered, shown;
         string shownText;
 
         /// <summary>Lo llama el SellPoint al instanciarlo.</summary>
@@ -77,16 +82,29 @@ namespace Racoon.UI
 
         void SetLocal(PlayerController player)
         {
-            if (localInput != null) localInput.ActiveKindChanged -= OnKindChanged;
+            if (localInput != null)
+            {
+                localInput.ActiveKindChanged -= OnKindChanged;
+                localInput.InteractPressed -= OnInteractPressed;
+            }
             local = player;
             localLoot = player != null ? player.GetComponent<PlayerLoot>() : null;
             localInput = player != null ? player.GetComponent<PlayerInputHandler>() : null;
             if (localInput != null)
             {
                 localInput.ActiveKindChanged += OnKindChanged;
+                localInput.InteractPressed += OnInteractPressed;
                 OnKindChanged(localInput.ActiveKind);
             }
             lastPending = localLoot != null ? localLoot.PendingPoints : 0;
+        }
+
+        // Cada toque: el botón se hunde (Press) y cuenta como «sigue manteniendo» un rato (ver tapWindow).
+        void OnInteractPressed()
+        {
+            lastPress = Time.time;
+            // Solo con el aviso a la vista: si no, el trigger se quedaría pendiente y saltaría luego.
+            if (shown) animator.SetTrigger(PressId);
         }
 
         void OnKindChanged(InputDeviceKind kind)
@@ -132,7 +150,7 @@ namespace Racoon.UI
                 lastPending = pending;
 
                 visible = pending > 0 && distance <= showDistance;
-                holding = visible && distance <= sellDistance && localInput != null && localInput.InteractHeld;
+                holding = visible && distance <= sellDistance && localInput != null && (localInput.InteractHeld || Time.time - lastPress <= tapWindow);
             }
 
             // Mismo tiempo que pide el SellPoint en el servidor; al soltar se vacía rápido.
@@ -142,10 +160,11 @@ namespace Racoon.UI
             if (ringFill != null) ringFill.fillAmount = held;
 
             if (visible) SetLabel(holding ? sellingText : holdText);
+            shown = visible;
             animator.SetBool(VisibleId, visible);
             animator.SetBool(HoldingId, holding);
 
-            Place();
+            if (local != null) Place();
         }
 
         void SetLabel(string text)
@@ -166,16 +185,16 @@ namespace Racoon.UI
                 CanvasLayering.BringToFront(canvas);
                 layered = true;
             }
-            Vector3 screen = cam.WorldToScreenPoint(sellPoint.transform.position + Vector3.up * worldHeight);
+            Vector3 screen = cam.WorldToScreenPoint(local.transform.position + Vector3.up * headHeight);
             if (screen.z < 0f) return;
             // Directo de píxeles a unidades del canvas (como PlayerStatusUI), sin pasar por su transform.
             float scale = Mathf.Max(canvas.scaleFactor, 0.0001f);
             Rect pixels = cam.pixelRect;
-            Vector2 local2 = (new Vector2(screen.x, screen.y) - pixels.center) / scale;
+            Vector2 target = (new Vector2(screen.x, screen.y) - pixels.center) / scale + screenOffset;
             Vector2 half = pixels.size * 0.5f / scale;
             content.anchoredPosition = new Vector2(
-                Mathf.Clamp(local2.x, -half.x + screenMargin, half.x - screenMargin),
-                Mathf.Clamp(local2.y, -half.y + screenMargin, half.y - Mathf.Max(screenMargin, topMargin)));
+                Mathf.Clamp(target.x, -half.x + screenMargin, half.x - screenMargin),
+                Mathf.Clamp(target.y, -half.y + screenMargin, half.y - screenMargin));
         }
 
         static PlayerController FindLocalPlayer()
