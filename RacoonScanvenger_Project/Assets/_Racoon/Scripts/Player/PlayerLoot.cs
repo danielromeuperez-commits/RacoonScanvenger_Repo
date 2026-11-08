@@ -209,7 +209,15 @@ namespace Racoon.Player
         }
 
         [Rpc(SendTo.Owner, InvokePermission = RpcInvokePermission.Server)]
-        void BagFullRpc() => BagFullRejected?.Invoke();
+        void BagFullRpc()
+        {
+            if (AudioManager.Instance != null)
+            {
+                AudioManager.Instance.PlaySFX(24);
+            }
+
+            BagFullRejected?.Invoke();
+        }
 
         /// <summary>
         /// Solo servidor. Sonido de haber saqueado un objeto en <paramref name="sourcePosition"/> (la estantería).

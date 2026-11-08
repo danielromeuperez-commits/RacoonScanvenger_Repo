@@ -604,7 +604,10 @@ namespace Racoon.Player
                 interactRepeatTimer = interactRepeatInterval;
                 RepeatInteractRpc(InteractForward);
             }
+
+            // Control del temporizador de acción limpio
             if (actionTimer > 0f) actionTimer -= dt;
+
             if (aimAssistTimer > 0f) aimAssistTimer -= dt;
             if (dashCooldownTimer > 0f) dashCooldownTimer -= dt;
             if (infiniteDashTimer > 0f)
@@ -784,6 +787,13 @@ namespace Racoon.Player
             // Las pulsaciones que sobran al levantarse no deben convertirse en un dash.
             recoveryDashLockTimer = recoveryDashLock;
             ItemRecoveryFinished?.Invoke();
+
+            // Parar el sonido del plátano/mareo en el momento exacto en que te levantas con éxito
+            if (IsOwner && AudioManager.Instance != null && AudioManager.Instance.sfxSource != null)
+            {
+                AudioManager.Instance.sfxSource.Stop();
+                AudioManager.Instance.sfxSource.clip = null;
+            }
         }
 
         // ---------------- Golpe cargado ----------------
@@ -1886,17 +1896,9 @@ namespace Racoon.Player
         {
             if (slip)
             {
-                // 1. Sonido de resbalar con el plátano
-                AudioManager.Instance.PlaySFX(21);
-
                 // 2. Sonido de dizzy al quedarse tirado por el plátano
                 AudioManager.Instance.PlaySFX(15);
             }
-            //else
-            //{
-                // Si es otro tipo de stun por objeto que no sea plátano
-            //}
-
             // Cancela cualquier golpe que estuviera preparando.
             punchHitTimer = -1f;
 

@@ -460,6 +460,13 @@ namespace Racoon.Items
             slipSfx.Play(victimPosition);
             PlayerRumble.Rumble(victim, 0.6f, 0.4f, 0.25f);
 
+            // >>> AÑADIR ESTO: Reproducir los sonidos de resbalón y mareo en el cliente local (dueño) <<<
+            if (victim != null && victim.IsOwner && AudioManager.Instance != null)
+            {
+                AudioManager.Instance.PlaySFX(21); // Sonido de resbalar con el plátano
+                AudioManager.Instance.PlaySFX(15); // Sonido de dizzy al quedarse tirado
+            }
+
             if (victim != null)
                 Slipped?.Invoke(victim, owner);
         }
