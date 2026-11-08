@@ -10,7 +10,8 @@ using UnityEngine;
 /// también sale antes.
 ///
 /// Los segundos previos se avisa en el suelo con un círculo que se va rellenando en el sentido de las agujas del
-/// reloj. El aviso lo calcula cada cliente con el contador replicado (no hace falta red); el spawn, solo el servidor.
+/// reloj. El aviso lo calcula cada cliente con el contador replicado (no hace falta red). El servidor decide cuál sale
+/// y lo avisa por RPC: cada máquina mueve y activa su copia (los objetos no llevan NetworkTransform).
 /// </summary>
 public class SpawnerMechItems : NetworkBehaviour
 {
@@ -186,64 +187,54 @@ public class SpawnerMechItems : NetworkBehaviour
         return point;
     }
 
-    // ---------------- Spawn (servidor) ----------------
+    // ---------------- Spawn ----------------
 
+    // Servidor: elige cuál sale y se lo dice a todos. Los objetos mecánicos no llevan NetworkTransform, así que
+    // moverlos solo en el servidor no se veía en el otro jugador: cada máquina mueve y activa su copia de la escena.
     void TeleportAndShowRandomObject()
     {
         if (targetObjects == null || targetObjects.Count == 0)
         {
-            Debug.LogWarning("La lista de GameObjects está vacía o no asignada.");
+            Debug.LogWarning("La lista de GameObjects está vacía o no asignada.", this);
             return;
         }
 
-        // Elegir uno al azar de la lista
         int randomIndex = Random.Range(0, targetObjects.Count);
-        GameObject selectedObj = targetObjects[randomIndex];
-
-        if (selectedObj != null)
+        if (targetObjects[randomIndex] == null)
         {
-            NetworkObject netObj = selectedObj.GetComponent<NetworkObject>();
-            if (netObj == null)
-            {
-                Debug.LogError($"El objeto {selectedObj.name} necesita un NetworkObject.", selectedObj);
-                return;
-            }
-
-            // Intentamos obtener el NetworkTransform para evitar que interpole el viaje desde la otra punta del mapa
-            NetworkTransform netTransform = selectedObj.GetComponent<NetworkTransform>();
-
-            if (netTransform != null)
-            {
-                // Desactivamos temporalmente el NetworkTransform para que el teletransporte sea instantáneo en red
-                netTransform.enabled = false;
-            }
-
-            // 1. Si hay un punto de origen definido, lo movemos ahí primero
-            if (sourcePoint != null)
-            {
-                selectedObj.transform.position = sourcePoint.position;
-            }
-
-            // 2. Mover a la posición exacta del Empty (transform.position de este script)
-            selectedObj.transform.position = transform.position;
-
-            // Reactivamos el NetworkTransform para que vuelva a sincronizar su posición (ahora ya en el sitio correcto)
-            if (netTransform != null)
-            {
-                netTransform.enabled = true;
-            }
-
-            // Asegurarnos de que está activo
-            if (!selectedObj.activeSelf)
-            {
-                selectedObj.SetActive(true);
-            }
-
-            Debug.Log($"[Servidor] Objeto teletransportado instantáneamente al Empty: {selectedObj.name}", selectedObj);
+            Debug.LogWarning("El objeto seleccionado de la lista es nulo.", this);
+            return;
         }
+
+        ShowObjectRpc(randomIndex, transform.position);
+    }
+
+    [Rpc(SendTo.Everyone, InvokePermission = RpcInvokePermission.Server)]
+    void ShowObjectRpc(int index, Vector3 position)
+    {
+        GameObject selectedObj = targetObjects != null && index >= 0 && index < targetObjects.Count ? targetObjects[index] : null;
+        if (selectedObj == null)
+        {
+            Debug.LogWarning($"SpawnerMechItems: no encuentro el objeto {index} en esta máquina.", this);
+            return;
+        }
+
+        // Si algún día llevan NetworkTransform, el servidor lo teletransporta (sin interpolar el viaje).
+        NetworkTransform netTransform = selectedObj.GetComponent<NetworkTransform>();
+        if (netTransform != null && netTransform.IsSpawned && netTransform.CanCommitToTransform)
+            netTransform.Teleport(position, selectedObj.transform.rotation, selectedObj.transform.localScale);
         else
+            selectedObj.transform.position = position;
+
+        if (selectedObj.TryGetComponent(out Rigidbody body))
         {
-            Debug.LogWarning("El objeto seleccionado de la lista es nulo.");
+            body.position = position;
+            if (!body.isKinematic) body.linearVelocity = body.angularVelocity = Vector3.zero;
         }
+
+        if (!selectedObj.activeSelf)
+            selectedObj.SetActive(true);
+
+        Debug.Log($"[{(IsServer ? "Servidor" : "Cliente")}] Objeto mecánico en su punto: {selectedObj.name}", selectedObj);
     }
 }
