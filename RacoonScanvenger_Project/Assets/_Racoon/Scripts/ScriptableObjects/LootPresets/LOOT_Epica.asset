@@ -17,8 +17,8 @@ MonoBehaviour:
   weightPerItem: 1.5
   minItems: 3
   maxItems: 5
-  respawnTimeMin: 55
-  respawnTimeMax: 70
+  respawnTimeMin: 180
+  respawnTimeMax: 200
   normalCooldown: 0.15
   maxDoublePointsCollections: 6
   doublePointsCooldown: 1.5

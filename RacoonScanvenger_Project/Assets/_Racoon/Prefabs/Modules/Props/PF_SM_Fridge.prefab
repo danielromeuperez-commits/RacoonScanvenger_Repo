@@ -2001,6 +2001,9 @@ MonoBehaviour:
   doorColliders:
   - {fileID: 732539317174351532}
   - {fileID: 5570623655650652386}
+  pocket:
+    m_Center: {x: 0.75, y: 1, z: -1.2}
+    m_Extent: {x: 0.85, y: 1.2, z: 0.4}
 --- !u!1 &5585298059230708802
 GameObject:
   m_ObjectHideFlags: 0

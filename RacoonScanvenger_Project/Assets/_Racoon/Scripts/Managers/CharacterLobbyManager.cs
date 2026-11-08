@@ -107,9 +107,20 @@ namespace Racoon.Network
 
         public string RivalCharacterName => RivalCharacter != null ? RivalCharacter.displayName : "";
 
-        /// <summary>Otro jugador ya ha confirmado este personaje: no se puede elegir.</summary>
+        /// <summary>Personaje bloqueado (PlayerCharacterDefinition.locked): nadie puede elegirlo.</summary>
+        public bool IsCharacterLocked(int characterIndex)
+        {
+            PlayerCharacterDefinition character = Roster != null ? Roster.Get(characterIndex) : null;
+            return character != null && character.locked;
+        }
+
+        /// <summary>El personaje que tengo marcado está bloqueado.</summary>
+        public bool IsSelectedCharacterLocked => IsCharacterLocked(localSelectedCharacter);
+
+        /// <summary>No se puede elegir: está bloqueado u otro jugador ya lo ha confirmado.</summary>
         public bool IsCharacterTaken(int characterIndex)
         {
+            if (IsCharacterLocked(characterIndex)) return true;
             if (!IsSpawned) return false;
             ulong me = NetworkManager.LocalClientId;
             foreach (LobbyPick pick in picks)
@@ -139,7 +150,7 @@ namespace Racoon.Network
         public override void OnNetworkSpawn()
         {
             localReady = false;
-            localSelectedCharacter = 0;
+            localSelectedCharacter = FirstUnlockedCharacter();
 
             if (!IsServer)
             {
@@ -209,6 +220,14 @@ namespace Racoon.Network
         // ============================================================
         // SELECCIÓN LOCAL
         // ============================================================
+
+        int FirstUnlockedCharacter()
+        {
+            if (Roster == null) return 0;
+            for (int i = 0; i < Roster.Count; i++)
+                if (!IsCharacterLocked(i)) return i;
+            return 0;
+        }
 
         public void PreviousCharacter() => StepCharacter(-1);
 
@@ -286,6 +305,13 @@ namespace Racoon.Network
             if (Roster == null || Roster.Get(characterIndex) == null)
             {
                 Debug.LogWarning($"Cliente {clientId} eligió un personaje no válido.");
+                ReadyRejectedRpc(RpcTarget.Single(clientId, RpcTargetUse.Temp));
+                return;
+            }
+
+            // Bloqueado: no se puede jugar con él.
+            if (IsCharacterLocked(characterIndex))
+            {
                 ReadyRejectedRpc(RpcTarget.Single(clientId, RpcTargetUse.Temp));
                 return;
             }

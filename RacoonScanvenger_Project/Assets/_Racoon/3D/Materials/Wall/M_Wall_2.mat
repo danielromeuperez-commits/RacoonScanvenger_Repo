@@ -8,11 +8,12 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: M_Wall_2
-  m_Shader: {fileID: 4800000, guid: bee44b4a58655ee4cbff107302a3e131, type: 3}
+  m_Shader: {fileID: 4800000, guid: 4cd786b412c54e5a8c4177956c8ffabe, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
   - DR_CEL_EXTRA_ON
+  - DR_ENABLE_LIGHTMAP_DIR
   - _BASEMAP_PREMULTIPLY
   - _CELPRIMARYMODE_SINGLE
   - _DETAILMAPBLENDINGMODE_MULTIPLY
@@ -25,12 +26,13 @@ Material:
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
-  m_CustomRenderQueue: -1
-  stringTagMap: {}
+  m_CustomRenderQueue: 2000
+  stringTagMap:
+    RenderType: Opaque
   disabledShaderPasses:
   - MOTIONVECTORS
-  - Outline
   - SRPDEFAULTUNLIT
+  - Outline
   m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
@@ -151,9 +153,9 @@ Material:
     - _OcclusionStrength: 1
     - _OutlineDepthOffset: 0
     - _OutlineEnabled: 0
-    - _OutlineScale: 1
+    - _OutlineScale: 1.04
     - _OutlineSpace: 0
-    - _OutlineWidth: 1
+    - _OutlineWidth: 27.12
     - _OverrideLightmapDir: 0
     - _Parallax: 0.005
     - _QueueOffset: 0
@@ -176,6 +178,10 @@ Material:
     - _UnityShadowOcclusion: 1
     - _UnityShadowPower: 0.5
     - _UnityShadowSharpness: 1
+    - _UrpLightIntensity: 1
+    - _UrpLightLayer: 1
+    - _UrpLightShadows: 1
+    - _UrpLightSmoothness: 0.3
     - _VertexColorsEnabled: 0
     - _VertexExtrusionSmoothNormals: 0
     - _WorkflowMode: 1
@@ -194,7 +200,7 @@ Material:
     - _FlatRimColor: {r: 0.85023, g: 0.85034, b: 0.85045, a: 0.85056}
     - _FlatSpecularColor: {r: 0.85023, g: 0.85034, b: 0.85045, a: 0.85056}
     - _LightmapDirection: {r: 0, g: 1, b: 0, a: 0}
-    - _OutlineColor: {r: 1, g: 1, b: 1, a: 1}
+    - _OutlineColor: {r: 0, g: 0, b: 0, a: 1}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
     - _UnityShadowColor: {r: 0.85023, g: 0.85034, b: 0.8504499, a: 0.85056}
   m_BuildTextureStacks: []

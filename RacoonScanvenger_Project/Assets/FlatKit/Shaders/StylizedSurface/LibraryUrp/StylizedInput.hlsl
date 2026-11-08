@@ -95,6 +95,14 @@ half _OutlineScale;
 half _OutlineDepthOffset;
 half _CameraDistanceImpact;
 
+// Racoon: variante «Luces URP por capa» (SH_Racoon_StylizedLucesURP). En el shader original no existen.
+#if defined(RACOON_URP_LAYER_LIGHTS)
+half _UrpLightLayer;
+half _UrpLightIntensity;
+half _UrpLightSmoothness;
+half _UrpLightShadows;
+#endif
+
 #ifndef FLATKIT_TERRAIN
 CBUFFER_END
 #endif

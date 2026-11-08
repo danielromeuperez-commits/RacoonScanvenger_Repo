@@ -864,7 +864,7 @@ public class ConnectionMenu : MonoBehaviour
         {
             readyButton.interactable = canChange && !taken;
             TMP_Text buttonText = readyButton.GetComponentInChildren<TMP_Text>();
-            if (buttonText != null) buttonText.text = lobby.IsLocalReady ? "READY!" : taken ? "TAKEN" : "READY";
+            if (buttonText != null) buttonText.text = lobby.IsLocalReady ? "READY!" : lobby.IsSelectedCharacterLocked ? "LOCKED" : taken ? "TAKEN" : "READY";
         }
     }
 

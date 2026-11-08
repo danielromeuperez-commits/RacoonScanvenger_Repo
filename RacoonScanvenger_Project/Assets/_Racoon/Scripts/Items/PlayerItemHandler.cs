@@ -108,6 +108,7 @@ namespace Racoon.Player
         public override void OnNetworkSpawn()
         {
             inventory.EquippedItemChanged += OnEquippedItemChanged;
+            inventory.ItemAdded += OnItemAdded;
 
             lastCount = inventory.Count;
             OnEquippedItemChanged(inventory.EquippedItem);
@@ -116,6 +117,7 @@ namespace Racoon.Player
         public override void OnNetworkDespawn()
         {
             inventory.EquippedItemChanged -= OnEquippedItemChanged;
+            inventory.ItemAdded -= OnItemAdded;
         }
 
         public override void OnDestroy()
@@ -128,6 +130,23 @@ namespace Racoon.Player
 
         // ---------------- Objeto en la mano ----------------
 
+        // Con el inventario vacío, la lista y el slot equipado llegan en dos avisos: primero el objeto entra (aún sin
+        // equipar, así que no se ve nada) y después se equipa, cuando el recuento ya no cambia. Por eso «recién
+        // cogido» se marca aquí y no solo comparando el recuento.
+        ItemData pendingReveal;
+
+        void OnItemAdded(int slot, ItemData item)
+        {
+            pendingReveal = item;
+            // Si el slot llegó antes que la lista, el modelo ya se ha creado este mismo instante: se oculta igual.
+            if (item == currentItem && currentHeldVisual != null && !heldAwaitingReveal && Time.time - heldCreatedTime < 0.2f)
+            {
+                heldAwaitingReveal = true;
+                sawRouletteSpin = false;
+                pendingReveal = null;
+            }
+        }
+
         void OnEquippedItemChanged(ItemData item)
         {
             int count = inventory.Count;
@@ -137,7 +156,11 @@ namespace Racoon.Player
 
             // El inventario puede avisar dos veces seguidas con el mismo objeto.
             if (item == currentItem && (currentHeldVisual != null || item == null))
+            {
+                // Ya llevaba uno equipado: el nuevo ha ido a otro hueco y no se ve hasta que cambie a él.
+                if (item != null) pendingReveal = null;
                 return;
+            }
 
             bool switched = !used && currentItem != null && item != null;
             if (switched)
@@ -159,7 +182,8 @@ namespace Racoon.Player
                 return;
 
             currentHeldVisual = InstantiateVisual(item.heldVisualPrefab);
-            heldAwaitingReveal = picked;
+            heldAwaitingReveal = picked || item == pendingReveal;
+            pendingReveal = null;
             sawRouletteSpin = false;
             heldCreatedTime = Time.time;
             heldRestScale = currentHeldVisual.transform.localScale;
