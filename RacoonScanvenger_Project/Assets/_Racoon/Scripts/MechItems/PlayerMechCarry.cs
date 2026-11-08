@@ -166,6 +166,8 @@ namespace Racoon.Player
 
         // ---------------- Despertador: mando y pantalla (solo el dueño) ----------------
 
+        // ---------------- Despertador: mando y pantalla (solo el dueño) ----------------
+
         void UpdateOwnerEffects(MechKind carried)
         {
             bool ringing = carried == MechKind.Clock && controller != null && controller.IsSpawned && controller.IsOwner;
@@ -175,11 +177,23 @@ namespace Racoon.Player
                 return;
             }
 
+            // Reproducir el sonido solo si NO está sonando ya (evita que pete y sature cada frame)
+            if (AudioManager.Instance != null && AudioManager.Instance.sfxSource != null)
+            {
+                AudioClip clockClip = AudioManager.Instance.sfxLibrary[13]; // Cambia 13 por tu índice de audio
+                if (!AudioManager.Instance.sfxSource.isPlaying || AudioManager.Instance.sfxSource.clip != clockClip)
+                {
+                    AudioManager.Instance.sfxSource.clip = clockClip;
+                    AudioManager.Instance.sfxSource.loop = true; // Lo ponemos en bucle mientras lo lleva
+                    AudioManager.Instance.sfxSource.volume = AudioManager.Instance.GetMasterVolume() * AudioManager.Instance.GetSFXVolume();
+                    AudioManager.Instance.sfxSource.Play();
+                }
+            }
+
             CameraShaker.SetContinuous(shakeKey, ClockShake, 1f, 6f);
             Gamepad pad = controller.InputHandler != null ? controller.InputHandler.PairedDevice as Gamepad : null;
             if (pad != rumblingPad && rumblingPad != null && rumblingPad.added) rumblingPad.SetMotorSpeeds(0f, 0f);
             rumblingPad = pad;
-            // Cada frame: los golpes y el plátano también usan el motor y lo dejarían a cero al acabar.
             if (pad != null && pad.added) pad.SetMotorSpeeds(ClockLowMotor, ClockHighMotor);
         }
 
@@ -188,6 +202,17 @@ namespace Racoon.Player
             CameraShaker.SetContinuous(shakeKey, ClockShake, 0f, 6f);
             if (rumblingPad != null && rumblingPad.added) rumblingPad.SetMotorSpeeds(0f, 0f);
             rumblingPad = null;
+
+            // Parar el sonido, limpiar el clip y quitar el loop para que no afecte a otros SFX normales
+            if (controller != null && controller.IsOwner && AudioManager.Instance != null && AudioManager.Instance.sfxSource != null)
+            {
+                if (AudioManager.Instance.sfxSource.clip == AudioManager.Instance.sfxLibrary[13]) // Cambia 13 por tu índice
+                {
+                    AudioManager.Instance.sfxSource.Stop();
+                    AudioManager.Instance.sfxSource.loop = false;
+                    AudioManager.Instance.sfxSource.clip = null;
+                }
+            }
         }
     }
 }

@@ -285,7 +285,7 @@ namespace Racoon.Gameplay
 
         void OnLeaderChanged()
         {
-            AudioManager.Instance.PlaySFX(24);
+            AudioManager.Instance.PlaySFX(25);
             MatchStandings.Standing leader = standings.Leader;
             if (leader == null) return;
             Play(leaderChanged, IsLocal(leader) ? 1f : 0.6f, PlayerColor(leader.Controller));

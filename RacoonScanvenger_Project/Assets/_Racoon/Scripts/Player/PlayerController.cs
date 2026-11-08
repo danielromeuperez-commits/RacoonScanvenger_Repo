@@ -798,6 +798,10 @@ namespace Racoon.Player
                 CancelPunchCharge();
                 return;
             }
+            if (IsOwner && AudioManager.Instance != null)
+            {
+                AudioManager.Instance.PlaySFX(26);
+            }
 
             punchChargeTimer += dt;
             // Solo se replica al pasar el toque: así un puñetazo rápido no enciende el VFX de carga en los demás.
@@ -818,6 +822,10 @@ namespace Racoon.Player
             chargingPunch = false;
             punchChargeTimer = 0f;
             SetChargingPunchReplicated(false);
+            if (IsOwner && AudioManager.Instance != null && AudioManager.Instance.sfxSource != null)
+            {
+                AudioManager.Instance.sfxSource.Stop();
+            }
         }
 
         void ReleasePunch()
@@ -1479,7 +1487,7 @@ namespace Racoon.Player
             // El sonido solo suena si eres el dueño local
             if (IsOwner)
             {
-                AudioManager.Instance.PlaySFX(5);
+                AudioManager.Instance.PlaySFX(2);
             }
 
             // El evento y los VFX se ejecutan para todos los clientes
@@ -1959,6 +1967,11 @@ namespace Racoon.Player
         [Rpc(SendTo.Owner, InvokePermission = RpcInvokePermission.Server)]
         void EnergyDrinkRpc(float duration)
         {
+            if (IsOwner)
+            {
+                AudioManager.Instance.PlaySFX(11);
+            }
+
             infiniteDashActive = true;
             energyDrinkVisible.Value = true;
             infiniteDashTimer = Mathf.Max(infiniteDashTimer, duration);

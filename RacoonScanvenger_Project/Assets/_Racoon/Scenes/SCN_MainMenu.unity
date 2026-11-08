@@ -2389,7 +2389,7 @@ PrefabInstance:
       objectReference: {fileID: 64894394}
     - target: {fileID: 6341054698668197357, guid: 4be3fdd9c945d2640bd90d326628ccb5, type: 3}
       propertyPath: sfxLibrary.Array.size
-      value: 25
+      value: 27
       objectReference: {fileID: 0}
     - target: {fileID: 6341054698668197357, guid: 4be3fdd9c945d2640bd90d326628ccb5, type: 3}
       propertyPath: 'sfxLibrary.Array.data[23]'
@@ -2399,6 +2399,18 @@ PrefabInstance:
       propertyPath: 'sfxLibrary.Array.data[24]'
       value: 
       objectReference: {fileID: 8300000, guid: 7f1427182178425479850d57d27b04ae, type: 3}
+    - target: {fileID: 6341054698668197357, guid: 4be3fdd9c945d2640bd90d326628ccb5, type: 3}
+      propertyPath: 'sfxLibrary.Array.data[25]'
+      value: 
+      objectReference: {fileID: 8300000, guid: f4761d43246d17e439c1984809c8f7b5, type: 3}
+    - target: {fileID: 6341054698668197357, guid: 4be3fdd9c945d2640bd90d326628ccb5, type: 3}
+      propertyPath: 'sfxLibrary.Array.data[26]'
+      value: 
+      objectReference: {fileID: 8300000, guid: d70579b505e89684fa1c6a411b66743d, type: 3}
+    - target: {fileID: 6341054698668197357, guid: 4be3fdd9c945d2640bd90d326628ccb5, type: 3}
+      propertyPath: 'sfxLibrary.Array.data[27]'
+      value: 
+      objectReference: {fileID: 8300000, guid: f4761d43246d17e439c1984809c8f7b5, type: 3}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []

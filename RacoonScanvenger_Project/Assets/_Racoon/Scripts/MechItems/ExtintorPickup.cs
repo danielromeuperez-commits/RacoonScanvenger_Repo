@@ -66,7 +66,10 @@ public class ExtintorPickup : NetworkBehaviour, IMechPickup
         float distance = Vector3.Distance(transform.position, player.transform.position);
         if (distance > validationDistance)
             return;
-
+        if (IsOwner)
+        {
+            AudioManager.Instance.PlaySFX(16);
+        }
         consumed = true;
 
         // Sumar puntos y peso a la bolsa del jugador a través de PlayerLoot

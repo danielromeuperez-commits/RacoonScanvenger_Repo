@@ -54,7 +54,6 @@ public class PickupWatch : NetworkBehaviour, IMechPickup
     {
         if (!IsServer || !CanInteract(player))
             return;
-
         if (hold.Tick(player, holdTime))
             ConsumeOnServer(player);
     }
