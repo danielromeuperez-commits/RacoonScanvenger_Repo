@@ -57,6 +57,9 @@ namespace Racoon.Events
         // Brillo montado: copia de cada malla de la estantería con el material del brillo.
         Material glowMaterial;
         readonly List<(Renderer source, MeshRenderer copy)> glowCopies = new();
+        // Mallas del mueble que están en un static batch (estanterías, puestos, neveras): no se pueden copiar sueltas,
+        // así que el brillo se dibuja cada frame con sus submeshes de la malla combinada (en espacio mundo).
+        readonly List<(MeshRenderer source, Mesh combined, int firstSubMesh, int subMeshCount)> glowStatic = new();
         float glowLevel;
 
         GameObject arrow;
@@ -283,8 +286,9 @@ namespace Racoon.Events
                 if (!source.TryGetComponent(out MeshFilter filter) || filter.sharedMesh == null) continue;
                 if (source.isPartOfStaticBatch)
                 {
-                    // La malla está fusionada con el resto de la escena: no se puede copiar suelta.
-                    Debug.LogWarning($"DoublePointsVFX: '{source.name}' está en un static batch; quita «Batching Static» del prefab para que brille.", source);
+                    // Fusionada con el resto de la escena: se dibujan sus submeshes de la malla combinada.
+                    int count = source.sharedMaterials.Length;
+                    if (count > 0) glowStatic.Add((source, filter.sharedMesh, source.subMeshStartIndex, count));
                     continue;
                 }
 
@@ -306,7 +310,7 @@ namespace Racoon.Events
 
         void UpdateGlow(float time)
         {
-            if (glowCopies.Count == 0 || glowMaterial == null) return;
+            if ((glowCopies.Count == 0 && glowStatic.Count == 0) || glowMaterial == null) return;
 
             bool on = !ending && evt != null && evt.IsActive;
             glowLevel = Mathf.MoveTowards(glowLevel, on ? 1f : 0f, Time.deltaTime / (on ? glowFadeIn : glowFadeOut));
@@ -321,6 +325,23 @@ namespace Racoon.Events
             glowMaterial.SetFloat(IntensityId, intensity);
             glowMaterial.SetFloat(FXTimeId, time);
             glowMaterial.SetVector(OriginId, shelfCenter);
+
+            foreach (var (source, combined, first, count) in glowStatic)
+            {
+                if (source == null || combined == null || !source.enabled || !source.gameObject.activeInHierarchy) continue;
+                var rp = new RenderParams(glowMaterial)
+                {
+                    layer = source.gameObject.layer,
+                    shadowCastingMode = ShadowCastingMode.Off,
+                    receiveShadows = false,
+                    lightProbeUsage = LightProbeUsage.Off,
+                    reflectionProbeUsage = ReflectionProbeUsage.Off,
+                    worldBounds = source.bounds,
+                };
+                int end = Mathf.Min(first + count, combined.subMeshCount);
+                for (int i = first; i < end; i++)
+                    Graphics.RenderMesh(rp, combined, i, Matrix4x4.identity);
+            }
         }
 
         void ClearGlow()
@@ -328,6 +349,7 @@ namespace Racoon.Events
             foreach (var (_, copy) in glowCopies)
                 if (copy != null) Destroy(copy.gameObject);
             glowCopies.Clear();
+            glowStatic.Clear();
         }
     }
 }

@@ -233,6 +233,10 @@ namespace Racoon.Player
             visual.transform.localRotation = Quaternion.identity;
             Destroy(holder);
 
+            // Por si la pompa de visión lo marcó mientras aún no colgaba del jugador: lo de encima no se recorta.
+            foreach (Renderer r in visual.GetComponentsInChildren<Renderer>(true))
+                r.renderingLayerMask &= ~(1u << 30);
+
             heldPopStart = Time.time;
             ApplyHeldAnimation();
         }

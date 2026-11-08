@@ -103,6 +103,8 @@ namespace Racoon.VFX
             {
                 if (renderer is not MeshRenderer && renderer is not SkinnedMeshRenderer) continue;
                 bool included = (mask & (1 << renderer.gameObject.layer)) != 0;
+                // Lo que lleva encima un jugador (objeto a la espalda, extintor, despertador...) nunca se recorta.
+                if (included && renderer.GetComponentInParent<PlayerController>(true) != null) included = false;
                 uint layers = renderer.renderingLayerMask;
                 uint wanted = included ? layers | BubbleRenderingLayer : layers & ~BubbleRenderingLayer;
                 if (wanted != layers) renderer.renderingLayerMask = wanted;

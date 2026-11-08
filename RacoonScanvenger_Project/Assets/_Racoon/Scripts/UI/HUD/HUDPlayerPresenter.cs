@@ -80,6 +80,7 @@ namespace Racoon.UI.HUD
         Color rouletteIconColor = Color.white;
         bool skipRoulette;
         static readonly Color RouletteSilhouette = new(.12f, .1f, .2f, 1f);
+        static readonly Color IconRestColor = Color.white;   // color de los iconos de objeto en el prefab
 
         /// <summary>La ruleta de ítems se ha parado (también si se ha saltado). Para vibrar el mando, etc.</summary>
         public event System.Action RouletteStopped;
@@ -1049,6 +1050,8 @@ namespace Racoon.UI.HUD
             {
                 icon.sprite = sprite;
                 icon.enabled = has;
+                // Nunca se queda con la silueta de la ruleta (si una ruleta se cortó sin restaurar, el icono salía negro).
+                if (has) icon.color = IconRestColor;
             }
             if (empty) empty.SetActive(!has);
         }
@@ -1075,7 +1078,9 @@ namespace Racoon.UI.HUD
                 rouletteIcon = rect;
                 rouletteImage = icon;
                 rouletteIconRest = rect.localScale;
-                rouletteIconColor = icon.color;
+                // El color de reposo es siempre el del prefab: si se copiara el actual y una ruleta anterior se hubiera
+                // cortado a medias (panel desactivado), se guardaría la silueta y el icono se quedaría negro.
+                rouletteIconColor = IconRestColor;
                 // Mientras gira solo se ven siluetas: el objeto se descubre al pararse
                 icon.color = RouletteSilhouette;
                 int k = Random.Range(0, pool.Count);

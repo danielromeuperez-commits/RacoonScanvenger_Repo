@@ -149,8 +149,14 @@ namespace Racoon.UI
                 holding = visible && localInput != null && (localInput.InteractHeld || Time.time - lastPress <= tapWindow);
             }
 
-            // Mismo tiempo que pide el SellPoint en el servidor; al soltar se vacía rápido.
-            float holdTime = Mathf.Max(0.05f, sellPoint.HoldTimeFor(localLoot != null ? localLoot.PendingPoints : 0));
+            // Mismo tiempo que tarda de verdad la venta: el servidor solo la comprueba con cada interacción mantenida
+            // (cada InteractRepeatCadence), así que vende en la primera que pasa de HoldTimeFor. El dial dura eso
+            // mismo, redondeado al siguiente múltiplo de la cadencia (+ medio frame por repetición): se llena justo
+            // cuando vende. Al soltar se vacía rápido.
+            float serverHold = sellPoint.HoldTimeFor(localLoot != null ? localLoot.PendingPoints : 0);
+            float cadence = local != null ? local.InteractRepeatCadence + Time.smoothDeltaTime * 0.5f : 0f;
+            float holdTime = cadence > 0.01f ? Mathf.Ceil((serverHold - 0.001f) / cadence) * cadence : serverHold;
+            holdTime = Mathf.Max(0.05f, holdTime);
             held = holding ? Mathf.Min(1f, held + Time.deltaTime / holdTime)
                 : Mathf.MoveTowards(held, 0f, Time.deltaTime * 4f);
             if (ringFill != null) ringFill.fillAmount = held;

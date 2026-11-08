@@ -1550,6 +1550,10 @@ namespace Racoon.Player
         /// </summary>
         public float InteractReach => frontInteractRange + frontInteractRadius;
 
+        /// <summary>Cada cuánto llega al servidor una interacción mantenida: dura interactDuration y no se repite
+        /// antes de interactRepeatInterval. Los avisos de mantener (vender) cuadran su dial con esto.</summary>
+        public float InteractRepeatCadence => Mathf.Max(interactRepeatInterval, interactDuration);
+
         Vector3 InteractCenterFor(Vector3 forward) => transform.position + Vector3.up * punchHeight + forward * frontInteractRange;
 
         // «forward» es hacia donde miraba el dueño al pulsar: el autoapuntado le gira al instante y el giro puede

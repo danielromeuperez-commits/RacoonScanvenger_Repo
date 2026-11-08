@@ -58,6 +58,10 @@ namespace Racoon.UI
 
         public int Layer { get => layer; set => layer = value; }
         public Vector3 StagePosition { get => stagePosition; set => stagePosition = value; }
+        public float SpinSpeed { get => spinSpeed; set => spinSpeed = value; }
+        /// <summary>Segundos entre gestos (muy alto = quieto en Idle).</summary>
+        public float GestureInterval { get => gestureInterval; set => gestureInterval = Mathf.Max(1f, value); }
+        public float StartYaw { get => startYaw; set => startYaw = value; }
 
         void Awake()
         {

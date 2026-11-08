@@ -6,7 +6,7 @@ using UnityEngine;
 
 /// <summary>
 /// Hace aparecer un objeto mecánico (extintor, despertador...) en este punto cuando el CONTADOR DE LA PARTIDA
-/// (MatchTimer) llega al segundo indicado. Si el contador va más rápido (evento de acelerar el tiempo), el objeto
+/// (MatchTimer) llega a un segundo elegido al azar dentro de Spawn Time Range (por defecto, entre el minuto 1 y el 3). Si el contador va más rápido (evento de acelerar el tiempo), el objeto
 /// también sale antes.
 ///
 /// Los segundos previos se avisa en el suelo con un círculo que se va rellenando en el sentido de las agujas del
@@ -24,8 +24,11 @@ public class SpawnerMechItems : NetworkBehaviour
     public Transform sourcePoint;
 
     [Header("Tiempo (contador de la partida)")]
-    [Tooltip("Segundos de partida transcurridos (según el contador, MatchTimer) en los que aparece el objeto.")]
-    public float interval = 3f;
+    [Tooltip("Segundos de partida transcurridos (según el contador, MatchTimer) entre los que aparece el objeto. " +
+             "El servidor elige uno al azar al empezar la partida y lo comparte, así el aviso sale igual en todos.")]
+    [SerializeField] Vector2 spawnTimeRange = new(60f, 180f);
+    // Obsoleto: ya no se usa (ver spawnTimeRange). Se mantiene para no romper escenas que lo sobrescriben.
+    [HideInInspector] public float interval = 3f;
 
     [Header("Aviso en el suelo")]
     [Tooltip("Segundos antes de aparecer en los que se ve el círculo llenándose.")]
@@ -45,6 +48,8 @@ public class SpawnerMechItems : NetworkBehaviour
 
     MatchTimer matchTimer;
     bool hasSpawned;
+    // Segundo de partida en el que sale (lo decide el servidor; -1 = aún sin decidir).
+    readonly NetworkVariable<float> spawnAt = new(-1f);
     float lastFill = -1f;
 
     // Aviso (todos los clientes)
@@ -66,18 +71,27 @@ public class SpawnerMechItems : NetworkBehaviour
         bool running = timer != null && timer.IsSpawned && timer.IsRunning && !timer.IsFinished;
         float elapsed = running ? timer.Duration - timer.TimeRemaining : 0f;
 
-        if (IsServer && !hasSpawned && running && elapsed >= interval)
+        if (IsServer && running && spawnAt.Value < 0f)
+        {
+            float min = Mathf.Max(0f, Mathf.Min(spawnTimeRange.x, spawnTimeRange.y));
+            float max = Mathf.Max(spawnTimeRange.x, spawnTimeRange.y);
+            spawnAt.Value = Random.Range(min, max);
+            Debug.Log($"[Servidor] Objeto mecánico: saldrá en el segundo {spawnAt.Value:F0} de partida.", this);
+        }
+
+        float target = spawnAt.Value;
+        if (IsServer && !hasSpawned && running && target >= 0f && elapsed >= target)
         {
             TeleportAndShowRandomObject();
             hasSpawned = true;
         }
 
-        UpdateWarning(running, elapsed);
+        UpdateWarning(running && target >= 0f, elapsed, target);
     }
 
     // ---------------- Aviso en el suelo ----------------
 
-    void UpdateWarning(bool running, float elapsed)
+    void UpdateWarning(bool running, float elapsed, float spawnTime)
     {
         if (!running || warningTime <= 0f || Application.isBatchMode)
         {
@@ -85,7 +99,7 @@ public class SpawnerMechItems : NetworkBehaviour
             return;
         }
 
-        float start = interval - warningTime;
+        float start = spawnTime - warningTime;
         if (elapsed < start)
         {
             SetWarningVisible(false);
@@ -96,7 +110,7 @@ public class SpawnerMechItems : NetworkBehaviour
         EnsureWarning();
         float scale = 1f;
 
-        if (elapsed >= interval)
+        if (elapsed >= spawnTime)
         {
             // Ya ha salido: el círculo lleno se encoge y desaparece.
             if (spawnedAt < 0f) spawnedAt = Time.time;

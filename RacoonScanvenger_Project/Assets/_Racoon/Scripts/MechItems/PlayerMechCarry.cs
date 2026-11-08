@@ -95,6 +95,9 @@ namespace Racoon.Player
             copy.transform.SetParent(transform, false);
             Destroy(holder);
             copy.SetActive(true);
+            // La pompa de visión no recorta lo que lleva el jugador (por si lo marcó antes de engancharlo).
+            foreach (Renderer r in copy.GetComponentsInChildren<Renderer>(true))
+                r.renderingLayerMask &= ~(1u << 30);
 
             // Tamaño máximo (los objetos del suelo están pensados para verse desde lejos).
             var bounds = new Bounds(copy.transform.position, Vector3.zero);
