@@ -182,6 +182,24 @@ namespace Racoon.Items
             if (!IsServer || landed || body == null)
                 return;
 
+            // Contra un jugador nunca se queda encima (su cabeza contaba como «suelo» y se quedaba ahí sin tumbarle):
+            // si ya está armada, le tumba en el acto; si no, rebota y sigue cayendo hasta el suelo.
+            PlayerController hitPlayer = collision.collider.GetComponentInParent<PlayerController>();
+            if (hitPlayer != null)
+            {
+                if (armed && !consumed)
+                {
+                    ServerSlip(hitPlayer);
+                    return;
+                }
+                Vector3 away = transform.position - hitPlayer.transform.position;
+                away.y = 0f;
+                away = away.sqrMagnitude > 0.0001f ? away.normalized : Random.insideUnitSphere;
+                away.y = 0f;
+                body.linearVelocity = away.normalized * 1.5f + Vector3.up * 1f;
+                return;
+            }
+
             // Solo se queda quieta cuando toca una superficie
             // suficientemente horizontal, no al chocar contra una pared.
             foreach (ContactPoint contact in collision.contacts)
@@ -371,15 +389,29 @@ namespace Racoon.Items
             armedRing.Transform.localPosition = Vector3.up * 0.01f;
         }
 
-        void OnTriggerEnter(Collider other)
+        // Stay (no Enter): también tumba a quien ya estaba encima cuando aterriza o se arma.
+        void OnTriggerStay(Collider other)
         {
             if (!IsServer || !armed || !landed || consumed)
+                return;
+
+            // Solo la cápsula física del jugador (la que pisa), no su Hit Collider (trigger más grande para los golpes).
+            if (other.isTrigger)
                 return;
 
             PlayerController player =
                 other.GetComponentInParent<PlayerController>();
 
             if (player == null)
+                return;
+
+            ServerSlip(player);
+        }
+
+        // Solo servidor: resbalón de <paramref name="player"/> (una sola vez por cáscara).
+        void ServerSlip(PlayerController player)
+        {
+            if (consumed)
                 return;
 
             consumed = true;
@@ -427,6 +459,13 @@ namespace Racoon.Items
 
             slipSfx.Play(victimPosition);
             PlayerRumble.Rumble(victim, 0.6f, 0.4f, 0.25f);
+
+            // >>> AÑADIR ESTO: Reproducir los sonidos de resbalón y mareo en el cliente local (dueño) <<<
+            if (victim != null && victim.IsOwner && AudioManager.Instance != null)
+            {
+                AudioManager.Instance.PlaySFX(21); // Sonido de resbalar con el plátano
+                AudioManager.Instance.PlaySFX(15); // Sonido de dizzy al quedarse tirado
+            }
 
             if (victim != null)
                 Slipped?.Invoke(victim, owner);

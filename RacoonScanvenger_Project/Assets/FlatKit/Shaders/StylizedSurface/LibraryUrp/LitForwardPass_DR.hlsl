@@ -231,10 +231,14 @@ Varyings StylizedPassVertex(Attributes input)
     return output;
 }
 
+// RACOON: pompa de visión (ver Assets/_Racoon/Visuals/Shaders/RacoonBubble.hlsl).
+#include "Assets/_Racoon/Visuals/Shaders/RacoonBubble.hlsl"
+
 half4 StylizedPassFragment(Varyings input) : SV_Target
 {
     UNITY_SETUP_INSTANCE_ID(input);
     UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
+    RacoonBubbleClip(input.positionWS, input.positionCS);
 
     SurfaceData surfaceData;
     InitializeSimpleLitSurfaceData(input.uv, surfaceData);

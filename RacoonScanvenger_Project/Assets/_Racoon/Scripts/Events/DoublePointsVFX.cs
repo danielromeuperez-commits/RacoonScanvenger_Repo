@@ -1,7 +1,9 @@
 using Racoon.Cameras;
 using Racoon.Player;
+using System.Collections.Generic;
 using Racoon.VFX;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace Racoon.Events
 {
@@ -11,7 +13,8 @@ namespace Racoon.Events
     ///    con cada recolección doble y al agotarse dice «¡AGOTADA!».
     ///  - Anillo en el suelo bajo tu jugador con una puntita hacia la estantería (prefab PF_VFX_EventFloorArrow, con su
     ///    Animator). Se queda mientras la estantería tenga recolecciones x2 y se vuelve transparente al acercarte a ella.
-    ///  - Destellos que suben de la estantería y un golpe de cámara si eres tú quien la saquea.
+    ///  - Toda la estantería (productos incluidos) brilla en amarillo con el mismo shader que la bebida energética
+    ///    (CameraFXEnergyOverlay), y un golpe de cámara si eres tú quien la saquea.
     /// No se monta a mano: lo añade eventDoublePoints al aparecer. El aspecto común sale de <see cref="GameEventTheme"/>.
     /// </summary>
     public sealed class DoublePointsVFX : VfxBehaviour
@@ -27,11 +30,14 @@ namespace Racoon.Events
         [Tooltip("Distancia (m) al borde de la estantería a partir de la cual el anillo se ve del todo.")]
         [SerializeField, Min(0f)] float ringFadeFar = 3f;
 
-        [Header("Destellos")]
-        [Tooltip("Puntas de los destellos.")]
-        [SerializeField] Color sparkleTip = new(1f, 0.93f, 0.78f);
-        [SerializeField] int sparkleCount = 10;
-        [SerializeField] float sparkleInterval = 0.16f;
+        [Header("Brillo de la estantería")]
+        [SerializeField] Color glowDeep = new(0.85f, 0.5f, 0.02f);
+        [SerializeField] Color glowMid = new(1f, 0.8f, 0.12f);
+        [SerializeField] Color glowLight = new(1f, 0.97f, 0.62f);
+        [Tooltip("Hinchado del brillo sobre la malla (m).")]
+        [SerializeField, Min(0f)] float glowPush = 0.008f;
+        [SerializeField, Min(0.01f)] float glowFadeIn = 0.35f;
+        [SerializeField, Min(0.01f)] float glowFadeOut = 0.6f;
 
         [Tooltip("Golpe de cámara al saquear tú la estantería x2.")]
         [SerializeField] CameraFXProfile grabFx = new(0.35f, decayPower: 2f)
@@ -43,13 +49,18 @@ namespace Racoon.Events
         GameEventTheme theme;
         Color accent;
 
-        // Escena montada
-        Transform root;
-        FlatPiece[] sparkles;
-        float[] sparkleBorn;
-        Vector3[] sparkleFrom;
-        int nextSparkle;
-        float lastSparkle;
+        const string GlowShaderPath = "CameraFX/CameraFXEnergyOverlay";
+        static readonly int IntensityId = Shader.PropertyToID("_Intensity");
+        static readonly int OriginId = Shader.PropertyToID("_Origin");
+        static readonly int FXTimeId = Shader.PropertyToID("_FXTime");
+
+        // Brillo montado: copia de cada malla de la estantería con el material del brillo.
+        Material glowMaterial;
+        readonly List<(Renderer source, MeshRenderer copy)> glowCopies = new();
+        // Mallas del mueble que están en un static batch (estanterías, puestos, neveras): no se pueden copiar sueltas,
+        // así que el brillo se dibuja cada frame con sus submeshes de la malla combinada (en espacio mundo).
+        readonly List<(MeshRenderer source, Mesh combined, int firstSubMesh, int subMeshCount)> glowStatic = new();
+        float glowLevel;
 
         GameObject arrow;
         Animator arrowAnimator;
@@ -88,7 +99,8 @@ namespace Racoon.Events
 
         void OnDestroy()
         {
-            if (root != null) Destroy(root.gameObject);
+            ClearGlow();
+            if (glowMaterial != null) Destroy(glowMaterial);
             if (arrow != null) Destroy(arrow);
         }
 
@@ -124,29 +136,15 @@ namespace Racoon.Events
 
         void Build(Vector3 shelfPosition)
         {
-            if (root != null) Destroy(root.gameObject);
-            sparkles = null;
+            ClearGlow();
+            glowLevel = 0f;
             ending = false;
             shelfYaw = Quaternion.identity;
             footprintHalf = new Vector2(0.33f, 1.45f);
             built = true;
-            MeasureShelf(shelfPosition);
-
-            root = new GameObject("[DoublePointsVFX]").transform;
-
-            Material flat = theme.flatMaterial;
-            if (flat != null)
-            {
-                sparkles = new FlatPiece[Mathf.Max(0, sparkleCount)];
-                sparkleBorn = new float[sparkles.Length];
-                sparkleFrom = new Vector3[sparkles.Length];
-                Mesh sparkleMesh = FlatMeshes.Burst(3, 4, 0.25f, 0f, 0.12f);
-                for (int i = 0; i < sparkles.Length; i++)
-                {
-                    sparkles[i] = new FlatPiece("Sparkle", root, sparkleMesh, flat).Colors(theme.cream, sparkleTip, theme.ink);
-                    sparkleBorn[i] = -100f;
-                }
-            }
+            LootPoint shelf = evt != null ? evt.Shelf : null;
+            MeasureShelf(shelfPosition, shelf);
+            BuildGlow(shelf);
 
             if (arrow == null && theme.floorArrowPrefab != null)
             {
@@ -166,19 +164,8 @@ namespace Racoon.Events
             }
         }
 
-        void MeasureShelf(Vector3 position)
+        void MeasureShelf(Vector3 position, LootPoint best)
         {
-            LootPoint best = null;
-            float bestDistance = 1f;
-            foreach (LootPoint lp in FindObjectsByType<LootPoint>(FindObjectsSortMode.None))
-            {
-                float d = Vector3.Distance(lp.transform.position, position);
-                if (d < bestDistance)
-                {
-                    bestDistance = d;
-                    best = lp;
-                }
-            }
 
             Bounds bounds = new(position, new Vector3(0.65f, 1f, 2.9f));
             if (best != null && best.TryGetComponent(out Collider col))
@@ -214,12 +201,11 @@ namespace Racoon.Events
                 GameEventAnnouncer.SetCard(evt, cardTitle, $"QUEDAN {evt.Remaining}", accent);
 
             UpdateArrow();
-            UpdateSparkles(time);
+            UpdateGlow(time);
 
-            if (ending && time - endedAt > 1.5f)
+            if (ending && time - endedAt > Mathf.Max(1.5f, glowFadeOut))
             {
-                if (root != null) Destroy(root.gameObject);
-                root = null;
+                ClearGlow();
                 built = false;
             }
         }
@@ -271,30 +257,99 @@ namespace Racoon.Events
             }
         }
 
-        void UpdateSparkles(float time)
-        {
-            if (sparkles == null) return;
-            if (!ending && time - lastSparkle > sparkleInterval && sparkles.Length > 0)
-            {
-                lastSparkle = time;
-                int i = nextSparkle++ % sparkles.Length;
-                sparkleBorn[i] = time;
-                Vector3 local = new(Random.Range(-1f, 1f) * (footprintHalf.x + 0.1f), 0f,
-                    Random.Range(-1f, 1f) * footprintHalf.y);
-                sparkleFrom[i] = new Vector3(shelfCenter.x, Random.Range(floorY + 0.5f, shelfTop), shelfCenter.z) + shelfYaw * local;
-            }
+        // ---------------- Brillo amarillo ----------------
 
-            for (int i = 0; i < sparkles.Length; i++)
+        void BuildGlow(LootPoint shelf)
+        {
+            if (shelf == null) return;
+            if (glowMaterial == null)
             {
-                float t = (time - sparkleBorn[i]) / 0.9f;
-                bool alive = t >= 0f && t < 1f;
-                sparkles[i].Visible = alive;
-                if (!alive) continue;
-                Transform tr = sparkles[i].Transform;
-                tr.position = sparkleFrom[i] + Vector3.up * FlatFx.OutCubic(t) * 0.7f;
-                tr.rotation = FlatFx.Billboard((sparkleBorn[i] * 97f % 90f) + t * 120f);
-                tr.localScale = Vector3.one * Mathf.Sin(t * Mathf.PI) * 0.17f;
+                var shader = Resources.Load<Shader>(GlowShaderPath);
+                if (shader == null)
+                {
+                    Debug.LogWarning($"DoublePointsVFX: falta el shader Resources/{GlowShaderPath}.", this);
+                    return;
+                }
+                glowMaterial = new Material(shader) { name = "CameraFX DoublePointsGlow" };
             }
+            glowMaterial.SetColor("_Deep", glowDeep);
+            glowMaterial.SetColor("_Mid", glowMid);
+            glowMaterial.SetColor("_Light", glowLight);
+            glowMaterial.SetFloat("_Push", glowPush);
+            glowMaterial.SetFloat(IntensityId, 0f);
+
+            // También los productos ocultos, para que brillen al reaparecer. Cada copia cuelga de su malla: cuando
+            // un producto desaparece, su brillo se va con él.
+            foreach (MeshRenderer source in shelf.VisualRoot.GetComponentsInChildren<MeshRenderer>(true))
+            {
+                if (source.name.EndsWith("_x2")) continue;
+                if (!source.TryGetComponent(out MeshFilter filter) || filter.sharedMesh == null) continue;
+                if (source.isPartOfStaticBatch)
+                {
+                    // Fusionada con el resto de la escena: se dibujan sus submeshes de la malla combinada.
+                    int count = source.sharedMaterials.Length;
+                    if (count > 0) glowStatic.Add((source, filter.sharedMesh, source.subMeshStartIndex, count));
+                    continue;
+                }
+
+                var go = new GameObject(source.name + "_x2") { layer = source.gameObject.layer };
+                go.transform.SetParent(source.transform, false);
+                go.AddComponent<MeshFilter>().sharedMesh = filter.sharedMesh;
+                var copy = go.AddComponent<MeshRenderer>();
+                copy.shadowCastingMode = ShadowCastingMode.Off;
+                copy.receiveShadows = false;
+                copy.lightProbeUsage = LightProbeUsage.Off;
+                copy.reflectionProbeUsage = ReflectionProbeUsage.Off;
+                var materials = new Material[filter.sharedMesh.subMeshCount];
+                for (int i = 0; i < materials.Length; i++) materials[i] = glowMaterial;
+                copy.sharedMaterials = materials;
+                copy.enabled = false;
+                glowCopies.Add((source, copy));
+            }
+        }
+
+        void UpdateGlow(float time)
+        {
+            if ((glowCopies.Count == 0 && glowStatic.Count == 0) || glowMaterial == null) return;
+
+            bool on = !ending && evt != null && evt.IsActive;
+            glowLevel = Mathf.MoveTowards(glowLevel, on ? 1f : 0f, Time.deltaTime / (on ? glowFadeIn : glowFadeOut));
+            // Respira suave para que se note «viva».
+            float intensity = glowLevel * (0.85f + 0.15f * Mathf.Sin(time * 4f));
+
+            bool show = glowLevel > 0.001f;
+            foreach (var (source, copy) in glowCopies)
+                if (copy != null) copy.enabled = show && source != null && source.enabled;
+            if (!show) return;
+
+            glowMaterial.SetFloat(IntensityId, intensity);
+            glowMaterial.SetFloat(FXTimeId, time);
+            glowMaterial.SetVector(OriginId, shelfCenter);
+
+            foreach (var (source, combined, first, count) in glowStatic)
+            {
+                if (source == null || combined == null || !source.enabled || !source.gameObject.activeInHierarchy) continue;
+                var rp = new RenderParams(glowMaterial)
+                {
+                    layer = source.gameObject.layer,
+                    shadowCastingMode = ShadowCastingMode.Off,
+                    receiveShadows = false,
+                    lightProbeUsage = LightProbeUsage.Off,
+                    reflectionProbeUsage = ReflectionProbeUsage.Off,
+                    worldBounds = source.bounds,
+                };
+                int end = Mathf.Min(first + count, combined.subMeshCount);
+                for (int i = first; i < end; i++)
+                    Graphics.RenderMesh(rp, combined, i, Matrix4x4.identity);
+            }
+        }
+
+        void ClearGlow()
+        {
+            foreach (var (_, copy) in glowCopies)
+                if (copy != null) Destroy(copy.gameObject);
+            glowCopies.Clear();
+            glowStatic.Clear();
         }
     }
 }

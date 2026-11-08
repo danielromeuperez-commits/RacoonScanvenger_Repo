@@ -1,22 +1,19 @@
-using Racoon.Cameras;
 using Racoon.Player;
 using UnityEngine;
 using Unity.Netcode;
-using System.Collections;
 
+/// <summary>
+/// Despertador del suelo. Se coge MANTENIENDO Interact (como vender). Al cogerlo: suma sus puntos a la bolsa y el
+/// jugador lo lleva delante, sonando: su mando vibra fuerte y su pantalla tiembla TODO EL RATO hasta que lo vende
+/// (PlayerMechCarry). Mientras lo lleva, los objetos de las cajas quedan guardados (PlayerController.CarriedMech).
+/// </summary>
 [RequireComponent(typeof(NetworkObject))]
 [RequireComponent(typeof(Collider))]
-public class PickupWatch : NetworkBehaviour
+public class PickupWatch : NetworkBehaviour, IMechPickup
 {
-    [Header("Configuración de Vibración Larga")]
-    [Range(0f, 1f)] public float lowFrequency = 0.5f;
-    [Range(0f, 1f)] public float highFrequency = 0.5f;
-    [Tooltip("Duración total de la vibración del mando en segundos.")]
-    public float totalVibrationDuration = 2.0f;
-
-    [Header("Configuración de Temblor de Cámara")]
-    [SerializeField] private CameraShakeProfile shakeProfile;
-    [SerializeField] private float shakeIntensity = 1f;
+    [Header("Coger")]
+    [Tooltip("Segundos manteniendo Interact para cogerlo.")]
+    [SerializeField, Min(0f)] private float holdTime = 0.8f;
 
     [Header("Efectos Opcionales")]
     public GameObject pickupEffectPrefab;
@@ -29,6 +26,10 @@ public class PickupWatch : NetworkBehaviour
     [SerializeField] private float lootWeight = 0f;
 
     private bool consumed;
+    private readonly HoldInteraction hold = new();
+
+    public float HoldTime => holdTime;
+    public bool IsAvailable => IsSpawned && !consumed;
 
     private void Awake()
     {
@@ -37,23 +38,29 @@ public class PickupWatch : NetworkBehaviour
         {
             col.isTrigger = true;
         }
+        // La interacción del jugador solo busca en la capa Interactable.
+        MechPickups.UseInteractableLayer(gameObject);
     }
 
-    private void OnTriggerEnter(Collider other)
+    private void OnEnable() => MechPickups.Register(this);
+    private void OnDisable() => MechPickups.Unregister(this);
+
+    // ---------------- Mantener para coger (solo servidor) ----------------
+
+    public bool CanInteract(PlayerController player) =>
+        IsAvailable && player != null && !player.IsCarryingMech;
+
+    public void Interact(PlayerController player)
     {
-        if (consumed || !IsSpawned)
+        if (!IsServer || !CanInteract(player))
             return;
-
-        PlayerController player = other.GetComponentInParent<PlayerController>();
-        if (player == null || !player.IsOwner)
-            return;
-
-        player.RequestPickupWatch(this);
+        if (hold.Tick(player, holdTime))
+            ConsumeOnServer(player);
     }
 
     public void ConsumeOnServer(PlayerController player)
     {
-        if (!IsServer || consumed || player == null || !IsSpawned)
+        if (!IsServer || consumed || player == null || !IsSpawned || player.IsCarryingMech)
             return;
 
         float distance = Vector3.Distance(transform.position, player.transform.position);
@@ -67,6 +74,8 @@ public class PickupWatch : NetworkBehaviour
             playerLoot.ServerAddLoot(lootPoints, lootWeight);
         }
 
+        // Lo lleva (y suena) hasta venderlo: PlayerLoot.ServerSellLoot lo quita.
+        player.ServerSetCarriedMech(MechKind.Clock);
         ConsumeClientRpc(player.NetworkObjectId);
 
         NetworkObject.Despawn(true);
@@ -80,32 +89,14 @@ public class PickupWatch : NetworkBehaviour
             Instantiate(pickupEffectPrefab, transform.position, transform.rotation);
         }
 
+        // El modelo pasa delante del jugador (copia visual de este, que desaparece).
+        if (NetworkManager.SpawnManager.SpawnedObjects.TryGetValue(playerObjectId, out NetworkObject playerObject) &&
+            playerObject.TryGetComponent(out PlayerMechCarry carry))
+        {
+            carry.AttachVisual(MechKind.Clock, gameObject);
+        }
+
         HideVisualsAndColliders();
-
-        // Si somos el cliente dueño que lo ha recogido, disparamos los efectos locales
-        if (NetworkManager.Singleton.LocalClient.PlayerObject != null &&
-            NetworkManager.Singleton.LocalClient.PlayerObject.NetworkObjectId == playerObjectId)
-        {
-            StartCoroutine(LongPickupRoutine());
-        }
-    }
-
-    private IEnumerator LongPickupRoutine()
-    {
-        // 1. Inicia el temblor de cámara respetando la duración configurada en el perfil del Inspector
-        if (shakeProfile != null)
-        {
-            CameraShaker.Play(shakeProfile, shakeIntensity);
-        }
-
-        // 2. Inicia la vibración del mando de golpe por el tiempo total establecido
-        if (VibrationManager.Instance != null)
-        {
-            VibrationManager.Instance.Rumble(lowFrequency, highFrequency, totalVibrationDuration);
-        }
-
-        // Espera a que termine el tiempo de forma natural
-        yield return new WaitForSeconds(totalVibrationDuration);
     }
 
     private void HideVisualsAndColliders()

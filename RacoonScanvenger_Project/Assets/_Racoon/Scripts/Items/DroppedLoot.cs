@@ -5,7 +5,8 @@ using UnityEngine;
 namespace Racoon.Items
 {
     /// <summary>
-    /// Bolsita de loot que suelta un jugador al recibir un golpe fuerte (PlayerLoot.ServerDropLoot).
+    /// Producto que suelta un jugador al recibir un golpe fuerte (PlayerLoot.ServerDropLoot): uno de los que llevaba en
+    /// la bolsa (manzana, naranja, pan, patatas, NukiProd, lata), con el modelo y el valor de su estantería.
     /// Sale despedida con física, se queda quieta al tocar el suelo y la recoge el primero que pase por
     /// encima (trigger), sin pulsar nada. Quien la ha soltado tarda un poco más en poder recuperarla.
     /// El SERVIDOR lo decide todo; los clientes solo ven la posición (NetworkTransform).
@@ -28,6 +29,27 @@ namespace Racoon.Items
         [Tooltip("Normal mínima para considerar que ha tocado el suelo (no una pared).")]
         [SerializeField, Range(0f, 1f)] float groundNormalThreshold = 0.5f;
 
+        [Header("Resbalar de los props")]
+        [Tooltip("Solo se queda quieto a esta altura (m) o menos sobre el suelo (los pies de quien lo soltó). " +
+                 "Encima de una estantería o un mostrador resbala hasta caer.")]
+        [SerializeField, Min(0f)] float floorTolerance = 0.25f;
+        [Tooltip("Velocidad (m/s) con la que se aparta del centro del prop en el que ha caído.")]
+        [SerializeField, Min(0f)] float slideSpeed = 1.6f;
+        [Tooltip("Segundos máximos resbalando: si no llega al suelo, se queda donde esté.")]
+        [SerializeField, Min(0.5f)] float maxSlideTime = 5f;
+
+        [Header("Producto")]
+        [Tooltip("Modelo genérico (la bolsita): se ve con Variant 0, cuando no se sabe qué producto es.")]
+        [SerializeField] Renderer genericVisual;
+        [Tooltip("Hijo con el modelo de cada producto. Variant 1 = el primero (ver LootPoint > Drop Variant).")]
+        [SerializeField] GameObject[] variants = new GameObject[0];
+
+        readonly NetworkVariable<byte> variant = new(0);
+
+        /// <summary>Qué producto es (0 = genérico; 1.. = variants).</summary>
+        public int Variant => variant.Value;
+        public int Points => points;
+
         Rigidbody body;
         int points;
         float weight;
@@ -35,16 +57,32 @@ namespace Racoon.Items
         float spawnTime;
         bool landed;
         bool consumed;
+        float floorY = float.NegativeInfinity;
+        static PhysicsMaterial slippery;
 
         void Awake() => body = GetComponent<Rigidbody>();
 
         /// <summary>Solo servidor. Sobre una instancia recién creada: guarda el contenido, la spawnea y la lanza.</summary>
-        public void ServerInitialize(int points, float weight, PlayerLoot droppedBy, Vector3 velocity)
+        public void ServerInitialize(int points, float weight, PlayerLoot droppedBy, Vector3 velocity, int kind = 0)
         {
+            variant.Value = (byte)Mathf.Clamp(kind, 0, variants.Length);
             this.points = points;
             this.weight = weight;
             this.droppedBy = droppedBy;
             spawnTime = Time.time;
+            // Altura del suelo: los pies de quien lo suelta.
+            if (droppedBy != null) floorY = droppedBy.transform.position.y;
+            // Casi sin rozamiento: resbala de los bordes en vez de quedarse enganchado.
+            if (solidCollider != null)
+            {
+                if (slippery == null)
+                    slippery = new PhysicsMaterial("DroppedLoot_Resbala")
+                    {
+                        dynamicFriction = 0.05f, staticFriction = 0.05f, bounciness = 0.15f,
+                        frictionCombine = PhysicsMaterialCombine.Minimum,
+                    };
+                solidCollider.sharedMaterial = slippery;
+            }
 
             GetComponent<NetworkObject>().Spawn(true);
             body.linearVelocity = velocity;
@@ -52,6 +90,9 @@ namespace Racoon.Items
 
         public override void OnNetworkSpawn()
         {
+            ApplyVariant(0, variant.Value);
+            variant.OnValueChanged += ApplyVariant;
+
             // En los clientes la física la apaga NetworkRigidbody (kinematic) y la mueve NetworkTransform con lo que
             // simula el servidor: así todos la ven en el mismo sitio. El sólido tampoco debe empujar a nadie allí.
             if (!IsServer)
@@ -63,17 +104,51 @@ namespace Racoon.Items
             if (lifeTime > 0f) Invoke(nameof(ServerRemove), lifeTime);
         }
 
-        void OnCollisionEnter(Collision collision)
+        public override void OnNetworkDespawn() => variant.OnValueChanged -= ApplyVariant;
+
+        // Se ve el modelo del producto (o la bolsita si no se sabe cuál es).
+        void ApplyVariant(byte _, byte current)
+        {
+            int index = current - 1;
+            bool known = index >= 0 && index < variants.Length && variants[index] != null;
+            if (genericVisual != null) genericVisual.enabled = !known;
+            for (int i = 0; i < variants.Length; i++)
+                if (variants[i] != null) variants[i].SetActive(i == index);
+        }
+
+        void OnCollisionEnter(Collision collision) => CheckContacts(collision);
+
+        // Stay: también mientras resbala por encima de un prop (pocas bolsitas y solo hasta que se paran: barato).
+        void OnCollisionStay(Collision collision) => CheckContacts(collision);
+
+        void CheckContacts(Collision collision)
         {
             if (!IsServer || landed) return;
+            if (collision.collider.GetComponentInParent<PlayerController>() != null) return;   // rebota en los jugadores
 
-            foreach (ContactPoint contact in collision.contacts)
+            for (int i = 0; i < collision.contactCount; i++)
             {
-                // Rebota en los jugadores y las paredes; solo se para en el suelo.
-                if (contact.normal.y < groundNormalThreshold || collision.collider.GetComponentInParent<PlayerController>() != null)
-                    continue;
+                ContactPoint contact = collision.GetContact(i);
+                // Paredes: rebota y sigue.
+                if (contact.normal.y < groundNormalThreshold) continue;
 
-                Land();
+                // En el suelo (o se le acabó el tiempo): se queda quieta.
+                bool onFloor = contact.point.y <= floorY + floorTolerance;
+                if (onFloor || Time.time - spawnTime > maxSlideTime)
+                {
+                    Land();
+                    return;
+                }
+
+                // Encima de un prop: se aparta de su centro hasta caer por el borde.
+                Vector3 away = transform.position - collision.collider.bounds.center;
+                away.y = 0f;
+                if (away.sqrMagnitude < 0.0001f) away = Random.insideUnitSphere;
+                away.y = 0f;
+                Vector3 velocity = body.linearVelocity;
+                Vector3 push = away.normalized * slideSpeed;
+                if (new Vector2(velocity.x, velocity.z).sqrMagnitude < slideSpeed * slideSpeed)
+                    body.linearVelocity = new Vector3(push.x, velocity.y, push.z);
                 return;
             }
         }
@@ -100,7 +175,7 @@ namespace Racoon.Items
             if (loot == droppedBy && age < dropperPickupDelay) return;
 
             // Lo que no cabe en la bolsa se queda en el suelo para otro (o para cuando venda).
-            int accepted = loot.ServerAddLootUpTo(points, weight);
+            int accepted = loot.ServerAddLootUpTo(points, weight, variant.Value);
             if (accepted <= 0) return;
             weight -= weight * accepted / points;
             points -= accepted;

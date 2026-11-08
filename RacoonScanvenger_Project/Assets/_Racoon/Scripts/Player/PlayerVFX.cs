@@ -238,8 +238,15 @@ namespace Racoon.Player
         void OnStateChanged(PlayerState previous, PlayerState current)
         {
             UpdateStateVFX(current);
-            // Las estrellas de mareo se van al levantarse.
-            if (previous == PlayerState.Knockdown && current != PlayerState.Knockdown && dizzyStars != null) dizzyStars.Stop();
+            if (dizzyStars == null) return;
+
+            // Resbalón con plátano (y demás aturdimientos de objeto): el estado es Downed, no pasa por onHeavyHit.
+            if (current == PlayerState.Downed && previous != PlayerState.Downed) dizzyStars.Play();
+
+            // Las estrellas de mareo se van al levantarse (de un derribo o de un resbalón).
+            bool wasDizzy = previous == PlayerState.Knockdown || previous == PlayerState.Downed;
+            bool isDizzy = current == PlayerState.Knockdown || current == PlayerState.Downed;
+            if (wasDizzy && !isDizzy) dizzyStars.Stop();
         }
 
         void OnActionStarted(PlayerState action)

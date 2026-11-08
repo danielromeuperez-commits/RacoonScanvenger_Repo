@@ -19,6 +19,9 @@ namespace Racoon.Player
         [SerializeField] PlayerController controller;
         [Tooltip("Multiplica todos los temblores de este jugador.")]
         [SerializeField, Range(0f, 2f)] float intensity = 1f;
+        [Tooltip("Multiplica solo los temblores del gameplay básico (correr, cansancio, dash, puñetazo al aire, usar objeto, " +
+                 "saquear, cambiar de objeto). Recibir golpes, aturdimientos, levantarse y el golpe que conecta no cambian.")]
+        [SerializeField, Range(0f, 1f)] float basicIntensity = 0.55f;
 
         [Header("Recibir golpes")]
         [SerializeField] CameraShakeProfile lightHit = new(0.28f, new Vector3(2.2f, 1.2f, 3f), new Vector3(0.06f, 0.05f, 0f), 26f, kick: 0.18f, kickRoll: 3f, decayPower: 2.2f);
@@ -94,8 +97,8 @@ namespace Racoon.Player
                 return;
             }
 
-            CameraShaker.SetContinuous(runKey, run, controller.State == PlayerState.Run ? intensity : 0f, 4f);
-            CameraShaker.SetContinuous(tiredKey, tired, controller.IsExhausted ? intensity : 0f, 1.5f);
+            CameraShaker.SetContinuous(runKey, run, controller.State == PlayerState.Run ? intensity * basicIntensity : 0f, 4f);
+            CameraShaker.SetContinuous(tiredKey, tired, controller.IsExhausted ? intensity * basicIntensity : 0f, 1.5f);
         }
 
         void Play(CameraShakeProfile profile, float strength = 1f, Vector3 direction = default) =>
@@ -136,7 +139,7 @@ namespace Racoon.Player
 
         void OnDash(Vector3 direction)
         {
-            if (IsLocal) Play(dash, 1f, direction);
+            if (IsLocal) Play(dash, basicIntensity, direction);
         }
 
         void OnStateChanged(PlayerState previous, PlayerState current)
@@ -152,10 +155,10 @@ namespace Racoon.Player
             Vector3 forward = controller.transform.forward;
             switch (action)
             {
-                case PlayerState.Punch: Play(punchSwing, 1f, forward); break;
-                case PlayerState.UseItem: Play(useItem, 1f, forward); break;
-                case PlayerState.Interact: Play(interact); break;
-                case PlayerState.SwitchItem: Play(switchItem); break;
+                case PlayerState.Punch: Play(punchSwing, basicIntensity, forward); break;
+                case PlayerState.UseItem: Play(useItem, basicIntensity, forward); break;
+                case PlayerState.Interact: Play(interact, basicIntensity); break;
+                case PlayerState.SwitchItem: Play(switchItem, basicIntensity); break;
             }
         }
     }

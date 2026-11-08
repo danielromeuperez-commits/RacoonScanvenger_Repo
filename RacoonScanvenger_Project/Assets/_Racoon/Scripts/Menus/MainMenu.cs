@@ -143,16 +143,7 @@ public class MainMenu : MonoBehaviour
             Keyboard.current.upArrowKey.wasPressedThisFrame ||
             Keyboard.current.downArrowKey.wasPressedThisFrame ||
             Keyboard.current.leftArrowKey.wasPressedThisFrame ||
-            Keyboard.current.rightArrowKey.wasPressedThisFrame ||
-
-            Keyboard.current.wKey.wasPressedThisFrame ||
-            Keyboard.current.aKey.wasPressedThisFrame ||
-            Keyboard.current.sKey.wasPressedThisFrame ||
-            Keyboard.current.dKey.wasPressedThisFrame ||
-
-            Keyboard.current.enterKey.wasPressedThisFrame ||
-            Keyboard.current.spaceKey.wasPressedThisFrame ||
-            Keyboard.current.tabKey.wasPressedThisFrame;
+            Keyboard.current.rightArrowKey.wasPressedThisFrame;
     }
 
     // ============================================================
@@ -161,8 +152,6 @@ public class MainMenu : MonoBehaviour
 
     void SetMouseMode()
     {
-        // Si ya estamos en modo ratón,
-        // no necesitamos repetir todo cada frame.
         if (!navigationMode)
         {
             Cursor.visible = true;
@@ -179,12 +168,9 @@ public class MainMenu : MonoBehaviour
         Cursor.visible = true;
         Cursor.lockState = CursorLockMode.None;
 
-        // El ratón vuelve a poder interactuar
-        // con todos los botones.
         if (menuCanvasGroup != null)
             menuCanvasGroup.blocksRaycasts = true;
 
-        // Quitamos la selección del mando.
         if (EventSystem.current != null)
         {
             EventSystem.current.SetSelectedGameObject(null);
@@ -199,23 +185,15 @@ public class MainMenu : MonoBehaviour
     {
         navigationMode = true;
 
-        // Ocultamos completamente el cursor.
         Cursor.visible = false;
-
-        // No lo bloqueamos porque queremos detectar
-        // cuándo el usuario vuelva a moverlo.
         Cursor.lockState = CursorLockMode.None;
 
-        // El ratón deja de poder hacer hover/click
-        // sobre la interfaz.
         if (menuCanvasGroup != null)
             menuCanvasGroup.blocksRaycasts = false;
 
         if (EventSystem.current == null)
             return;
 
-        // Si todavía no hay botón seleccionado,
-        // seleccionamos el primero.
         if (EventSystem.current.currentSelectedGameObject == null &&
             firstSelectedButton != null)
         {
@@ -231,6 +209,11 @@ public class MainMenu : MonoBehaviour
 
     public void Play()
     {
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlaySFX(23);
+        }
+
         if (SceneTransitionManager.Instance != null)
         {
             SceneTransitionManager.Instance
@@ -253,6 +236,11 @@ public class MainMenu : MonoBehaviour
 
     public void QuitGame()
     {
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlaySFX(23);
+        }
+
         Debug.Log("Cerrando juego...");
 
 #if UNITY_EDITOR

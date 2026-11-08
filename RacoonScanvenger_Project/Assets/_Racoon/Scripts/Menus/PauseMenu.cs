@@ -1,4 +1,5 @@
 using Racoon.Player;
+using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using Unity.Netcode;
@@ -18,6 +19,9 @@ public class PauseMenu : MonoBehaviour
     [Header("Opciones")]
     [SerializeField] GameObject optionsPanel;
 
+    [Header("Pantalla")]
+    [SerializeField] TMP_Text displayModeButtonText;
+
     bool isPaused;
     bool cursorLockedForGameplay;
 
@@ -35,6 +39,8 @@ public class PauseMenu : MonoBehaviour
 
         Cursor.visible = true;
         Cursor.lockState = CursorLockMode.None;
+
+        RefreshDisplayModeText();
     }
 
     void Update()
@@ -44,26 +50,18 @@ public class PauseMenu : MonoBehaviour
 
         if (Keyboard.current.escapeKey.wasPressedThisFrame)
         {
+            // Si todavía no estamos pausados,
+            // abrimos el menú de pausa.
             if (!isPaused)
             {
                 Pause();
                 return;
             }
 
-            // Cuando ya existe nuestro jugador local,
-            // significa que ya hemos entrado en la partida.
-            if (!cursorLockedForGameplay &&
-                !isPaused &&
-                PlayerController.Local != null)
-            {
-                Cursor.visible = false;
-                Cursor.lockState = CursorLockMode.Locked;
-
-                cursorLockedForGameplay = true;
-            }
-
-            // Si estamos en Options, ESC vuelve al menú de pausa.
-            if (optionsPanel != null && optionsPanel.activeSelf)
+            // Si estamos en Options,
+            // ESC vuelve al menú de pausa.
+            if (optionsPanel != null &&
+                optionsPanel.activeSelf)
             {
                 CloseOptions();
                 return;
@@ -74,6 +72,10 @@ public class PauseMenu : MonoBehaviour
             Resume();
         }
     }
+
+    // ============================================================
+    // PAUSA
+    // ============================================================
 
     public void Pause()
     {
@@ -93,23 +95,18 @@ public class PauseMenu : MonoBehaviour
         // Bloqueamos únicamente los controles del jugador local.
         if (PlayerController.Local != null)
         {
-            PlayerController.Local.InputHandler.SetInputEnabled(false);
+            PlayerController.Local
+                .InputHandler
+                .SetInputEnabled(false);
         }
 
         Cursor.visible = true;
         Cursor.lockState = CursorLockMode.None;
     }
-    public void ReturnToMainMenu()
-    {
-        // Cerramos correctamente la sesión de red antes
-        // de abandonar la escena de juego.
-        if (NetworkManager.Singleton != null)
-        {
-            NetworkManager.Singleton.Shutdown();
-        }
 
-        SceneManager.LoadScene("SCN_MainMenu");
-    }
+    // ============================================================
+    // RESUME
+    // ============================================================
 
     public void Resume()
     {
@@ -129,12 +126,18 @@ public class PauseMenu : MonoBehaviour
         // Devolvemos el control al jugador local.
         if (PlayerController.Local != null)
         {
-            PlayerController.Local.InputHandler.SetInputEnabled(true);
+            PlayerController.Local
+                .InputHandler
+                .SetInputEnabled(true);
         }
 
         Cursor.visible = false;
         Cursor.lockState = CursorLockMode.Locked;
     }
+
+    // ============================================================
+    // OPTIONS
+    // ============================================================
 
     public void OpenOptions()
     {
@@ -142,6 +145,8 @@ public class PauseMenu : MonoBehaviour
 
         if (optionsPanel != null)
             optionsPanel.SetActive(true);
+
+        RefreshDisplayModeText();
     }
 
     public void CloseOptions()
@@ -151,6 +156,65 @@ public class PauseMenu : MonoBehaviour
 
         SetMainMenuObjects(true);
     }
+
+    // ============================================================
+    // PANTALLA COMPLETA / VENTANA
+    // ============================================================
+
+    public void ToggleDisplayMode()
+    {
+        if (Screen.fullScreen)
+        {
+            Screen.fullScreenMode =
+                FullScreenMode.Windowed;
+        }
+        else
+        {
+            Screen.fullScreenMode =
+                FullScreenMode.FullScreenWindow;
+        }
+
+        RefreshDisplayModeText();
+    }
+
+    void RefreshDisplayModeText()
+    {
+        if (displayModeButtonText == null)
+            return;
+
+        if (Screen.fullScreen)
+        {
+            displayModeButtonText.text =
+                "WINDOWED SCREEN";
+        }
+        else
+        {
+            displayModeButtonText.text =
+                "FULL SCREEN";
+        }
+    }
+
+    // ============================================================
+    // MAIN MENU
+    // ============================================================
+
+    public void ReturnToMainMenu()
+    {
+        // Cerramos correctamente la sesión de red antes
+        // de abandonar la escena de juego.
+        if (NetworkManager.Singleton != null)
+        {
+            NetworkManager.Singleton.Shutdown();
+        }
+
+        SceneManager.LoadScene(
+            "SCN_MainMenu"
+        );
+    }
+
+    // ============================================================
+    // OBJETOS DEL MENÚ PRINCIPAL DE PAUSA
+    // ============================================================
 
     void SetMainMenuObjects(bool active)
     {

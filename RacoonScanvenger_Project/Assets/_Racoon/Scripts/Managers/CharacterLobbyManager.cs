@@ -30,6 +30,27 @@ namespace Racoon.Network
         readonly NetworkVariable<bool> gameStarted = new(false);
         readonly NetworkVariable<bool> characterSelectionActive = new(false);
 
+        /// <summary>Lo que tiene marcado cada jugador ahora mismo (para ver al rival elegir en tiempo real).</summary>
+        public struct LobbyPick : INetworkSerializable, System.IEquatable<LobbyPick>
+        {
+            public ulong clientId;
+            public int characterIndex;
+            /// <summary>Lo ha confirmado (READY): nadie más puede elegir ese personaje.</summary>
+            public bool ready;
+
+            public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
+            {
+                serializer.SerializeValue(ref clientId);
+                serializer.SerializeValue(ref characterIndex);
+                serializer.SerializeValue(ref ready);
+            }
+
+            public bool Equals(LobbyPick other) =>
+                clientId == other.clientId && characterIndex == other.characterIndex && ready == other.ready;
+        }
+
+        readonly NetworkList<LobbyPick> picks = new();
+
         readonly Dictionary<ulong, int> selections = new();
         readonly HashSet<ulong> readyClients = new();
 
@@ -62,6 +83,54 @@ namespace Racoon.Network
         public Sprite SelectedCharacterPortrait =>
             SelectedCharacter != null ? SelectedCharacter.portrait : null;
 
+        /// <summary>Personaje que tiene marcado el rival ahora mismo (-1 si no hay rival).</summary>
+        public int RivalSelectedCharacter
+        {
+            get
+            {
+                if (!IsSpawned) return -1;
+                ulong me = NetworkManager.LocalClientId;
+                foreach (LobbyPick pick in picks)
+                    if (pick.clientId != me) return pick.characterIndex;
+                return -1;
+            }
+        }
+
+        public PlayerCharacterDefinition RivalCharacter
+        {
+            get
+            {
+                int index = RivalSelectedCharacter;
+                return index >= 0 && Roster != null ? Roster.Get(index) : null;
+            }
+        }
+
+        public string RivalCharacterName => RivalCharacter != null ? RivalCharacter.displayName : "";
+
+        /// <summary>Personaje bloqueado (PlayerCharacterDefinition.locked): nadie puede elegirlo.</summary>
+        public bool IsCharacterLocked(int characterIndex)
+        {
+            PlayerCharacterDefinition character = Roster != null ? Roster.Get(characterIndex) : null;
+            return character != null && character.locked;
+        }
+
+        /// <summary>El personaje que tengo marcado está bloqueado.</summary>
+        public bool IsSelectedCharacterLocked => IsCharacterLocked(localSelectedCharacter);
+
+        /// <summary>No se puede elegir: está bloqueado u otro jugador ya lo ha confirmado.</summary>
+        public bool IsCharacterTaken(int characterIndex)
+        {
+            if (IsCharacterLocked(characterIndex)) return true;
+            if (!IsSpawned) return false;
+            ulong me = NetworkManager.LocalClientId;
+            foreach (LobbyPick pick in picks)
+                if (pick.clientId != me && pick.ready && pick.characterIndex == characterIndex) return true;
+            return false;
+        }
+
+        /// <summary>El personaje que tengo marcado ya lo ha confirmado otro jugador.</summary>
+        public bool IsSelectedCharacterTaken => IsCharacterTaken(localSelectedCharacter);
+
         void Awake()
         {
             Current = this;
@@ -81,11 +150,16 @@ namespace Racoon.Network
         public override void OnNetworkSpawn()
         {
             localReady = false;
-            localSelectedCharacter = 0;
+            localSelectedCharacter = FirstUnlockedCharacter();
 
             if (!IsServer)
+            {
+                // Que el rival vea desde ya lo que tengo marcado.
+                SelectRpc(localSelectedCharacter);
                 return;
+            }
 
+            picks.Clear();
             selections.Clear();
             readyClients.Clear();
             readyCount.Value = 0;
@@ -95,6 +169,9 @@ namespace Racoon.Network
             NetworkManager.OnClientDisconnectCallback += OnClientDisconnected;
 
             UpdateConnectedCount(null);
+
+            if (IsClient)
+                SelectRpc(localSelectedCharacter);
         }
 
         public override void OnNetworkDespawn()
@@ -121,6 +198,8 @@ namespace Racoon.Network
         {
             selections.Remove(clientId);
             readyClients.Remove(clientId);
+            for (int i = picks.Count - 1; i >= 0; i--)
+                if (picks[i].clientId == clientId) picks.RemoveAt(i);
 
             readyCount.Value = readyClients.Count;
 
@@ -142,6 +221,14 @@ namespace Racoon.Network
         // SELECCIÓN LOCAL
         // ============================================================
 
+        int FirstUnlockedCharacter()
+        {
+            if (Roster == null) return 0;
+            for (int i = 0; i < Roster.Count; i++)
+                if (!IsCharacterLocked(i)) return i;
+            return 0;
+        }
+
         public void PreviousCharacter() => StepCharacter(-1);
 
         public void NextCharacter() => StepCharacter(1);
@@ -152,6 +239,32 @@ namespace Racoon.Network
                 return;
 
             localSelectedCharacter = (localSelectedCharacter + step + Roster.Count) % Roster.Count;
+
+            if (IsSpawned)
+                SelectRpc(localSelectedCharacter);
+        }
+
+        // El servidor apunta lo que tiene marcado cada jugador y lo replica a todos.
+        [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
+        void SelectRpc(int characterIndex, RpcParams rpcParams = default)
+        {
+            ulong clientId = rpcParams.Receive.SenderClientId;
+            if (gameStarted.Value || readyClients.Contains(clientId))
+                return;
+
+            SetPick(clientId, characterIndex, false);
+        }
+
+        void SetPick(ulong clientId, int characterIndex, bool ready)
+        {
+            var pick = new LobbyPick { clientId = clientId, characterIndex = characterIndex, ready = ready };
+            for (int i = 0; i < picks.Count; i++)
+            {
+                if (picks[i].clientId != clientId) continue;
+                if (!picks[i].Equals(pick)) picks[i] = pick;
+                return;
+            }
+            picks.Add(pick);
         }
 
         // ============================================================
@@ -168,6 +281,10 @@ namespace Racoon.Network
                 Debug.LogWarning("CharacterLobbyManager todavía no está conectado.");
                 return;
             }
+
+            // Ya lo ha confirmado el rival: hay que elegir otro.
+            if (IsSelectedCharacterTaken)
+                return;
 
             localReady = true;
 
@@ -192,9 +309,27 @@ namespace Racoon.Network
                 return;
             }
 
+            // Bloqueado: no se puede jugar con él.
+            if (IsCharacterLocked(characterIndex))
+            {
+                ReadyRejectedRpc(RpcTarget.Single(clientId, RpcTargetUse.Temp));
+                return;
+            }
+
+            // Otro jugador ya confirmó ese personaje (o lo confirmó justo antes): se rechaza y vuelve a elegir.
+            foreach (ulong other in readyClients)
+            {
+                if (selections.TryGetValue(other, out int taken) && taken == characterIndex)
+                {
+                    ReadyRejectedRpc(RpcTarget.Single(clientId, RpcTargetUse.Temp));
+                    return;
+                }
+            }
+
             selections[clientId] = characterIndex;
             readyClients.Add(clientId);
             readyCount.Value = readyClients.Count;
+            SetPick(clientId, characterIndex, true);
 
             Debug.Log($"Jugador {clientId} READY. {readyCount.Value}/{MaxPlayers}");
 

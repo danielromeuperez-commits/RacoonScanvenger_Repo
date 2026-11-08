@@ -413,7 +413,7 @@ namespace Racoon.UI.HUD
                     for (int id = 0; id < database.Count; id++)
                     {
                         var item = database.Get(id);
-                        if (item && item.icon) itemPool.Add(item);
+                        if (ItemModelIcons.Has(item)) itemPool.Add(item);
                     }
             }
             return itemPool;

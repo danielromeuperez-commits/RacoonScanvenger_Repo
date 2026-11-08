@@ -88,9 +88,9 @@ public class AudioManager : MonoBehaviour
     }
 
     public void PlayMusic(int musicToPlay)
+
     {
         CreateAudioSourcesIfNeeded();
-
         if (musicSource == null) return;
         if (musicLibrary == null || musicLibrary.Length == 0) return;
         if (musicToPlay < 0 || musicToPlay >= musicLibrary.Length) return;
@@ -109,6 +109,7 @@ public class AudioManager : MonoBehaviour
             musicSource.Play();
 
         Debug.Log("Playing music: " + selectedClip.name + " | Volume: " + musicSource.volume);
+
     }
 
     public void PlaySFX(int sfxToPlay)
@@ -218,7 +219,7 @@ public class AudioManager : MonoBehaviour
     private void LoadAudioSettings()
     {
         masterVolume = PlayerPrefs.GetFloat("MasterVolume", 1f);
-        musicVolume = PlayerPrefs.GetFloat("MusicVolume", 1f);
+        musicVolume = PlayerPrefs.GetFloat("MusicVolume", 0.3f);
         sfxVolume = PlayerPrefs.GetFloat("SFXVolume", 1f);
     }
 

@@ -153,6 +153,25 @@ namespace Racoon.Network
         /// <summary>Sale de la partida (local u online) y apaga la red.</summary>
         public void LeaveGame() => Disconnect();
 
+        /// <summary>Busca partidas online públicas de esta misma versión. El resultado sale en <see cref="FoundSessions"/>.</summary>
+        public void SearchOnlineGames() => SearchSessions();
+
+        /// <summary>Partidas de la última búsqueda (null si aún no se ha buscado).</summary>
+        public IList<ISessionInfo> FoundSessions => foundSessions;
+
+        /// <summary>Se puede entrar en esta partida (hay hueco, no está cerrada ni tiene contraseña).</summary>
+        public static bool CanJoin(ISessionInfo info) =>
+            info != null && info.AvailableSlots > 0 && !info.IsLocked && !info.HasPassword;
+
+        /// <summary>Se une a la partida número <paramref name="index"/> de <see cref="FoundSessions"/>.</summary>
+        public void JoinFoundGame(int index)
+        {
+            if (foundSessions == null || index < 0 || index >= foundSessions.Count) return;
+            ISessionInfo info = foundSessions[index];
+            if (!CanJoin(info)) return;
+            JoinFoundSession(info);
+        }
+
         // El personaje elegido viaja al host dentro de los datos de conexión.
         void ApplySelection() => spawnManager.SetLocalSelection(selectedCharacter);
 
@@ -450,11 +469,12 @@ namespace Racoon.Network
             Event current = Event.current;
             if (current.type == EventType.KeyDown && current.keyCode == toggleKey)
             {
+                AudioManager.Instance.PauseMusic();
                 hidden = !hidden;
                 current.Use();
             }
             if (hidden) return;
-
+            AudioManager.Instance.PlayMusic(2);
             float scale = Scale;
             GUI.matrix = Matrix4x4.Scale(new Vector3(scale, scale, 1f));
 

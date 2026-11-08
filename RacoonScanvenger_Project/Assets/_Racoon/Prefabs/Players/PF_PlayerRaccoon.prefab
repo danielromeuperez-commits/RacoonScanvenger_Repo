@@ -1060,8 +1060,8 @@ MonoBehaviour:
   switchItemDuration: 0.25
   punchDuration: 0.45
   useItemDuration: 0.5
-  frontInteractRange: 0.5
-  frontInteractRadius: 0.69
+  frontInteractRange: 0.2
+  frontInteractRadius: 0.4
   interactMask:
     serializedVersion: 2
     m_Bits: 64
@@ -1087,6 +1087,17 @@ MonoBehaviour:
   manualAimDelay: 0.18
   aimTargetStartDistance: 4
   aimTargetMinDistance: 1.3
+  aimStickSpeed: 5.5
+  punchAssistRange: 2.2
+  punchAssistAngle: 110
+  interactAssistRange: 1.8
+  interactAssistAngle: 90
+  assistHoldTime: 0.25
+  interactAssistCenterBias: 0.8
+  bounceMinImpact: 5
+  bounceStrength: 0.35
+  bounceKeepSpeed: 0.25
+  bounceCooldown: 0.35
   hitsForHeavy: 3
   comboResetTime: 10
   lightHit:
@@ -1218,9 +1229,9 @@ CapsuleCollider:
   m_Enabled: 1
   serializedVersion: 2
   m_Radius: 0.14
-  m_Height: 0.7
+  m_Height: 0.7982413
   m_Direction: 1
-  m_Center: {x: 0, y: 0.345, z: 0}
+  m_Center: {x: 0, y: 0.39412066, z: 0}
 --- !u!114 &2368114784026257326
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1428,6 +1439,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Racoon.Player.PlayerCameraShake
   controller: {fileID: 6147228204243766040}
   intensity: 1
+  basicIntensity: 0.55
   lightHit:
     enabled: 1
     duration: 0.28
