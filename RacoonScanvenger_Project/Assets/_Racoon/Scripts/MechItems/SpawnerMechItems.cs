@@ -3,7 +3,7 @@ using Unity.Netcode;
 using Unity.Netcode.Components; // Necesario para acceder al NetworkTransform si lo usas
 using UnityEngine;
 
-public class NetworkObjectTeleporter : NetworkBehaviour
+public class SpawnerMechItems : NetworkBehaviour
 {
     [Header("Configuración de Objetos")]
     [Tooltip("Lista de GameObjects (deben tener NetworkObject y NetworkTransform).")]

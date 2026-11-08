@@ -28,6 +28,11 @@ public class ControlsMenuUI : MonoBehaviour
 
     public void OpenKeyboardControls()
     {
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlaySFX(23);
+        }
+
         Debug.Log("ABRIENDO CONTROLES DE TECLADO");
 
         if (optionsPanel != null)
@@ -49,6 +54,11 @@ public class ControlsMenuUI : MonoBehaviour
 
     public void OpenControllerControls()
     {
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlaySFX(23);
+        }
+
         if (keyboardControlsPanel != null)
             keyboardControlsPanel.SetActive(false);
 
@@ -62,6 +72,11 @@ public class ControlsMenuUI : MonoBehaviour
 
     public void BackToKeyboardControls()
     {
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlaySFX(23);
+        }
+
         if (controllerControlsPanel != null)
             controllerControlsPanel.SetActive(false);
 
@@ -77,6 +92,11 @@ public class ControlsMenuUI : MonoBehaviour
 
     public void BackToOptions()
     {
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlaySFX(23);
+        }
+
         if (controlsPanel != null)
             controlsPanel.SetActive(false);
 

@@ -5864,7 +5864,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6104069040340872997, guid: e185b00cef693244b8e59f86c8dbb52d, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -3.27
+      value: -3.403
       objectReference: {fileID: 0}
     - target: {fileID: 6260103628168877547, guid: e185b00cef693244b8e59f86c8dbb52d, type: 3}
       propertyPath: m_InScenePlaced
@@ -5889,6 +5889,10 @@ PrefabInstance:
     - target: {fileID: 7341595079107658712, guid: e185b00cef693244b8e59f86c8dbb52d, type: 3}
       propertyPath: m_LocalPosition.z
       value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 8765247308081421139, guid: e185b00cef693244b8e59f86c8dbb52d, type: 3}
+      propertyPath: interval
+      value: 120
       objectReference: {fileID: 0}
     - target: {fileID: 8765247308081421139, guid: e185b00cef693244b8e59f86c8dbb52d, type: 3}
       propertyPath: 'targetObjects.Array.data[0]'
@@ -20967,87 +20971,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 4277757976859520000, guid: af574056dd78d5647960823763ed6795, type: 3}
   m_PrefabInstance: {fileID: 486167634}
   m_PrefabAsset: {fileID: 0}
---- !u!1 &1860780279
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1860780280}
-  - component: {fileID: 1860780282}
-  - component: {fileID: 1860780281}
-  m_Layer: 0
-  m_Name: GameObject
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1860780280
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1860780279}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 2.29459, y: 0.519, z: 6.82}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!65 &1860780281
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1860780279}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 1
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
-  m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &1860780282
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1860780279}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2539b1eb63f315a46a89f343c6f06cdb, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::LootPoint
-  preset: {fileID: 0}
-  dropVariant: 0
-  lootPromptPrefab: {fileID: 0}
-  visualRoot: {fileID: 0}
-  itemVisuals: []
-  itemNamePrefixes: []
-  itemPopDuration: 0.25
-  pointsPerItem: 10
-  weightPerItem: 1
-  minItems: 4
-  maxItems: 7
-  respawnTime: 0
-  maxDoublePointsCollections: 10
-  normalCooldown: 0
-  doublePointsCooldown: 2
 --- !u!1001 &1865830083
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -24508,7 +24431,6 @@ SceneRoots:
   - {fileID: 1567937938}
   - {fileID: 457048269}
   - {fileID: 753918070}
-  - {fileID: 1860780280}
   - {fileID: 1823590340}
   - {fileID: 378633102}
   - {fileID: 1996519844}

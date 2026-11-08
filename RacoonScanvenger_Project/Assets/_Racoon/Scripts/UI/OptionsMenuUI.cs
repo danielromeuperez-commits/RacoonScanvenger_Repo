@@ -27,6 +27,11 @@ public class OptionsMenuUI : MonoBehaviour
 
     public void OpenOptions()
     {
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlaySFX(23);
+        }
+
         if (mainPanel != null)
             mainPanel.SetActive(false);
 
@@ -38,6 +43,11 @@ public class OptionsMenuUI : MonoBehaviour
 
     public void CloseOptions()
     {
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlaySFX(23);
+        }
+
         if (optionsPanel != null)
             optionsPanel.SetActive(false);
 
@@ -51,6 +61,11 @@ public class OptionsMenuUI : MonoBehaviour
 
     public void ToggleDisplayMode()
     {
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlaySFX(23);
+        }
+
         if (Screen.fullScreen)
         {
             Screen.fullScreenMode =

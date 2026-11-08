@@ -92,6 +92,12 @@ public class MatchResultUI : MonoBehaviour
         if (changingScene)
             return;
 
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlaySFX(23);
+            AudioManager.Instance.PlayMusic(1);
+        }
+
         StartCoroutine(
             LeaveNetworkAndLoadScene(
                 mainMenuSceneName
@@ -107,6 +113,12 @@ public class MatchResultUI : MonoBehaviour
     {
         if (changingScene)
             return;
+
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlaySFX(23);
+            AudioManager.Instance.PlayMusic(1);
+        }
 
         // Recargamos esta misma escena.
         // Al cargarse de nuevo, ConnectionMenu empieza
