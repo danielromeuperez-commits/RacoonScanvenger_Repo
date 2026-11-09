@@ -23,6 +23,8 @@ namespace Racoon.UI
                 UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(canvas.gameObject, owner.scene);
         }
 
+        const float MinPlaneDistance = 0.5f;
+
         public static void BringToFront(Canvas canvas, int ceiling = 500)
         {
             if (canvas == null) return;
@@ -38,6 +40,10 @@ namespace Racoon.UI
             }
             Camera cam = canvas.worldCamera;
             if (cam != null) distance = Mathf.Max(distance, cam.nearClipPlane + 0.01f);
+            // Nunca demasiado pegado a la cámara: a unos centímetros el canvas queda tan pequeño que el shader SDF de
+            // TextMeshPro pierde precisión y los textos desaparecen (pasaba con la cinta de eventos, por el overlay de
+            // CameraFX junto al plano cercano). Ya queda delante por el orden (sortingOrder), no hace falta acercarlo.
+            distance = Mathf.Max(distance, MinPlaneDistance);
             canvas.sortingOrder = Mathf.Min(order, ceiling - 1);
             canvas.planeDistance = distance;
         }

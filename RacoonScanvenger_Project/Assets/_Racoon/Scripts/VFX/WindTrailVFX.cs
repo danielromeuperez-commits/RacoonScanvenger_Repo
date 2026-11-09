@@ -311,6 +311,7 @@ namespace Racoon.VFX
             delta.y = 0f;
             lastPosition = transform.position;
             float step = delta.magnitude;
+            if (step > 3f) { step = 0f; delta = Vector3.zero; }   // teletransporte (respawn, corte de plano): no es velocidad
             smoothedSpeed = Mathf.Lerp(smoothedSpeed, step / dt, 1f - Mathf.Exp(-20f * dt));
             distanceTravelled = (distanceTravelled + step) % (Mathf.Max(0.01f, wobbleWavelength) * 1000f);
 

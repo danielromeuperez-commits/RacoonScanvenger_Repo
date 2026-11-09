@@ -65,6 +65,21 @@ namespace Racoon.VFX
             fov = 0.07f, speedLines = 1f, chromatic = 0.2f,
         };
 
+        [SerializeField] CameraFXProfile energyStart = new(0.7f, decayPower: 2.5f)
+        {
+            priority = 40, duck = 0.5f,
+            aura = 1f, auraColor = new Color(0.25f, 0.75f, 0.7f),
+            risingBolts = 1f, risingColor = new Color(0.6f, 0.58f, 0.66f, 0.3f),
+        };
+        [SerializeField] CameraFXProfile energized = new(1f)
+        {
+            priority = 40, duck = 0.3f, fadeIn = 0.45f, fadeOut = 0.6f,
+            fov = 0.25f,
+            aura = 0.8f, auraColor = new Color(0.25f, 0.75f, 0.7f),
+            risingBolts = 0.55f, risingColor = new Color(0.6f, 0.58f, 0.66f, 0.22f),
+        };
+
+        readonly object energyKey = new();
         readonly object runKey = new(), tiredKey = new(), groundedKey = new();
         readonly System.Collections.Generic.HashSet<string> runners = new();
         float startTime;
@@ -73,7 +88,6 @@ namespace Racoon.VFX
         void Start()
         {
             startTime = Time.time;
-            if (hud == null) hud = FindFirstObjectByType<HUDController>();
             if (hud == null) return;
             hud.DemoMode = true;
             for (int i = 1; i <= 2; i++)
@@ -147,6 +161,12 @@ namespace Racoon.VFX
             if (on) runners.Add(actor); else runners.Remove(actor);
             CameraFX.SetContinuous(runKey, run, runners.Count > 0 ? intensity : 0f, 3f);
             Slot(actor)?.SetRunning(on);
+        }
+
+        public void Energy(bool on)
+        {
+            if (on) Play(energyStart);
+            CameraFX.SetContinuous(energyKey, energized, on ? intensity : 0f, 3f);
         }
 
         public void Tired(string actor, bool on)
