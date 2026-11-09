@@ -1770,7 +1770,7 @@ namespace Racoon.Player
                 if (IsOwner)
                 {
                     item.useSfx.Play(transform.position);
-                    AudioManager.Instance.PlaySFX(23);
+                    AudioManager.Instance.PlaySFX(22);
                 }
             }
 
