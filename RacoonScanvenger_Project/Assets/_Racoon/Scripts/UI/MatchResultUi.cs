@@ -10,6 +10,9 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.Serialization;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
+
 
 /// <summary>
 /// Pantalla de fin de partida (PF_HUD_MatchResult). Un solo panel para victoria, derrota y empate.
@@ -20,6 +23,8 @@ using UnityEngine.UI;
 /// - Fuegos artificiales detrás si ha ganado alguien (FireworksBackdrop).
 /// El script solo pone textos, colores y personajes y dispara los Animators.
 /// </summary>
+/// 
+
 public class MatchResultUI : MonoBehaviour
 {
     static readonly int ShowId = Animator.StringToHash("Show");
@@ -61,6 +66,11 @@ public class MatchResultUI : MonoBehaviour
     [SerializeField] PlayerSlot player2 = new();
     [Tooltip("HUDPlayerColors del PREFAB del HUD (PF_HUD_P5PastelReactivo_ConNick_ConP), no el de la escena: en partida " +
              "HUDController puede cambiarlo por los colores del personaje. Se leen los colores guardados en el prefab.")]
+
+    [Header("Navegación")]
+    [SerializeField] Button mainSelectionButton;
+    [SerializeField] Button mainMenuButton; 
+
     [SerializeField] HUDPlayerColors hudColorsPrefab;
     [Tooltip("Colores si no hay HUDPlayerColors asignado.")]
     [SerializeField] Color fallbackP1 = new Color32(0x39, 0x5C, 0xF5, 0xFF);
@@ -86,6 +96,7 @@ public class MatchResultUI : MonoBehaviour
     bool showing;
     bool onlineAtShow;
     bool changingScene;
+    bool controllerNavigationMode;
     Coroutine hiding;
     Coroutine pending;
 
@@ -109,6 +120,11 @@ public class MatchResultUI : MonoBehaviour
         // frame: el resultado se va con él en vez de quedarse encima.
         if (showing && onlineAtShow && !changingScene && (NetworkManager.Singleton == null || !NetworkManager.Singleton.IsListening))
             Hide();
+
+        if (showing)
+        {
+            HandleInputMode();
+        }
     }
 
     static CharacterPreviewStage SetupStage(RawImage image, int layer, Vector3 position)
@@ -162,6 +178,67 @@ public class MatchResultUI : MonoBehaviour
             (p2.Item2, p2.Item1 == localId, result2), draw);
     }
 
+    void HandleInputMode()
+    {
+        // ============================================================
+        // RATÓN
+        // ============================================================
+
+        if (Mouse.current != null)
+        {
+            bool mouseUsed =
+                Mouse.current.delta.ReadValue().sqrMagnitude > 0.01f ||
+                Mouse.current.leftButton.wasPressedThisFrame ||
+                Mouse.current.rightButton.wasPressedThisFrame;
+
+            if (mouseUsed)
+            {
+                controllerNavigationMode = false;
+
+                if (EventSystem.current != null)
+                {
+                    EventSystem.current.SetSelectedGameObject(null);
+                }
+
+                return;
+            }
+        }
+
+        // ============================================================
+        // MANDO
+        // ============================================================
+
+        if (Gamepad.current == null)
+            return;
+
+        Vector2 stick =
+            Gamepad.current.leftStick.ReadValue();
+
+        Vector2 dpad =
+            Gamepad.current.dpad.ReadValue();
+
+        bool controllerUsed =
+            stick.sqrMagnitude > 0.12f ||
+            dpad.sqrMagnitude > 0.01f ||
+            Gamepad.current.buttonSouth.wasPressedThisFrame;
+
+        if (!controllerUsed)
+            return;
+
+        controllerNavigationMode = true;
+
+        // Si todavía no hay ningún botón seleccionado,
+        // seleccionamos MAIN SELECTION.
+        if (EventSystem.current != null &&
+            EventSystem.current.currentSelectedGameObject == null &&
+            mainSelectionButton != null)
+        {
+            EventSystem.current.SetSelectedGameObject(
+                mainSelectionButton.gameObject
+            );
+        }
+    }
+
     // Compatibilidad con llamadas antiguas.
     public void ShowVictory() => ShowResult(NetworkManager.Singleton != null ? NetworkManager.Singleton.LocalClientId : 0, false);
     public void ShowDefeat() => ShowResult(ulong.MaxValue, false);
@@ -201,6 +278,30 @@ public class MatchResultUI : MonoBehaviour
         }
 
         ShowCursor();
+        StartCoroutine(SelectResultButtonNextFrame());
+    }
+
+    IEnumerator SelectResultButtonNextFrame()
+    {
+        yield return null;
+
+        if (EventSystem.current == null)
+            yield break;
+
+        EventSystem.current.SetSelectedGameObject(null);
+
+        if (mainSelectionButton != null)
+        {
+            EventSystem.current.SetSelectedGameObject(
+                mainSelectionButton.gameObject
+            );
+        }
+        else if (mainMenuButton != null)
+        {
+            EventSystem.current.SetSelectedGameObject(
+                mainMenuButton.gameObject
+            );
+        }
     }
 
     // X del hueco del ganador en el panel (los fuegos van detrás de él).

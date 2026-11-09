@@ -1,10 +1,17 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 public class ControlsMenuUI : MonoBehaviour
 {
     [Header("Paneles")]
     [SerializeField] GameObject optionsPanel;
     [SerializeField] GameObject controlsPanel;
+
+    [Header("Navegación")]
+    [SerializeField] Selectable firstKeyboardSelected;
+    [SerializeField] Selectable firstControllerSelected;
+    [SerializeField] Selectable controlsButtonInOptions;
 
     [Header("Tipos de controles")]
     [SerializeField] GameObject keyboardControlsPanel;
@@ -28,13 +35,6 @@ public class ControlsMenuUI : MonoBehaviour
 
     public void OpenKeyboardControls()
     {
-        if (AudioManager.Instance != null)
-        {
-            AudioManager.Instance.PlaySFX(23);
-        }
-
-        Debug.Log("ABRIENDO CONTROLES DE TECLADO");
-
         if (optionsPanel != null)
             optionsPanel.SetActive(false);
 
@@ -46,6 +46,8 @@ public class ControlsMenuUI : MonoBehaviour
 
         if (controllerControlsPanel != null)
             controllerControlsPanel.SetActive(false);
+
+        SelectButton(firstKeyboardSelected);
     }
 
     // ============================================================
@@ -54,16 +56,13 @@ public class ControlsMenuUI : MonoBehaviour
 
     public void OpenControllerControls()
     {
-        if (AudioManager.Instance != null)
-        {
-            AudioManager.Instance.PlaySFX(23);
-        }
-
         if (keyboardControlsPanel != null)
             keyboardControlsPanel.SetActive(false);
 
         if (controllerControlsPanel != null)
             controllerControlsPanel.SetActive(true);
+
+        SelectButton(firstControllerSelected);
     }
 
     // ============================================================
@@ -72,16 +71,13 @@ public class ControlsMenuUI : MonoBehaviour
 
     public void BackToKeyboardControls()
     {
-        if (AudioManager.Instance != null)
-        {
-            AudioManager.Instance.PlaySFX(23);
-        }
-
         if (controllerControlsPanel != null)
             controllerControlsPanel.SetActive(false);
 
         if (keyboardControlsPanel != null)
             keyboardControlsPanel.SetActive(true);
+
+        SelectButton(firstKeyboardSelected);
     }
 
 
@@ -92,15 +88,27 @@ public class ControlsMenuUI : MonoBehaviour
 
     public void BackToOptions()
     {
-        if (AudioManager.Instance != null)
-        {
-            AudioManager.Instance.PlaySFX(23);
-        }
-
         if (controlsPanel != null)
             controlsPanel.SetActive(false);
 
         if (optionsPanel != null)
             optionsPanel.SetActive(true);
+
+        SelectButton(controlsButtonInOptions);
+    }
+
+    void SelectButton(Selectable selectable)
+    {
+        if (EventSystem.current == null ||
+            selectable == null)
+        {
+            return;
+        }
+
+        EventSystem.current.SetSelectedGameObject(null);
+
+        EventSystem.current.SetSelectedGameObject(
+            selectable.gameObject
+        );
     }
 }

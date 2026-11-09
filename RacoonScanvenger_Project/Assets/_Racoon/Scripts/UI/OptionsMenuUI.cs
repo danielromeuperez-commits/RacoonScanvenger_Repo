@@ -1,6 +1,7 @@
 using TMPro;
 using UnityEngine;
-
+using UnityEngine.EventSystems;
+using UnityEngine.UI;
 public class OptionsMenuUI : MonoBehaviour
 {
     [Header("Paneles")]
@@ -9,6 +10,10 @@ public class OptionsMenuUI : MonoBehaviour
 
     [Header("Pantalla")]
     [SerializeField] TMP_Text displayModeButtonText;
+
+    [Header("Navegación")]
+    [SerializeField] Selectable firstOptionsSelected;
+    [SerializeField] Selectable firstMainMenuSelected;
 
     void Start()
     {
@@ -27,11 +32,6 @@ public class OptionsMenuUI : MonoBehaviour
 
     public void OpenOptions()
     {
-        if (AudioManager.Instance != null)
-        {
-            AudioManager.Instance.PlaySFX(23);
-        }
-
         if (mainPanel != null)
             mainPanel.SetActive(false);
 
@@ -39,20 +39,37 @@ public class OptionsMenuUI : MonoBehaviour
             optionsPanel.SetActive(true);
 
         RefreshDisplayModeText();
+
+        // Seleccionamos el primer elemento del menú Options.
+        if (EventSystem.current != null &&
+            firstOptionsSelected != null)
+        {
+            EventSystem.current.SetSelectedGameObject(null);
+
+            EventSystem.current.SetSelectedGameObject(
+                firstOptionsSelected.gameObject
+            );
+        }
     }
 
     public void CloseOptions()
     {
-        if (AudioManager.Instance != null)
-        {
-            AudioManager.Instance.PlaySFX(23);
-        }
-
         if (optionsPanel != null)
             optionsPanel.SetActive(false);
 
         if (mainPanel != null)
             mainPanel.SetActive(true);
+
+        // Al volver, seleccionamos PLAY.
+        if (EventSystem.current != null &&
+            firstMainMenuSelected != null)
+        {
+            EventSystem.current.SetSelectedGameObject(null);
+
+            EventSystem.current.SetSelectedGameObject(
+                firstMainMenuSelected.gameObject
+            );
+        }
     }
 
     // ============================================================

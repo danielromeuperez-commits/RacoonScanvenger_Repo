@@ -788,8 +788,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ee1a44566e1f2d34da846d734bcf1efd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VolumeSettings
-  mixer: {fileID: 24100000, guid: d90725503c00bc34baa799e6c430ace5, type: 2}
-  slider: {fileID: 791784232}
 --- !u!1 &802233608
 GameObject:
   m_ObjectHideFlags: 0
@@ -1215,6 +1213,17 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 100, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &1310446557 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3447736313323594105, guid: 1a09fd59f268c0b479ba24c8ac52ea0f, type: 3}
+  m_PrefabInstance: {fileID: 9157002530090778473}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Button
 --- !u!1 &1370665483
 GameObject:
   m_ObjectHideFlags: 0
@@ -1751,6 +1760,8 @@ MonoBehaviour:
   mainPanel: {fileID: 802233608}
   optionsPanel: {fileID: 1791005776}
   displayModeButtonText: {fileID: 386568491}
+  firstOptionsSelected: {fileID: 1310446557}
+  firstMainMenuSelected: {fileID: 2051957737}
 --- !u!114 &1554784426
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1765,6 +1776,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ControlsMenuUI
   optionsPanel: {fileID: 1791005776}
   controlsPanel: {fileID: 490029326}
+  firstKeyboardSelected: {fileID: 1824954666}
+  firstControllerSelected: {fileID: 1630455216}
+  controlsButtonInOptions: {fileID: 1310446557}
   keyboardControlsPanel: {fileID: 945748217}
   controllerControlsPanel: {fileID: 2096032706}
 --- !u!1 &1598167805
@@ -1846,6 +1860,17 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1630455216 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7832477721676857020, guid: 6302bdeb6df1f964abaf67d82810673f, type: 3}
+  m_PrefabInstance: {fileID: 4907253939791384439}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Button
 --- !u!1 &1655718264
 GameObject:
   m_ObjectHideFlags: 0
@@ -1931,6 +1956,17 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 2480952003756698912, guid: 1a09fd59f268c0b479ba24c8ac52ea0f, type: 3}
   m_PrefabInstance: {fileID: 9157002530090778473}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &1824954666 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1027670835331342177, guid: 6302bdeb6df1f964abaf67d82810673f, type: 3}
+  m_PrefabInstance: {fileID: 4907253939791384439}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Button
 --- !u!1 &2051957735
 GameObject:
   m_ObjectHideFlags: 0
