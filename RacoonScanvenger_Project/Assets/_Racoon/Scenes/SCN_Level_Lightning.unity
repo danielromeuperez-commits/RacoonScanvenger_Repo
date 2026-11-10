@@ -5601,6 +5601,14 @@ PrefabInstance:
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 8765247308081421139, guid: e185b00cef693244b8e59f86c8dbb52d, type: 3}
+      propertyPath: spawnTimeRange.x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8765247308081421139, guid: e185b00cef693244b8e59f86c8dbb52d, type: 3}
+      propertyPath: spawnTimeRange.y
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 8765247308081421139, guid: e185b00cef693244b8e59f86c8dbb52d, type: 3}
       propertyPath: 'targetObjects.Array.data[0]'
       value: 
       objectReference: {fileID: 2094726615}
@@ -19272,6 +19280,7 @@ SceneRoots:
   - {fileID: 91689387}
   - {fileID: 2085215854}
   - {fileID: 1345779653}
+  - {fileID: 1061455326}
   - {fileID: 1729386333}
   - {fileID: 447377834}
   - {fileID: 2023811063}
@@ -19286,4 +19295,3 @@ SceneRoots:
   - {fileID: 753918070}
   - {fileID: 792835104}
   - {fileID: 972451996}
-  - {fileID: 1061455326}
