@@ -71,6 +71,9 @@ namespace Racoon.Player
             holder.SetActive(false);
             GameObject copy = Instantiate(source, holder.transform);
             copy.transform.localScale = source.transform.lossyScale;
+            // La capa verde del objeto del suelo no viaja con el modelo: ya lo lleva alguien.
+            foreach (Renderer r in copy.GetComponentsInChildren<Renderer>(true))
+                if (r.name == MechPickupGlow.PieceName) Destroy(r.gameObject);
             MonoBehaviour[] behaviours = copy.GetComponentsInChildren<MonoBehaviour>(true);
             for (int i = behaviours.Length - 1; i >= 0; i--)
                 if (behaviours[i] is Unity.Netcode.NetworkBehaviour) Destroy(behaviours[i]);

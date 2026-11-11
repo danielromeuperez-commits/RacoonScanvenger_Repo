@@ -56,10 +56,6 @@ namespace Racoon.UI
         PlayerLoot localLoot;
         PlayerInputHandler localInput;
         LootPoint target;
-        // Objeto mecánico del suelo (extintor, despertador) más cercano: también se coge manteniendo.
-        IMechPickup mechTarget;
-        bool targetIsMech;
-        MechKind lastCarried;
         float nextSearch, held, glyphHeight, lastPress = -10f;
         bool layered, shown;
 
@@ -139,27 +135,17 @@ namespace Racoon.UI
                 SetLocal(FindLocalPlayer());
             }
 
-            // Acaba de coger un objeto mecánico: saltito y dial a cero.
-            MechKind carried = local != null ? local.CarriedMech : MechKind.None;
-            if (carried != MechKind.None && lastCarried == MechKind.None && shown)
-            {
-                held = 0f;
-                animator.SetTrigger(GrabId);
-            }
-            lastCarried = carried;
-
             float distance = float.MaxValue;
             bool visible = false;
             if (local != null && localLoot != null)
             {
                 FindTarget(local.transform.position, out distance);
-                visible = distance <= local.InteractReach && (targetIsMech ? mechTarget != null : target != null && !localLoot.IsBagFull);
+                visible = distance <= local.InteractReach && target != null && !localLoot.IsBagFull;
             }
             bool holding = visible && localInput != null && (localInput.InteractHeld || Time.time - lastPress <= tapWindow);
 
-            // Estantería: el dial va de objeto a objeto (cycleTime). Objeto mecánico: lo que hay que mantener para cogerlo.
-            float fillTime = targetIsMech && mechTarget != null ? mechTarget.HoldTime : cycleTime;
-            held = holding ? Mathf.Min(1f, held + Time.deltaTime / Mathf.Max(0.05f, fillTime))
+            // El dial va de objeto a objeto (cycleTime).
+            held = holding ? Mathf.Min(1f, held + Time.deltaTime / Mathf.Max(0.05f, cycleTime * (local != null ? local.ActionTimeScale : 1f)))
                 : Mathf.MoveTowards(held, 0f, Time.deltaTime * 4f);
             if (ringFill != null) ringFill.fillAmount = held;
 
@@ -186,54 +172,11 @@ namespace Racoon.UI
                 bestDistance = d;
                 best = point;
             }
-            // Objetos mecánicos (si no lleva ya uno): si hay uno más cerca, manda ese.
-            IMechPickup bestMech = null;
-            float mechDistance = float.MaxValue;
-            if (local != null && !local.IsCarryingMech)
-            {
-                foreach (IMechPickup pickup in MechPickups.All)
-                {
-                    if (pickup == null || !pickup.IsAvailable) continue;
-                    float d = pickup is Component c ? FlatDistanceTo(from, c) : float.MaxValue;
-                    if (d >= mechDistance) continue;
-                    mechDistance = d;
-                    bestMech = pickup;
-                }
-            }
-            if (bestMech != null && mechDistance < bestDistance)
-            {
-                bestDistance = mechDistance;
-                mechTarget = bestMech;
-                targetIsMech = true;
-                return;
-            }
-            if (best != null) targetIsMech = false;
-
             // Se queda con la última mientras desaparece, para que no salte a otra a media animación.
             if (best != null && bestDistance <= (local != null ? local.InteractReach : 0f))
             {
                 target = best;
             }
-        }
-
-        // Distancia en el suelo desde el jugador hasta el borde del collider más cercano del objeto.
-        static float FlatDistanceTo(Vector3 from, Component target)
-        {
-            float best = float.MaxValue;
-            foreach (Collider col in target.GetComponentsInChildren<Collider>())
-            {
-                if (!col.enabled) continue;
-                Vector3 offset = col.ClosestPoint(from) - from;
-                offset.y = 0f;
-                best = Mathf.Min(best, offset.magnitude);
-            }
-            if (best == float.MaxValue)
-            {
-                Vector3 offset = target.transform.position - from;
-                offset.y = 0f;
-                best = offset.magnitude;
-            }
-            return best;
         }
 
         void Place()

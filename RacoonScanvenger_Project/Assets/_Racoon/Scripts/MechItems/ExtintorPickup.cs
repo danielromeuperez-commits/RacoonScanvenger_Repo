@@ -3,31 +3,26 @@ using Unity.Netcode;
 using Racoon.Player;
 
 /// <summary>
-/// Extintor del suelo. Se coge MANTENIENDO Interact (como vender). Al cogerlo: suma sus puntos a la bolsa, propulsa
+/// Extintor del suelo. Se coge AL PASAR POR ENCIMA (trigger), sin pulsar nada ni aviso en pantalla; hasta entonces
+/// lo cubre la capa verde (MechPickupGlow). Al cogerlo: suma sus puntos a la bolsa, propulsa
 /// al jugador un rato y se lo cuelga a la espalda hasta que lo entregue en el punto de venta (mientras tanto los
 /// objetos de las cajas quedan guardados: ver PlayerController.CarriedMech y PlayerMechCarry).
 /// </summary>
 [RequireComponent(typeof(NetworkObject))]
 [RequireComponent(typeof(Collider))]
-public class ExtintorPickup : NetworkBehaviour, IMechPickup
+public class ExtintorPickup : NetworkBehaviour
 {
     [Header("EFECTO")]
     [SerializeField] private float duration = 5f;
     [SerializeField] private float bounceSpeed = 10f;
     [SerializeField] private float validationDistance = 5f;
 
-    [Header("Coger")]
-    [Tooltip("Segundos manteniendo Interact para cogerlo.")]
-    [SerializeField, Min(0f)] private float holdTime = 0.8f;
-
     [Header("Loot / Recompensa")]
     [SerializeField] private int lootPoints = 50;
     [SerializeField] private float lootWeight = 2f;
 
     private bool consumed;
-    private readonly HoldInteraction hold = new();
 
-    public float HoldTime => holdTime;
     public bool IsAvailable => IsSpawned && !consumed;
 
     private void Awake()
@@ -37,24 +32,19 @@ public class ExtintorPickup : NetworkBehaviour, IMechPickup
         {
             col.isTrigger = true;
         }
-        // La interacción del jugador solo busca en la capa Interactable.
-        MechPickups.UseInteractableLayer(gameObject);
+        MechPickupGlow.Attach(gameObject);
     }
 
-    private void OnEnable() => MechPickups.Register(this);
-    private void OnDisable() => MechPickups.Unregister(this);
+    // ---------------- Coger al pasar por encima (solo servidor) ----------------
 
-    // ---------------- Mantener para coger (solo servidor) ----------------
-
-    public bool CanInteract(PlayerController player) =>
-        IsAvailable && player != null && !player.IsCarryingMech;
-
-    public void Interact(PlayerController player)
+    // Stay (no Enter): así lo coge también quien ya estaba encima cuando deja de llevar otro objeto.
+    private void OnTriggerStay(Collider other)
     {
-        if (!IsServer || !CanInteract(player))
+        if (!IsServer || !IsAvailable)
             return;
 
-        if (hold.Tick(player, holdTime))
+        PlayerController player = other.GetComponentInParent<PlayerController>();
+        if (player != null && !player.IsCarryingMech)
             ConsumeOnServer(player);
     }
 

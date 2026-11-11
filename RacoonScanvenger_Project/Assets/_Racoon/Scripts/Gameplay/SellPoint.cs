@@ -29,9 +29,13 @@ public class SellPoint : MonoBehaviour, IRepeatableInteractable
     // Por jugador (solo servidor): cuánto lleva manteniendo.
     readonly HoldInteraction hold = new();
 
-    /// <summary>Segundos que hay que mantener para vender <paramref name="points"/> puntos (servidor y aviso).</summary>
-    public float HoldTimeFor(int points) =>
-        Mathf.Min(maxHoldTime, baseHoldTime + secondsPerPoint * Mathf.Max(0, points));
+    /// <summary>
+    /// Segundos que hay que mantener para vender <paramref name="points"/> puntos (servidor y aviso). Con la bebida
+    /// energética de <paramref name="player"/> se vende más rápido (PlayerController.ActionTimeScale).
+    /// </summary>
+    public float HoldTimeFor(int points, PlayerController player = null) =>
+        Mathf.Min(maxHoldTime, baseHoldTime + secondsPerPoint * Mathf.Max(0, points)) *
+        (player != null ? player.ActionTimeScale : 1f);
 
     void Start()
     {
@@ -69,7 +73,7 @@ public class SellPoint : MonoBehaviour, IRepeatableInteractable
         if (playerLoot == null)
             return;
 
-        if (hold.Tick(player, HoldTimeFor(playerLoot.PendingPoints), releaseTolerance))
+        if (hold.Tick(player, HoldTimeFor(playerLoot.PendingPoints, player), releaseTolerance))
             playerLoot.ServerSellLoot();
     }
 }

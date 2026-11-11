@@ -19,7 +19,8 @@ public class LootPoint : MonoBehaviour, IRepeatableInteractable
     [Tooltip("Preset de rareza. Si está asignado, manda sobre los valores sueltos de abajo.")]
     [SerializeField] LootRarityPreset preset;
     [Tooltip("Producto que se cae al recibir un golpe con esto en la bolsa (DroppedLoot > Variants): " +
-             "0 = bolsita genérica, 1 = manzana, 2 = naranja, 3 = pan, 4 = patatas de bolsa, 5 = NukiProd, 6 = lata.")]
+             "0 = bolsita genérica, 1 = manzana, 2 = naranja, 3 = pan, 4 = patatas de bolsa, 5 = NukiProd, 6 = lata, " +
+             "7 = Salaña, 8 = Chuchi (patatas, NukiProd y latas salen en varios sabores/colores al azar).")]
     [SerializeField, Min(0)] int dropVariant;
     [Tooltip("PF_HUD_AvisoSaquear: aviso de «mantén para saquear» (uno solo por partida, lo crea la primera estantería).")]
     [SerializeField] Racoon.UI.LootPromptUI lootPromptPrefab;
@@ -276,6 +277,7 @@ public class LootPoint : MonoBehaviour, IRepeatableInteractable
 
         // Aplicar el tiempo de espera (cooldown) correspondiente a este jugador
         float activeCooldown = doubled ? DoublePointsCooldown : NormalCooldown;
+        activeCooldown *= player.ActionTimeScale;   // bebida energética: saquea más rápido
         nextInteractTimeByPlayer[player.NetworkObjectId] = Time.time + activeCooldown;
 
         itemsRemaining--;

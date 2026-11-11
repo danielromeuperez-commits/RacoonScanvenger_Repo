@@ -3,18 +3,15 @@ using UnityEngine;
 using Unity.Netcode;
 
 /// <summary>
-/// Despertador del suelo. Se coge MANTENIENDO Interact (como vender). Al cogerlo: suma sus puntos a la bolsa y el
+/// Despertador del suelo. Se coge AL PASAR POR ENCIMA (trigger), sin pulsar nada ni aviso en pantalla; hasta entonces
+/// lo cubre la capa verde (MechPickupGlow). Al cogerlo: suma sus puntos a la bolsa y el
 /// jugador lo lleva delante, sonando: su mando vibra fuerte y su pantalla tiembla TODO EL RATO hasta que lo vende
 /// (PlayerMechCarry). Mientras lo lleva, los objetos de las cajas quedan guardados (PlayerController.CarriedMech).
 /// </summary>
 [RequireComponent(typeof(NetworkObject))]
 [RequireComponent(typeof(Collider))]
-public class PickupWatch : NetworkBehaviour, IMechPickup
+public class PickupWatch : NetworkBehaviour
 {
-    [Header("Coger")]
-    [Tooltip("Segundos manteniendo Interact para cogerlo.")]
-    [SerializeField, Min(0f)] private float holdTime = 0.8f;
-
     [Header("Efectos Opcionales")]
     public GameObject pickupEffectPrefab;
 
@@ -26,9 +23,7 @@ public class PickupWatch : NetworkBehaviour, IMechPickup
     [SerializeField] private float lootWeight = 0f;
 
     private bool consumed;
-    private readonly HoldInteraction hold = new();
 
-    public float HoldTime => holdTime;
     public bool IsAvailable => IsSpawned && !consumed;
 
     private void Awake()
@@ -38,23 +33,19 @@ public class PickupWatch : NetworkBehaviour, IMechPickup
         {
             col.isTrigger = true;
         }
-        // La interacción del jugador solo busca en la capa Interactable.
-        MechPickups.UseInteractableLayer(gameObject);
+        MechPickupGlow.Attach(gameObject);
     }
 
-    private void OnEnable() => MechPickups.Register(this);
-    private void OnDisable() => MechPickups.Unregister(this);
+    // ---------------- Coger al pasar por encima (solo servidor) ----------------
 
-    // ---------------- Mantener para coger (solo servidor) ----------------
-
-    public bool CanInteract(PlayerController player) =>
-        IsAvailable && player != null && !player.IsCarryingMech;
-
-    public void Interact(PlayerController player)
+    // Stay (no Enter): así lo coge también quien ya estaba encima cuando deja de llevar otro objeto.
+    private void OnTriggerStay(Collider other)
     {
-        if (!IsServer || !CanInteract(player))
+        if (!IsServer || !IsAvailable)
             return;
-        if (hold.Tick(player, holdTime))
+
+        PlayerController player = other.GetComponentInParent<PlayerController>();
+        if (player != null && !player.IsCarryingMech)
             ConsumeOnServer(player);
     }
 

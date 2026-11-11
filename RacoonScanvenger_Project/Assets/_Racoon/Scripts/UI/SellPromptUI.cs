@@ -153,7 +153,7 @@ namespace Racoon.UI
             // (cada InteractRepeatCadence), así que vende en la primera que pasa de HoldTimeFor. El dial dura eso
             // mismo, redondeado al siguiente múltiplo de la cadencia (+ medio frame por repetición): se llena justo
             // cuando vende. Al soltar se vacía rápido.
-            float serverHold = sellPoint.HoldTimeFor(localLoot != null ? localLoot.PendingPoints : 0);
+            float serverHold = sellPoint.HoldTimeFor(localLoot != null ? localLoot.PendingPoints : 0, local);
             float cadence = local != null ? local.InteractRepeatCadence + Time.smoothDeltaTime * 0.5f : 0f;
             float holdTime = cadence > 0.01f ? Mathf.Ceil((serverHold - 0.001f) / cadence) * cadence : serverHold;
             holdTime = Mathf.Max(0.05f, holdTime);

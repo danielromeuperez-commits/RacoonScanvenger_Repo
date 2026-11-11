@@ -77,6 +77,8 @@ namespace Racoon.Player
         [SerializeField] LayerMask interactMask = ~0;
         [Tooltip("Tiempo mínimo entre cada objeto recogido al mantener Interact.")]
         [SerializeField] float interactRepeatInterval = 0.25f;
+        [Tooltip("Con la bebida energética: multiplicador del tiempo de saquear y de vender (0,5 = el doble de rápido).")]
+        [SerializeField, Range(0.1f, 1f)] float energyActionTimeScale = 0.5f;
         float interactRepeatTimer;
 
         [Header("Golpe")]
@@ -600,8 +602,8 @@ namespace Racoon.Player
                 interactRepeatTimer <= 0f)
             {
                 AssistInteract();
-                StartAction(PlayerState.Interact, interactDuration);
-                interactRepeatTimer = interactRepeatInterval;
+                StartAction(PlayerState.Interact, interactDuration * ActionTimeScale);
+                interactRepeatTimer = interactRepeatInterval * ActionTimeScale;
                 RepeatInteractRpc(InteractForward);
             }
 
@@ -1381,8 +1383,8 @@ namespace Racoon.Player
             if (extintorActive || IsInAction || itemRecoveryRequired || chargingPunch || aimingItem || aimingTarget) return;
 
             AssistInteract();
-            StartAction(PlayerState.Interact, interactDuration);
-            interactRepeatTimer = interactRepeatInterval;
+            StartAction(PlayerState.Interact, interactDuration * ActionTimeScale);
+            interactRepeatTimer = interactRepeatInterval * ActionTimeScale;
             InteractRpc(InteractForward);
         }
 
@@ -1552,7 +1554,13 @@ namespace Racoon.Player
 
         /// <summary>Cada cuánto llega al servidor una interacción mantenida: dura interactDuration y no se repite
         /// antes de interactRepeatInterval. Los avisos de mantener (vender) cuadran su dial con esto.</summary>
-        public float InteractRepeatCadence => Mathf.Max(interactRepeatInterval, interactDuration);
+        public float InteractRepeatCadence => Mathf.Max(interactRepeatInterval, interactDuration) * ActionTimeScale;
+
+        /// <summary>
+        /// Multiplicador del tiempo de saquear y de vender: 1 normalmente y menos con la bebida energética (más rápido).
+        /// Válido en el dueño y en el servidor (los demás clientes no lo necesitan).
+        /// </summary>
+        public float ActionTimeScale => IsEnergyDrinkActive ? energyActionTimeScale : 1f;
 
         Vector3 InteractCenterFor(Vector3 forward) => transform.position + Vector3.up * punchHeight + forward * frontInteractRange;
 
