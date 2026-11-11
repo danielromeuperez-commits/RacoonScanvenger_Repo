@@ -5602,11 +5602,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8765247308081421139, guid: e185b00cef693244b8e59f86c8dbb52d, type: 3}
       propertyPath: spawnTimeRange.x
-      value: 1
+      value: 60
       objectReference: {fileID: 0}
     - target: {fileID: 8765247308081421139, guid: e185b00cef693244b8e59f86c8dbb52d, type: 3}
       propertyPath: spawnTimeRange.y
-      value: 2
+      value: 180
       objectReference: {fileID: 0}
     - target: {fileID: 8765247308081421139, guid: e185b00cef693244b8e59f86c8dbb52d, type: 3}
       propertyPath: 'targetObjects.Array.data[0]'
