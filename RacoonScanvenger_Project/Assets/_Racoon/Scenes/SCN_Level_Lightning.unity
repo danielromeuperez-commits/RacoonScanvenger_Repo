@@ -11000,10 +11000,26 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1927138542}
     m_Modifications:
+    - target: {fileID: 816499816336026647, guid: 0dad448e9a499184aa4e33f17984dcb1, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 85320ac508c24974c88762e52a542cae, type: 2}
+    - target: {fileID: 2250599307764587166, guid: 0dad448e9a499184aa4e33f17984dcb1, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 85320ac508c24974c88762e52a542cae, type: 2}
     - target: {fileID: 3258547203062938396, guid: 0dad448e9a499184aa4e33f17984dcb1, type: 3}
       propertyPath: m_Name
       value: SellPoint (1)
       objectReference: {fileID: 0}
+    - target: {fileID: 4227131041618814812, guid: 0dad448e9a499184aa4e33f17984dcb1, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 85320ac508c24974c88762e52a542cae, type: 2}
+    - target: {fileID: 6316625688856603099, guid: 0dad448e9a499184aa4e33f17984dcb1, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 85320ac508c24974c88762e52a542cae, type: 2}
     - target: {fileID: 7317059049942496427, guid: 0dad448e9a499184aa4e33f17984dcb1, type: 3}
       propertyPath: m_LocalPosition.x
       value: -8.24
