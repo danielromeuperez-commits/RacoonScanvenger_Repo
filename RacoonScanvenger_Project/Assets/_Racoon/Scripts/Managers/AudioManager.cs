@@ -4,13 +4,22 @@ using UnityEngine.SceneManagement;
 public class AudioManager : MonoBehaviour
 {
     private static AudioManager instance;
+    private static bool creatingFallback;
+    private bool isFallback;
 
     public static AudioManager Instance
     {
         get
         {
-            if (instance == null)
-                Debug.LogWarning("No hay AudioManager en la escena!");
+            if (instance == null && Application.isPlaying)
+            {
+                // Escena de nivel abierta sin pasar por el menú (que es donde vive el AudioManager): se crea uno
+                // vacío y sin sonidos para que las llamadas no revienten con NullReferenceException.
+                Debug.LogWarning("No hay AudioManager en la escena (¿arrancaste sin pasar por SCN_MainMenu?). Se crea uno vacío: no sonará nada.");
+                creatingFallback = true;
+                new GameObject("AudioManager (fallback)").AddComponent<AudioManager>();
+                creatingFallback = false;
+            }
 
             return instance;
         }
@@ -32,9 +41,17 @@ public class AudioManager : MonoBehaviour
 
     private void Awake()
     {
+        // Un AudioManager real (el del menú) sustituye al vacío de emergencia.
+        if (instance != null && instance.isFallback && !creatingFallback)
+        {
+            Destroy(instance.gameObject);
+            instance = null;
+        }
+
         if (instance == null)
         {
             instance = this;
+            isFallback = creatingFallback;
             DontDestroyOnLoad(gameObject);
 
             CreateAudioSourcesIfNeeded();

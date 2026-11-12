@@ -308,6 +308,8 @@ namespace Racoon.Player
         public event Action<PlayerState, PlayerState> StateChanged;
         /// <summary>Se lanza al empezar una acción (Interact, SwitchItem, Punch, UseItem). Todos los clientes.</summary>
         public event Action<PlayerState> ActionStarted;
+        /// <summary>Choque contra una pared corriendo (rebote). Solo en el cliente dueño.</summary>
+        public event Action Bumped;
 
         public PlayerState State => netState.Value.State;
         /// <summary>Está en invincibility-frames. Replicado: válido en todos los clientes y en el servidor.</summary>
@@ -1638,6 +1640,7 @@ namespace Racoon.Player
             if (impact < bounceMinImpact) return;
 
             lastBounceTime = Time.time;
+            Bumped?.Invoke();
             // Se quita lo que iba contra la pared y se devuelve una parte como rebote.
             Vector3 along = moveVelocity + normal * impact;
             moveVelocity = along * bounceKeepSpeed;

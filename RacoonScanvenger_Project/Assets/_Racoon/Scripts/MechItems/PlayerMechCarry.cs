@@ -184,7 +184,7 @@ namespace Racoon.Player
             }
 
             // Reproducir el sonido solo si NO está sonando ya (evita que pete y sature cada frame)
-            if (AudioManager.Instance != null && AudioManager.Instance.sfxSource != null)
+            if (AudioManager.Instance != null && AudioManager.Instance.sfxSource != null && AudioManager.Instance.sfxLibrary.Length > 13)
             {
                 AudioClip clockClip = AudioManager.Instance.sfxLibrary[13]; // Cambia 13 por tu índice de audio
                 if (!AudioManager.Instance.sfxSource.isPlaying || AudioManager.Instance.sfxSource.clip != clockClip)
@@ -210,7 +210,7 @@ namespace Racoon.Player
             rumblingPad = null;
 
             // Parar el sonido, limpiar el clip y quitar el loop para que no afecte a otros SFX normales
-            if (controller != null && controller.IsOwner && AudioManager.Instance != null && AudioManager.Instance.sfxSource != null)
+            if (controller != null && controller.IsOwner && AudioManager.Instance != null && AudioManager.Instance.sfxSource != null && AudioManager.Instance.sfxLibrary.Length > 13)
             {
                 if (AudioManager.Instance.sfxSource.clip == AudioManager.Instance.sfxLibrary[13]) // Cambia 13 por tu índice
                 {
