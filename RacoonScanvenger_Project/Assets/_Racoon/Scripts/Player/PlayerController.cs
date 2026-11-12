@@ -929,10 +929,13 @@ namespace Racoon.Player
 
             if (input.UsingMouse)
             {
-                Camera cam = Camera.main;
+                Camera cam = TrailerCameraSwitcher.ActiveCamera != null ? TrailerCameraSwitcher.ActiveCamera : Camera.main;
                 if (cam != null)
                 {
-                    Ray ray = cam.ScreenPointToRay(input.PointerPosition);
+                    // Cursor bloqueado (cámara de trailer con ratón): se apunta al centro de la pantalla.
+                    Ray ray = Cursor.lockState == CursorLockMode.Locked
+                        ? cam.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f))
+                        : cam.ScreenPointToRay(input.PointerPosition);
                     Plane ground = new(Vector3.up, transform.position);
                     if (ground.Raycast(ray, out float enter))
                         offset = Vector3.ProjectOnPlane(ray.GetPoint(enter) - transform.position, Vector3.up);
@@ -1165,11 +1168,13 @@ namespace Racoon.Player
             if (move == Vector2.zero) return Vector3.zero;
 
             if (cameraTransform == null && Camera.main != null) cameraTransform = Camera.main.transform;
-            if (cameraTransform == null) return new Vector3(move.x, 0f, move.y).normalized;
+            // Relativo a la vista que se está viendo (cámaras de trailer 2-4 si hay una activa).
+            Transform view = TrailerCameraSwitcher.ActiveCamera != null ? TrailerCameraSwitcher.ActiveCamera.transform : cameraTransform;
+            if (view == null) return new Vector3(move.x, 0f, move.y).normalized;
 
-            Vector3 forward = Vector3.ProjectOnPlane(cameraTransform.forward, Vector3.up);
+            Vector3 forward = Vector3.ProjectOnPlane(view.forward, Vector3.up);
             // Cámara mirando justo hacia abajo: usamos su "arriba" como adelante.
-            if (forward.sqrMagnitude < 0.01f) forward = Vector3.ProjectOnPlane(cameraTransform.up, Vector3.up);
+            if (forward.sqrMagnitude < 0.01f) forward = Vector3.ProjectOnPlane(view.up, Vector3.up);
             forward.Normalize();
             Vector3 right = Vector3.Cross(Vector3.up, forward);
 
