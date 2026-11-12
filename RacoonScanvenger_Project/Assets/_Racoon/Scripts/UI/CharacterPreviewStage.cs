@@ -185,6 +185,7 @@ namespace Racoon.UI
                     skinned.shadowCastingMode = ShadowCastingMode.Off;
                 }
                 else if (renderer is MeshRenderer mesh) mesh.shadowCastingMode = ShadowCastingMode.Off;
+                else if (renderer is SpriteRenderer sprite) sprite.shadowCastingMode = ShadowCastingMode.Off; // los ojos
                 else renderer.enabled = false; // partículas, estelas, líneas
             }
             foreach (Transform t in copy.GetComponentsInChildren<Transform>(true)) t.gameObject.layer = layer;
