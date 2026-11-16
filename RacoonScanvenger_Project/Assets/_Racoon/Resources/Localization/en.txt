@@ -1,0 +1,139 @@
+# English texts. Format: key = text   (\n = line break, {0} = value filled in by code)
+# Every key here must also exist in es.txt.
+
+# --- Main menu ---
+menu.title = ASALTO MAPACHE
+menu.play = PLAY
+menu.options = OPTIONS
+menu.exit = EXIT GAME
+
+# --- Options ---
+options.title = OPTIONS
+options.music = Music Volume
+options.sfx = SFX Volume
+options.language = Language
+options.controls = Controls
+options.return = Return
+options.display.fullscreen = FULL SCREEN
+options.display.windowed = WINDOWED SCREEN
+options.display.short = Display
+
+# --- Controls ---
+controls.title = CONTROLS\n\n
+controls.keyboard = Keyboard Buttons
+controls.controller = Controller Buttons
+controls.move = Move
+controls.run = Run
+controls.dash = Dash
+controls.attack = Attack
+controls.stealsell = Steal & Sell
+controls.useitem = Use Item
+controls.switchitem = Switch Item
+controls.return = Return
+
+# --- Pause ---
+pause.title = PAUSE
+pause.resume = Resume
+pause.options = Options\n\n
+pause.mainmenu = Main Menu
+pause.back = Back
+
+# --- Connection / lobby ---
+lobby.selectmode = SELECT GAME MODE
+lobby.local = LOCAL GAME
+lobby.online = ONLINE GAME
+lobby.mainmenu = MAIN MENU
+lobby.return = RETURN
+lobby.hostlocal = HOST LOCAL
+lobby.joinlocal = JOIN LOCAL
+lobby.hostip = HOST IP:
+lobby.enterip = ENTER HOST IP...
+lobby.entertext = Enter text...
+lobby.createlobby = Create Lobby
+lobby.joinlobby = Join Lobby
+lobby.searchlobby = SEARCH LOBBY
+lobby.search = SEARCH
+lobby.refresh = REFRESH
+lobby.searching = SEARCHING...
+lobby.nogames = NO GAMES FOUND
+lobby.closed = CLOSED
+lobby.full = FULL
+lobby.selectcharacter = SELECT YOUR CHARACTER
+lobby.waitingplayer = WAITING FOR PLAYER...
+lobby.connecting = CONNECTING...
+lobby.waitingrival = WAITING FOR RIVAL
+lobby.waitinghost = WAITING FOR HOST
+lobby.yourip = YOUR IP: {0}
+lobby.players = PLAYERS: {0}/{1}
+lobby.player = PLAYER: {0} / {1}
+lobby.creating = CREATING GAME...
+lobby.code = CODE: {0}
+lobby.codeempty = CODE: -----
+lobby.rivalwaiting = RIVAL...
+lobby.rival = RIVAL: {0}
+lobby.rivalready = RIVAL: {0} · READY!
+lobby.playersready = PLAYERS READY: {0}/{1}
+lobby.you.ready = YOU · READY!
+lobby.you.choosing = YOU · CHOOSING
+lobby.rival.ready = RIVAL · READY!
+lobby.rival.choosing = RIVAL · CHOOSING
+lobby.ready = READY
+lobby.readydone = READY!
+lobby.locked = LOCKED
+lobby.taken = TAKEN
+lobby.nocharacter = NO CHARACTER
+
+# --- Network status ---
+net.disconnectedhost = Disconnected from host.
+net.disconnected.reason = Disconnected: {0}
+net.invalidip = Invalid IP.
+net.connectingto = Connecting to {0}:{1}...
+net.clientfailed = Could not start the client.
+net.created = Game "{0}" created. Code: {1}
+net.entercode = Enter the game code.
+net.joined = Joined "{0}" ({1})
+net.closed = The game has been closed.
+net.nopublic = No public games.
+net.found = {0} game(s) found.
+net.disconnected = Disconnected.
+net.error = Error: {0}
+net.creatingonline = Creating online game...
+net.joining = Joining...
+net.searching = Searching for games...
+net.joiningnamed = Joining "{0}"...
+net.leaving = Leaving...
+
+# --- Match ---
+match.start = START!!
+match.win = YOU WIN!!
+match.lose = YOU LOSE!!
+match.draw = DRAW!!
+match.winner = WINNER
+match.you = (YOU)
+match.mainmenu = Main Menu
+
+# --- HUD ---
+hud.points = POINTS
+hud.time = TIME
+hud.bag = BAG
+hud.bagplus = BAG +{0}
+hud.you = YOU
+hud.bagfull = FULL!
+hud.mash = SMASH!
+hud.mashdone = GET UP!
+hud.hold = HOLD!
+hud.selling = SELLING
+hud.sold = SOLD!
+hud.hit = POW!
+hud.heavyhit = WHAM!
+hud.slip = SPLAT!
+
+# --- Events ---
+event.banana.title = SLIPPERY AISLE!
+event.banana.subtitle = There are bananas all over the floor! Careful when running.
+event.double.title = 2x SALE!
+event.double.subtitle = One shelf gives double points. Find the sign!
+event.double.left = {0} LEFT
+event.double.soldout = SOLD OUT!
+event.speed.title = RUSH HOUR!
+event.speed.subtitle = The clock runs x{0} until the end of the match.

@@ -131,7 +131,7 @@ public class eventDoublePoints : NetworkBehaviour, IGameEvent
     {
         // Empieza (también al repetirse en la misma partida: de 0 a >0).
         bool started = previous <= 0 && current > 0;
-        if (started) GameEventAnnouncer.Announce(this, title, subtitle, accent, colorSkin);
+        if (started) GameEventAnnouncer.Announce(this, Racoon.UI.Localization.Loc.T("event.double.title"), Racoon.UI.Localization.Loc.T("event.double.subtitle"), accent, colorSkin);
         StateChanged?.Invoke(this, started);
     }
 }

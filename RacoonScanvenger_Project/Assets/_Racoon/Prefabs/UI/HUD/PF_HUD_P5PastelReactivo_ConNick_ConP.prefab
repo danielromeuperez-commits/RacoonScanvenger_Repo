@@ -3571,6 +3571,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5553101880981715596}
   - component: {fileID: 1668924064841846277}
+  - component: {fileID: 3081447645837133176}
   m_Layer: 5
   m_Name: Cabecera PUNTOS
   m_TagString: Untagged
@@ -4930,6 +4931,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7815444490990650630}
   - component: {fileID: 2273334603535305447}
+  - component: {fileID: 7218209569692257542}
   m_Layer: 5
   m_Name: Bolsa
   m_TagString: Untagged
@@ -8564,6 +8566,7 @@ GameObject:
   m_Component:
   - component: {fileID: 973452041111887065}
   - component: {fileID: 34464360008141848}
+  - component: {fileID: 6654815883910122150}
   m_Layer: 5
   m_Name: Cabecera PUNTOS
   m_TagString: Untagged
@@ -12166,6 +12169,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7118462981883376359}
   - component: {fileID: 18548029875457018}
+  - component: {fileID: 2425939055473301101}
   m_Layer: 5
   m_Name: Bolsa
   m_TagString: Untagged
@@ -28372,6 +28376,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5694931846063825871}
   - component: {fileID: 3118957621265404240}
+  - component: {fileID: 1051290692728722070}
   m_Layer: 5
   m_Name: TIEMPO
   m_TagString: Untagged
@@ -35799,3 +35804,73 @@ MonoBehaviour:
   m_hasFontAssetChanged: 0
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
+--- !u!114 &3081447645837133176
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 807455512469948793}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4949d01c31a14d208a36ccd7e82e44d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.Localization.LocalizedText
+  key: hud.points
+  chipKey: 
+--- !u!114 &7218209569692257542
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1358214315620367283}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4949d01c31a14d208a36ccd7e82e44d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.Localization.LocalizedText
+  key: 
+  chipKey: hud.bag
+--- !u!114 &6654815883910122150
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2408757559935711962}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4949d01c31a14d208a36ccd7e82e44d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.Localization.LocalizedText
+  key: hud.points
+  chipKey: 
+--- !u!114 &2425939055473301101
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3357831604166865318}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4949d01c31a14d208a36ccd7e82e44d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.Localization.LocalizedText
+  key: 
+  chipKey: hud.bag
+--- !u!114 &1051290692728722070
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7278049289169507355}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4949d01c31a14d208a36ccd7e82e44d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.Localization.LocalizedText
+  key: hud.time
+  chipKey: 

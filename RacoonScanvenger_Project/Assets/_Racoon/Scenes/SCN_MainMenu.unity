@@ -1050,6 +1050,7 @@ GameObject:
   - component: {fileID: 966725695}
   - component: {fileID: 966725697}
   - component: {fileID: 966725696}
+  - component: {fileID: 7624507214688996773}
   m_Layer: 5
   m_Name: PLAY
   m_TagString: Untagged
@@ -1235,6 +1236,7 @@ GameObject:
   - component: {fileID: 1370665484}
   - component: {fileID: 1370665486}
   - component: {fileID: 1370665485}
+  - component: {fileID: 554237748818959316}
   m_Layer: 5
   m_Name: TXT_Title
   m_TagString: Untagged
@@ -1372,6 +1374,7 @@ GameObject:
   - component: {fileID: 1424848113}
   - component: {fileID: 1424848115}
   - component: {fileID: 1424848114}
+  - component: {fileID: 8766201717151079893}
   m_Layer: 5
   m_Name: OPTIONS
   m_TagString: Untagged
@@ -2129,6 +2132,7 @@ GameObject:
   - component: {fileID: 2057706152}
   - component: {fileID: 2057706154}
   - component: {fileID: 2057706153}
+  - component: {fileID: 561450067793956170}
   m_Layer: 5
   m_Name: EXIT GAME
   m_TagString: Untagged
@@ -3022,3 +3026,59 @@ SceneRoots:
   - {fileID: 5285329639064781160}
   - {fileID: 6722313547950308757}
   - {fileID: 8394905510348524562}
+--- !u!114 &7624507214688996773
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 966725694}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4949d01c31a14d208a36ccd7e82e44d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.Localization.LocalizedText
+  key: menu.play
+  chipKey: 
+--- !u!114 &554237748818959316
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1370665483}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4949d01c31a14d208a36ccd7e82e44d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.Localization.LocalizedText
+  key: menu.title
+  chipKey: 
+--- !u!114 &8766201717151079893
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1424848112}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4949d01c31a14d208a36ccd7e82e44d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.Localization.LocalizedText
+  key: menu.options
+  chipKey: 
+--- !u!114 &561450067793956170
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2057706151}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4949d01c31a14d208a36ccd7e82e44d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.Localization.LocalizedText
+  key: menu.exit
+  chipKey: 

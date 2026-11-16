@@ -1,0 +1,139 @@
+# Textos en español. Formato: clave = texto   (\n = salto de línea, {0} = valor que pone el código)
+# Cada clave de aquí debe existir también en en.txt.
+
+# --- Menú principal ---
+menu.title = ASALTO MAPACHE
+menu.play = JUGAR
+menu.options = OPCIONES
+menu.exit = SALIR
+
+# --- Opciones ---
+options.title = OPCIONES
+options.music = Música
+options.sfx = Efectos
+options.language = Idioma
+options.controls = Controles
+options.return = Volver
+options.display.fullscreen = P. COMPLETA
+options.display.windowed = MODO VENTANA
+options.display.short = Pantalla
+
+# --- Controles ---
+controls.title = CONTROLES\n\n
+controls.keyboard = Teclado
+controls.controller = Mando
+controls.move = Moverse
+controls.run = Correr
+controls.dash = Embestir
+controls.attack = Atacar
+controls.stealsell = Robar y vender
+controls.useitem = Usar objeto
+controls.switchitem = Cambiar objeto
+controls.return = Volver
+
+# --- Pausa ---
+pause.title = PAUSA
+pause.resume = Continuar
+pause.options = Opciones\n\n
+pause.mainmenu = Menú principal
+pause.back = Volver
+
+# --- Conexión / sala ---
+lobby.selectmode = ELIGE MODO DE JUEGO
+lobby.local = PARTIDA LOCAL
+lobby.online = PARTIDA ONLINE
+lobby.mainmenu = MENÚ PRINCIPAL
+lobby.return = VOLVER
+lobby.hostlocal = CREAR LOCAL
+lobby.joinlocal = UNIRSE LOCAL
+lobby.hostip = IP DEL HOST:
+lobby.enterip = ESCRIBE LA IP DEL HOST...
+lobby.entertext = Escribe aquí...
+lobby.createlobby = Crear sala
+lobby.joinlobby = Unirse a sala
+lobby.searchlobby = BUSCAR SALA
+lobby.search = BUSCAR
+lobby.refresh = ACTUALIZAR
+lobby.searching = BUSCANDO...
+lobby.nogames = NO HAY PARTIDAS
+lobby.closed = CERRADA
+lobby.full = LLENA
+lobby.selectcharacter = ELIGE TU PERSONAJE
+lobby.waitingplayer = ESPERANDO JUGADOR...
+lobby.connecting = CONECTANDO...
+lobby.waitingrival = ESPERANDO RIVAL
+lobby.waitinghost = ESPERANDO AL HOST
+lobby.yourip = TU IP: {0}
+lobby.players = JUGADORES: {0}/{1}
+lobby.player = JUGADOR: {0} / {1}
+lobby.creating = CREANDO PARTIDA...
+lobby.code = CÓDIGO: {0}
+lobby.codeempty = CÓDIGO: -----
+lobby.rivalwaiting = RIVAL...
+lobby.rival = RIVAL: {0}
+lobby.rivalready = RIVAL: {0} · ¡LISTO!
+lobby.playersready = JUGADORES LISTOS: {0}/{1}
+lobby.you.ready = TÚ · ¡LISTO!
+lobby.you.choosing = TÚ · ELIGIENDO
+lobby.rival.ready = RIVAL · ¡LISTO!
+lobby.rival.choosing = RIVAL · ELIGIENDO
+lobby.ready = LISTO
+lobby.readydone = ¡LISTO!
+lobby.locked = BLOQUEADO
+lobby.taken = OCUPADO
+lobby.nocharacter = SIN PERSONAJE
+
+# --- Estado de red ---
+net.disconnectedhost = Desconectado del host.
+net.disconnected.reason = Desconectado: {0}
+net.invalidip = IP no válida.
+net.connectingto = Conectando a {0}:{1}...
+net.clientfailed = No se pudo iniciar el cliente.
+net.created = Partida "{0}" creada. Código: {1}
+net.entercode = Escribe el código de la partida.
+net.joined = Unido a "{0}" ({1})
+net.closed = La partida se ha cerrado.
+net.nopublic = No hay partidas públicas.
+net.found = {0} partida(s) encontrada(s).
+net.disconnected = Desconectado.
+net.error = Error: {0}
+net.creatingonline = Creando partida online...
+net.joining = Uniéndose...
+net.searching = Buscando partidas...
+net.joiningnamed = Uniéndose a "{0}"...
+net.leaving = Saliendo...
+
+# --- Partida ---
+match.start = ¡YA!
+match.win = ¡HAS GANADO!
+match.lose = ¡HAS PERDIDO!
+match.draw = ¡EMPATE!
+match.winner = GANADOR
+match.you = (TÚ)
+match.mainmenu = Menú principal
+
+# --- HUD ---
+hud.points = PUNTOS
+hud.time = TIEMPO
+hud.bag = BOLSA
+hud.bagplus = BOLSA +{0}
+hud.you = TÚ
+hud.bagfull = ¡LLENA!
+hud.mash = ¡MACHACA!
+hud.mashdone = ¡ARRIBA!
+hud.hold = ¡MANTÉN!
+hud.selling = VENDIENDO
+hud.sold = ¡VENDIDO!
+hud.hit = ¡PAM!
+hud.heavyhit = ¡ZASCA!
+hud.slip = ¡PLAF!
+
+# --- Eventos ---
+event.banana.title = ¡PASILLO RESBALADIZO!
+event.banana.subtitle = ¡Hay plátanos por todo el suelo! Cuidado al correr.
+event.double.title = ¡OFERTA x2!
+event.double.subtitle = Una estantería da el doble de puntos. ¡Busca el cartel!
+event.double.left = QUEDAN {0}
+event.double.soldout = ¡AGOTADA!
+event.speed.title = ¡RITMO ACELERADO!
+event.speed.subtitle = El reloj corre x{0} hasta el final de la partida.

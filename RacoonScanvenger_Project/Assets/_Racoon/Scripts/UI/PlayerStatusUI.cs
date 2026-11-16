@@ -109,7 +109,7 @@ namespace Racoon.UI
             {
                 bagLabelRect = (RectTransform)bagLabel.transform;
                 bagLabelScale = bagLabelRect.localScale;
-                bagLabel.SetText(bagFullText);
+                bagLabel.SetText(Localization.Loc.T("hud.bagfull"));
             }
             // En el prefab está encendido para poder editarlo; en partida, apagado hasta que haga falta.
             SetVisible(0f);

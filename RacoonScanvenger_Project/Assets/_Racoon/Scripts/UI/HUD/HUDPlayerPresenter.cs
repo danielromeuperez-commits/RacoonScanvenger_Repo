@@ -329,7 +329,7 @@ namespace Racoon.UI.HUD
             {
                 if (banking) StopBanking();
                 // Con chapa «BOLSA» (P5 pastel) el número va solo y grande
-                pv.bag.SetText(string.IsNullOrEmpty(pv.bag.chapa) ? "BOLSA +" + value : "+" + value);
+                pv.bag.SetText(string.IsNullOrEmpty(pv.bag.chapa) ? Localization.Loc.F("hud.bagplus", value) : "+" + value);
                 if (!bagVisible)
                 {
                     bagVisible = true;
@@ -416,9 +416,9 @@ namespace Racoon.UI.HUD
             reactionStart = Now;
             string word = kind switch
             {
-                HUDReaction.Hit => "¡PAM!",
-                HUDReaction.HeavyHit => "¡ZASCA!",
-                HUDReaction.Slip => "¡PLAF!",
+                HUDReaction.Hit => Localization.Loc.T("hud.hit"),
+                HUDReaction.HeavyHit => Localization.Loc.T("hud.heavyhit"),
+                HUDReaction.Slip => Localization.Loc.T("hud.slip"),
                 _ => null,
             };
             if (word != null) SpawnWord(word);

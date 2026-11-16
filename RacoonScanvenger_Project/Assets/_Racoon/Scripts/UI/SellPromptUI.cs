@@ -140,7 +140,7 @@ namespace Racoon.UI
                 if (pending == 0 && lastPending > 0 && distance <= reach + 0.5f)
                 {
                     animator.SetTrigger(SoldId);
-                    SetLabel(soldText);
+                    SetLabel(Localization.Loc.T("hud.sold"));
                     held = 1f;
                 }
                 lastPending = pending;
@@ -161,7 +161,7 @@ namespace Racoon.UI
                 : Mathf.MoveTowards(held, 0f, Time.deltaTime * 4f);
             if (ringFill != null) ringFill.fillAmount = held;
 
-            if (visible) SetLabel(holding ? sellingText : holdText);
+            if (visible) SetLabel(Localization.Loc.T(holding ? "hud.selling" : "hud.hold"));
             shown = visible;
             animator.SetBool(VisibleId, visible);
             animator.SetBool(HoldingId, holding);

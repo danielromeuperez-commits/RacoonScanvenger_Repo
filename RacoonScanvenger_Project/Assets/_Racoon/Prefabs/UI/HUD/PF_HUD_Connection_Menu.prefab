@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 5376321604729350176}
   - component: {fileID: 2185694964414101334}
   - component: {fileID: 5418243137927356803}
+  - component: {fileID: 4238332292264307296}
   m_Layer: 5
   m_Name: Placeholder
   m_TagString: Untagged
@@ -169,6 +170,7 @@ GameObject:
   - component: {fileID: 3456211724010352446}
   - component: {fileID: 6903181614533152354}
   - component: {fileID: 747024160800914542}
+  - component: {fileID: 218061526724329388}
   m_Layer: 5
   m_Name: TXT_JoinOnline
   m_TagString: Untagged
@@ -750,6 +752,7 @@ GameObject:
   - component: {fileID: 8710045955240040321}
   - component: {fileID: 6598766104722928599}
   - component: {fileID: 115410726730129372}
+  - component: {fileID: 2109011125290012680}
   m_Layer: 5
   m_Name: TXT_Online
   m_TagString: Untagged
@@ -1609,6 +1612,7 @@ GameObject:
   - component: {fileID: 7192331487782800841}
   - component: {fileID: 900569392336114254}
   - component: {fileID: 2603734612525112157}
+  - component: {fileID: 2155435328821807316}
   m_Layer: 5
   m_Name: Placeholder
   m_TagString: Untagged
@@ -2320,6 +2324,7 @@ GameObject:
   - component: {fileID: 2567074588670625739}
   - component: {fileID: 682912372134858416}
   - component: {fileID: 754276806790311704}
+  - component: {fileID: 5784159864071951060}
   m_Layer: 5
   m_Name: TXT_HostIP
   m_TagString: Untagged
@@ -2922,6 +2927,7 @@ GameObject:
   - component: {fileID: 3093488739996072881}
   - component: {fileID: 8179099853248936475}
   - component: {fileID: 1103476302972766449}
+  - component: {fileID: 1629571753197133659}
   m_Layer: 5
   m_Name: TXT_WaitingPlayer
   m_TagString: Untagged
@@ -3059,6 +3065,7 @@ GameObject:
   - component: {fileID: 6441573473846820533}
   - component: {fileID: 5492847448815589086}
   - component: {fileID: 8179439273417748093}
+  - component: {fileID: 2343520512119587519}
   m_Layer: 5
   m_Name: TXT_Title
   m_TagString: Untagged
@@ -3196,6 +3203,7 @@ GameObject:
   - component: {fileID: 5162939908391263812}
   - component: {fileID: 2477759091205561869}
   - component: {fileID: 8218199849932763715}
+  - component: {fileID: 4438962977683904123}
   m_Layer: 5
   m_Name: TXT_OnlineTitle
   m_TagString: Untagged
@@ -3333,6 +3341,7 @@ GameObject:
   - component: {fileID: 5751900113226524351}
   - component: {fileID: 6898385049758828783}
   - component: {fileID: 1721276827445557498}
+  - component: {fileID: 2738047004799683712}
   m_Layer: 5
   m_Name: TXT_JoinLocal
   m_TagString: Untagged
@@ -3470,6 +3479,7 @@ GameObject:
   - component: {fileID: 1763884646736953884}
   - component: {fileID: 2337933528279904139}
   - component: {fileID: 8733313102791708070}
+  - component: {fileID: 449103419459031216}
   m_Layer: 5
   m_Name: Text (TMP)
   m_TagString: Untagged
@@ -3922,6 +3932,7 @@ GameObject:
   - component: {fileID: 697367423699471204}
   - component: {fileID: 2850168978849308069}
   - component: {fileID: 4301271624792310201}
+  - component: {fileID: 5020129244327232596}
   m_Layer: 5
   m_Name: TXT_CreateOnline
   m_TagString: Untagged
@@ -5098,6 +5109,7 @@ GameObject:
   - component: {fileID: 6285728653190216162}
   - component: {fileID: 7472273183258715584}
   - component: {fileID: 6683349641693536197}
+  - component: {fileID: 2921407597855033979}
   m_Layer: 5
   m_Name: TXT_Back
   m_TagString: Untagged
@@ -5372,6 +5384,7 @@ GameObject:
   - component: {fileID: 5496372512752141897}
   - component: {fileID: 5076246168069913168}
   - component: {fileID: 6683558018011194116}
+  - component: {fileID: 8394098144295359495}
   m_Layer: 5
   m_Name: TXT_Title
   m_TagString: Untagged
@@ -5646,6 +5659,7 @@ GameObject:
   - component: {fileID: 6586965880974983861}
   - component: {fileID: 2235339917264984681}
   - component: {fileID: 3422211182823434688}
+  - component: {fileID: 4094209389581629509}
   m_Layer: 5
   m_Name: TXT_Back
   m_TagString: Untagged
@@ -6222,6 +6236,7 @@ GameObject:
   - component: {fileID: 17376094315230469}
   - component: {fileID: 78590943384384054}
   - component: {fileID: 285638405460083195}
+  - component: {fileID: 6256273135465188228}
   m_Layer: 5
   m_Name: TXT_OnlineWaiting
   m_TagString: Untagged
@@ -6359,6 +6374,7 @@ GameObject:
   - component: {fileID: 8974061520991647394}
   - component: {fileID: 1290527102267201400}
   - component: {fileID: 8190122347498160144}
+  - component: {fileID: 1602002586978115541}
   m_Layer: 5
   m_Name: TXT_Local
   m_TagString: Untagged
@@ -6496,6 +6512,7 @@ GameObject:
   - component: {fileID: 8662540399495329207}
   - component: {fileID: 5615762152971845478}
   - component: {fileID: 7691989177072136586}
+  - component: {fileID: 2837743936531144845}
   m_Layer: 5
   m_Name: TXT_Back
   m_TagString: Untagged
@@ -6672,6 +6689,7 @@ GameObject:
   - component: {fileID: 3350443632168880026}
   - component: {fileID: 2256934380229958531}
   - component: {fileID: 4108635353753065272}
+  - component: {fileID: 8968990346900096856}
   m_Layer: 5
   m_Name: TXT_LocalTitle
   m_TagString: Untagged
@@ -7063,6 +7081,7 @@ GameObject:
   - component: {fileID: 4895402485633341292}
   - component: {fileID: 3666941275624133421}
   - component: {fileID: 5596857804438384747}
+  - component: {fileID: 588265933021958129}
   m_Layer: 5
   m_Name: TXT_HostLocal
   m_TagString: Untagged
@@ -7333,6 +7352,7 @@ GameObject:
   - component: {fileID: 2399215804212177480}
   - component: {fileID: 5496598094001520757}
   - component: {fileID: 2159631555107664660}
+  - component: {fileID: 4416507131203262347}
   m_Layer: 5
   m_Name: TXT_JoinOnline
   m_TagString: Untagged
@@ -8236,3 +8256,283 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+--- !u!114 &4238332292264307296
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 61848585439865105}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4949d01c31a14d208a36ccd7e82e44d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.Localization.LocalizedText
+  key: lobby.entertext
+  chipKey: 
+--- !u!114 &218061526724329388
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 86158216817005378}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4949d01c31a14d208a36ccd7e82e44d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.Localization.LocalizedText
+  key: lobby.joinlobby
+  chipKey: 
+--- !u!114 &2109011125290012680
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 953271154617104450}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4949d01c31a14d208a36ccd7e82e44d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.Localization.LocalizedText
+  key: lobby.online
+  chipKey: 
+--- !u!114 &2155435328821807316
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2016005118757235633}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4949d01c31a14d208a36ccd7e82e44d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.Localization.LocalizedText
+  key: lobby.enterip
+  chipKey: 
+--- !u!114 &5784159864071951060
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2674206207503617493}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4949d01c31a14d208a36ccd7e82e44d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.Localization.LocalizedText
+  key: lobby.hostip
+  chipKey: 
+--- !u!114 &1629571753197133659
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2838914762640328422}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4949d01c31a14d208a36ccd7e82e44d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.Localization.LocalizedText
+  key: lobby.waitingplayer
+  chipKey: 
+--- !u!114 &2343520512119587519
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2872313900734384852}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4949d01c31a14d208a36ccd7e82e44d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.Localization.LocalizedText
+  key: lobby.selectmode
+  chipKey: 
+--- !u!114 &4438962977683904123
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2963904619285255440}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4949d01c31a14d208a36ccd7e82e44d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.Localization.LocalizedText
+  key: lobby.searchlobby
+  chipKey: 
+--- !u!114 &2738047004799683712
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3070804604595851479}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4949d01c31a14d208a36ccd7e82e44d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.Localization.LocalizedText
+  key: lobby.joinlocal
+  chipKey: 
+--- !u!114 &449103419459031216
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3126996116730763178}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4949d01c31a14d208a36ccd7e82e44d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.Localization.LocalizedText
+  key: lobby.ready
+  chipKey: 
+--- !u!114 &5020129244327232596
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3851045669064468191}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4949d01c31a14d208a36ccd7e82e44d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.Localization.LocalizedText
+  key: lobby.createlobby
+  chipKey: 
+--- !u!114 &2921407597855033979
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6269822886156125388}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4949d01c31a14d208a36ccd7e82e44d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.Localization.LocalizedText
+  key: lobby.return
+  chipKey: 
+--- !u!114 &8394098144295359495
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6295710838832915090}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4949d01c31a14d208a36ccd7e82e44d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.Localization.LocalizedText
+  key: lobby.selectcharacter
+  chipKey: 
+--- !u!114 &4094209389581629509
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6413598866593225404}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4949d01c31a14d208a36ccd7e82e44d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.Localization.LocalizedText
+  key: lobby.return
+  chipKey: 
+--- !u!114 &6256273135465188228
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6574259006914290062}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4949d01c31a14d208a36ccd7e82e44d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.Localization.LocalizedText
+  key: lobby.waitingplayer
+  chipKey: 
+--- !u!114 &1602002586978115541
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6708790262297320080}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4949d01c31a14d208a36ccd7e82e44d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.Localization.LocalizedText
+  key: lobby.local
+  chipKey: 
+--- !u!114 &2837743936531144845
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6795629930314650564}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4949d01c31a14d208a36ccd7e82e44d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.Localization.LocalizedText
+  key: lobby.mainmenu
+  chipKey: 
+--- !u!114 &8968990346900096856
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7296853475959287626}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4949d01c31a14d208a36ccd7e82e44d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.Localization.LocalizedText
+  key: lobby.local
+  chipKey: 
+--- !u!114 &588265933021958129
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7723301484995293665}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4949d01c31a14d208a36ccd7e82e44d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.Localization.LocalizedText
+  key: lobby.hostlocal
+  chipKey: 
+--- !u!114 &4416507131203262347
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8037678281192602184}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4949d01c31a14d208a36ccd7e82e44d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.Localization.LocalizedText
+  key: lobby.search
+  chipKey: 

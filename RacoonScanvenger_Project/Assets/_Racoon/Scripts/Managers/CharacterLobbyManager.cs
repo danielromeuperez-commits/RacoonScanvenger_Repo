@@ -78,7 +78,7 @@ namespace Racoon.Network
         public PlayerCharacterDefinition SelectedCharacter => Roster != null ? Roster.Get(localSelectedCharacter) : null;
 
         public string SelectedCharacterName =>
-            SelectedCharacter != null ? SelectedCharacter.displayName : "NO CHARACTER";
+            SelectedCharacter != null ? SelectedCharacter.displayName : Racoon.UI.Localization.Loc.T("lobby.nocharacter");
 
         public Sprite SelectedCharacterPortrait =>
             SelectedCharacter != null ? SelectedCharacter.portrait : null;

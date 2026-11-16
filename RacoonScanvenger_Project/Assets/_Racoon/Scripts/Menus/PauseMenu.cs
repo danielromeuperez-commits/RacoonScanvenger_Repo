@@ -177,6 +177,9 @@ public class PauseMenu : MonoBehaviour
         RefreshDisplayModeText();
     }
 
+    void OnEnable() => Racoon.UI.Localization.Loc.Changed += RefreshDisplayModeText;
+    void OnDisable() => Racoon.UI.Localization.Loc.Changed -= RefreshDisplayModeText;
+
     void RefreshDisplayModeText()
     {
         if (displayModeButtonText == null)
@@ -185,12 +188,12 @@ public class PauseMenu : MonoBehaviour
         if (Screen.fullScreen)
         {
             displayModeButtonText.text =
-                "WINDOWED SCREEN";
+                Racoon.UI.Localization.Loc.T("options.display.windowed");
         }
         else
         {
             displayModeButtonText.text =
-                "FULL SCREEN";
+                Racoon.UI.Localization.Loc.T("options.display.fullscreen");
         }
     }
 

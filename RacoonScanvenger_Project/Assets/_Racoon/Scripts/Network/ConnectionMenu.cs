@@ -1,6 +1,7 @@
 using Racoon.Network;
 using Racoon.Player;
 using Racoon.UI;
+using Racoon.UI.Localization;
 using System.Collections;
 using TMPro;
 using Unity.Netcode;
@@ -253,7 +254,7 @@ public class ConnectionMenu : MonoBehaviour
         if (onlineWaitingPlayerText != null)
         {
             onlineWaitingLabel = onlineWaitingPlayerText.GetComponent<TMP_Text>();
-            if (onlineWaitingLabel != null) onlineWaitingDefaultText = onlineWaitingLabel.text;
+            if (onlineWaitingLabel != null) onlineWaitingDefaultText = Loc.T("lobby.waitingplayer");
         }
     }
 
@@ -661,7 +662,7 @@ public class ConnectionMenu : MonoBehaviour
             SetActive(searchSessionsButton.gameObject, browsing);
             searchSessionsButton.interactable = !busy;
             TMP_Text label = searchSessionsButton.GetComponentInChildren<TMP_Text>();
-            if (label != null) label.text = sessions == null ? "SEARCH" : "REFRESH";
+            if (label != null) label.text = Loc.T(sessions == null ? "lobby.search" : "lobby.refresh");
         }
 
         if (sessionRowButtons != null)
@@ -681,7 +682,7 @@ public class ConnectionMenu : MonoBehaviour
                 if (label != null)
                 {
                     int players = info.MaxPlayers - info.AvailableSlots;
-                    string state = canJoin ? "" : info.AvailableSlots > 0 ? " · CLOSED" : " · FULL";
+                    string state = canJoin ? "" : " · " + Loc.T(info.AvailableSlots > 0 ? "lobby.closed" : "lobby.full");
                     label.text = $"{info.Name} · {players}/{info.MaxPlayers}{state}";
                 }
             }
@@ -691,13 +692,13 @@ public class ConnectionMenu : MonoBehaviour
         if (onlineWaitingLabel == null) return;
         if (browsing && searchRequested)
         {
-            string message = busy && sessions == null ? "SEARCHING..."
-                : sessions != null && sessions.Count == 0 ? "NO GAMES FOUND"
-                : busy ? "SEARCHING..." : "";
+            string message = busy && sessions == null ? Loc.T("lobby.searching")
+                : sessions != null && sessions.Count == 0 ? Loc.T("lobby.nogames")
+                : busy ? Loc.T("lobby.searching") : "";
             onlineWaitingLabel.text = message;
             SetActive(onlineWaitingPlayerText, !string.IsNullOrEmpty(message));
         }
-        else if (onlineWaitingLabel.text != onlineWaitingDefaultText)
+        else if (onlineWaitingLabel.text != (onlineWaitingDefaultText = Loc.T("lobby.waitingplayer")))
         {
             onlineWaitingLabel.text = onlineWaitingDefaultText;
         }
@@ -746,7 +747,7 @@ public class ConnectionMenu : MonoBehaviour
 
         if (waitingTitleText != null)
         {
-            waitingTitleText.text = !connected ? "CONECTANDO..." : isHost ? "ESPERANDO RIVAL" : "ESPERANDO AL HOST";
+            waitingTitleText.text = Loc.T(!connected ? "lobby.connecting" : isHost ? "lobby.waitingrival" : "lobby.waitinghost");
         }
 
         if (sessionCodeText != null) sessionCodeText.text = online ? code : "";
@@ -756,13 +757,13 @@ public class ConnectionMenu : MonoBehaviour
 
         if (hostIPAddressText != null)
         {
-            hostIPAddressText.text = isHost && !online ? $"TU IP: {networkTestMenu?.LocalIPAddress}" : "";
+            hostIPAddressText.text = isHost && !online ? Loc.F("lobby.yourip", networkTestMenu?.LocalIPAddress) : "";
             hostIPAddressText.gameObject.SetActive(isHost && !online);
         }
 
         if (playerCountText != null && !online)
         {
-            playerCountText.text = $"JUGADORES: {(connected ? Mathf.Max(players, 1) : 0)}/{maxPlayers}";
+            playerCountText.text = Loc.F("lobby.players", connected ? Mathf.Max(players, 1) : 0, maxPlayers);
         }
 
         if (online)
@@ -772,16 +773,16 @@ public class ConnectionMenu : MonoBehaviour
             if (onlineSessionCodeText != null)
             {
                 if (networkTestMenu != null && networkTestMenu.IsBusy && string.IsNullOrEmpty(code))
-                    onlineSessionCodeText.text = "CREATING GAME...";
+                    onlineSessionCodeText.text = Loc.T("lobby.creating");
                 else if (!string.IsNullOrEmpty(code))
-                    onlineSessionCodeText.text = $"CODE: {code}";
+                    onlineSessionCodeText.text = Loc.F("lobby.code", code);
                 else
-                    onlineSessionCodeText.text = "CONNECTING...";
+                    onlineSessionCodeText.text = Loc.T("lobby.connecting");
             }
 
             if (onlinePlayerCountText != null)
             {
-                onlinePlayerCountText.text = $"PLAYERS: {(connected ? Mathf.Max(players, 1) : 0)}/{maxPlayers}";
+                onlinePlayerCountText.text = Loc.F("lobby.players", connected ? Mathf.Max(players, 1) : 0, maxPlayers);
             }
         }
     }
@@ -847,13 +848,13 @@ public class ConnectionMenu : MonoBehaviour
         }
         if (rivalNameText != null)
         {
-            rivalNameText.text = rival == null ? "RIVAL..."
-                : lobby.IsRivalReady ? $"RIVAL: {rival.displayName} · READY!" : $"RIVAL: {rival.displayName}";
+            rivalNameText.text = rival == null ? Loc.T("lobby.rivalwaiting")
+                : Loc.F(lobby.IsRivalReady ? "lobby.rivalready" : "lobby.rival", rival.displayName);
         }
 
-        if (readyStatusText != null) readyStatusText.text = $"PLAYERS READY: {lobby.ReadyCount}/{lobby.MaxPlayers}";
-        if (localReadyText != null) localReadyText.text = lobby.IsLocalReady ? "TÚ · ¡LISTO!" : "TÚ · ELIGIENDO";
-        if (rivalReadyText != null) rivalReadyText.text = lobby.IsRivalReady ? "RIVAL · ¡LISTO!" : "RIVAL · ELIGIENDO";
+        if (readyStatusText != null) readyStatusText.text = Loc.F("lobby.playersready", lobby.ReadyCount, lobby.MaxPlayers);
+        if (localReadyText != null) localReadyText.text = Loc.T(lobby.IsLocalReady ? "lobby.you.ready" : "lobby.you.choosing");
+        if (rivalReadyText != null) rivalReadyText.text = Loc.T(lobby.IsRivalReady ? "lobby.rival.ready" : "lobby.rival.choosing");
 
         bool canChange = !lobby.IsLocalReady;
 
@@ -864,7 +865,7 @@ public class ConnectionMenu : MonoBehaviour
         {
             readyButton.interactable = canChange && !taken;
             TMP_Text buttonText = readyButton.GetComponentInChildren<TMP_Text>();
-            if (buttonText != null) buttonText.text = lobby.IsLocalReady ? "READY!" : lobby.IsSelectedCharacterLocked ? "LOCKED" : taken ? "TAKEN" : "READY";
+            if (buttonText != null) buttonText.text = Loc.T(lobby.IsLocalReady ? "lobby.readydone" : lobby.IsSelectedCharacterLocked ? "lobby.locked" : taken ? "lobby.taken" : "lobby.ready");
         }
     }
 

@@ -118,7 +118,7 @@ namespace Racoon.Events
             {
                 ending = true;
                 endedAt = Time.time;
-                GameEventAnnouncer.ClearCard(e, "¡AGOTADA!");
+                GameEventAnnouncer.ClearCard(e, Racoon.UI.Localization.Loc.T("event.double.soldout"));
                 if (arrowAnimator != null) arrowAnimator.SetBool(ArrowVisibleId, false);
             }
         }
@@ -198,7 +198,7 @@ namespace Racoon.Events
             float time = Time.time;
 
             if (!ending && evt != null && evt.IsActive)
-                GameEventAnnouncer.SetCard(evt, cardTitle, $"QUEDAN {evt.Remaining}", accent);
+                GameEventAnnouncer.SetCard(evt, Racoon.UI.Localization.Loc.T("event.double.title"), Racoon.UI.Localization.Loc.F("event.double.left", evt.Remaining), accent);
 
             UpdateArrow();
             UpdateGlow(time);

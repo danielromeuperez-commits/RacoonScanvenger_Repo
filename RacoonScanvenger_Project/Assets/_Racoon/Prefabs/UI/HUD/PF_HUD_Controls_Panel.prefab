@@ -327,6 +327,7 @@ GameObject:
   - component: {fileID: 821829878107776194}
   - component: {fileID: 2105474072032792286}
   - component: {fileID: 6183736671859046769}
+  - component: {fileID: 2862400263941551794}
   m_Layer: 5
   m_Name: RUN KEYBOARD
   m_TagString: Untagged
@@ -464,6 +465,7 @@ GameObject:
   - component: {fileID: 5396658744451691959}
   - component: {fileID: 6693266122846355290}
   - component: {fileID: 7720735182502424224}
+  - component: {fileID: 6342577981774318887}
   m_Layer: 5
   m_Name: USEITEM CONTROLLER
   m_TagString: Untagged
@@ -676,6 +678,7 @@ GameObject:
   - component: {fileID: 3733234443923637938}
   - component: {fileID: 6335038016032090034}
   - component: {fileID: 1392624705233173444}
+  - component: {fileID: 4190387517300503425}
   m_Layer: 5
   m_Name: SwitchItem
   m_TagString: Untagged
@@ -888,6 +891,7 @@ GameObject:
   - component: {fileID: 643564445073291913}
   - component: {fileID: 6163508482225749347}
   - component: {fileID: 7965210002717613409}
+  - component: {fileID: 4298021861084865308}
   m_Layer: 5
   m_Name: ATTACK KEYBOARD
   m_TagString: Untagged
@@ -1065,6 +1069,7 @@ GameObject:
   - component: {fileID: 7483514051467161510}
   - component: {fileID: 3609779330604652144}
   - component: {fileID: 5734366651509748573}
+  - component: {fileID: 5962816750995520794}
   m_Layer: 5
   m_Name: BackToOptions
   m_TagString: Untagged
@@ -1317,6 +1322,7 @@ GameObject:
   - component: {fileID: 156159486429675291}
   - component: {fileID: 2858153071378608605}
   - component: {fileID: 1268256154291191567}
+  - component: {fileID: 3890387667624409576}
   m_Layer: 5
   m_Name: MOVE KEYBOARD
   m_TagString: Untagged
@@ -1454,6 +1460,7 @@ GameObject:
   - component: {fileID: 9130916067769213658}
   - component: {fileID: 4878257649746832171}
   - component: {fileID: 4410891909410343708}
+  - component: {fileID: 7809148349950705677}
   m_Layer: 5
   m_Name: TXT_Controls
   m_TagString: Untagged
@@ -2183,6 +2190,7 @@ GameObject:
   - component: {fileID: 2758453614094442562}
   - component: {fileID: 4844370967356492249}
   - component: {fileID: 8418946149736750018}
+  - component: {fileID: 6373866689275630438}
   m_Layer: 5
   m_Name: DASH KEYBOARD
   m_TagString: Untagged
@@ -2546,6 +2554,7 @@ GameObject:
   - component: {fileID: 7403055962955855557}
   - component: {fileID: 4142534493931143009}
   - component: {fileID: 1562116094926530593}
+  - component: {fileID: 8198480103279022270}
   m_Layer: 5
   m_Name: ATTACK KEYBOARD
   m_TagString: Untagged
@@ -2786,6 +2795,7 @@ GameObject:
   - component: {fileID: 7607395417758549941}
   - component: {fileID: 2053194632168722774}
   - component: {fileID: 4604095936860595194}
+  - component: {fileID: 6355646447647944468}
   m_Layer: 5
   m_Name: MOVE CONTROLLER
   m_TagString: Untagged
@@ -2923,6 +2933,7 @@ GameObject:
   - component: {fileID: 811107350703421269}
   - component: {fileID: 7226956823201067766}
   - component: {fileID: 5455395777850485682}
+  - component: {fileID: 2391456145379921067}
   m_Layer: 5
   m_Name: BackToOptions
   m_TagString: Untagged
@@ -3847,6 +3858,7 @@ GameObject:
   - component: {fileID: 1750260528038700414}
   - component: {fileID: 959369380617245328}
   - component: {fileID: 3311753194679385262}
+  - component: {fileID: 3493682045086322897}
   m_Layer: 5
   m_Name: Controller
   m_TagString: Untagged
@@ -4171,6 +4183,7 @@ GameObject:
   - component: {fileID: 6545636671158770451}
   - component: {fileID: 3237187554624186385}
   - component: {fileID: 1451411309186468785}
+  - component: {fileID: 6466043205163483824}
   m_Layer: 5
   m_Name: Controller
   m_TagString: Untagged
@@ -4308,6 +4321,7 @@ GameObject:
   - component: {fileID: 4999795803928366060}
   - component: {fileID: 8952966625828187710}
   - component: {fileID: 5288912853882892316}
+  - component: {fileID: 6957354208669119193}
   m_Layer: 5
   m_Name: RUN  CONTROLLER
   m_TagString: Untagged
@@ -4595,6 +4609,7 @@ GameObject:
   - component: {fileID: 3806032723120890292}
   - component: {fileID: 3170421842035872080}
   - component: {fileID: 1958026662979564464}
+  - component: {fileID: 7720936255721487025}
   m_Layer: 5
   m_Name: SwitchItem
   m_TagString: Untagged
@@ -4835,6 +4850,7 @@ GameObject:
   - component: {fileID: 2530345240586199560}
   - component: {fileID: 3745340728460279991}
   - component: {fileID: 5567326936936204312}
+  - component: {fileID: 4373867883228608288}
   m_Layer: 5
   m_Name: DASH CONTROLLER
   m_TagString: Untagged
@@ -5273,6 +5289,7 @@ GameObject:
   - component: {fileID: 9189270770148877806}
   - component: {fileID: 1445938780598039217}
   - component: {fileID: 3568780326525840583}
+  - component: {fileID: 1726257982566300273}
   m_Layer: 5
   m_Name: USEITEM KEYBOARD
   m_TagString: Untagged
@@ -5588,6 +5605,7 @@ GameObject:
   - component: {fileID: 1223697540360675761}
   - component: {fileID: 6253104807480828592}
   - component: {fileID: 7065538557774875195}
+  - component: {fileID: 5048923544175426139}
   m_Layer: 5
   m_Name: STEAL & SELL KEYBOARD
   m_TagString: Untagged
@@ -6006,6 +6024,7 @@ GameObject:
   - component: {fileID: 5453599094225659914}
   - component: {fileID: 8658204662627979134}
   - component: {fileID: 5698671306070190220}
+  - component: {fileID: 8672593890203635714}
   m_Layer: 5
   m_Name: STEAL & SELL CONTROLLER
   m_TagString: Untagged
@@ -6207,3 +6226,269 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!114 &2862400263941551794
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 471936452297599243}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4949d01c31a14d208a36ccd7e82e44d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.Localization.LocalizedText
+  key: controls.run
+  chipKey: 
+--- !u!114 &6342577981774318887
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 484946808421365618}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4949d01c31a14d208a36ccd7e82e44d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.Localization.LocalizedText
+  key: controls.useitem
+  chipKey: 
+--- !u!114 &4190387517300503425
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 888573426871884582}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4949d01c31a14d208a36ccd7e82e44d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.Localization.LocalizedText
+  key: controls.switchitem
+  chipKey: 
+--- !u!114 &4298021861084865308
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1059514781192877153}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4949d01c31a14d208a36ccd7e82e44d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.Localization.LocalizedText
+  key: controls.attack
+  chipKey: 
+--- !u!114 &5962816750995520794
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1092975677008092068}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4949d01c31a14d208a36ccd7e82e44d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.Localization.LocalizedText
+  key: controls.return
+  chipKey: 
+--- !u!114 &3890387667624409576
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1585733597341970643}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4949d01c31a14d208a36ccd7e82e44d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.Localization.LocalizedText
+  key: controls.move
+  chipKey: 
+--- !u!114 &7809148349950705677
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1692278589159072813}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4949d01c31a14d208a36ccd7e82e44d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.Localization.LocalizedText
+  key: controls.title
+  chipKey: 
+--- !u!114 &6373866689275630438
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2846906503866301191}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4949d01c31a14d208a36ccd7e82e44d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.Localization.LocalizedText
+  key: controls.dash
+  chipKey: 
+--- !u!114 &8198480103279022270
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4169086654057161974}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4949d01c31a14d208a36ccd7e82e44d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.Localization.LocalizedText
+  key: controls.attack
+  chipKey: 
+--- !u!114 &6355646447647944468
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4589400191412078549}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4949d01c31a14d208a36ccd7e82e44d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.Localization.LocalizedText
+  key: controls.move
+  chipKey: 
+--- !u!114 &2391456145379921067
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4712317880672024177}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4949d01c31a14d208a36ccd7e82e44d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.Localization.LocalizedText
+  key: controls.return
+  chipKey: 
+--- !u!114 &3493682045086322897
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6247231987359724624}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4949d01c31a14d208a36ccd7e82e44d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.Localization.LocalizedText
+  key: controls.keyboard
+  chipKey: 
+--- !u!114 &6466043205163483824
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6658214101959092616}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4949d01c31a14d208a36ccd7e82e44d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.Localization.LocalizedText
+  key: controls.controller
+  chipKey: 
+--- !u!114 &6957354208669119193
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7257092961022353758}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4949d01c31a14d208a36ccd7e82e44d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.Localization.LocalizedText
+  key: controls.run
+  chipKey: 
+--- !u!114 &7720936255721487025
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7516034057442626474}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4949d01c31a14d208a36ccd7e82e44d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.Localization.LocalizedText
+  key: controls.switchitem
+  chipKey: 
+--- !u!114 &4373867883228608288
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7582470518463244091}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4949d01c31a14d208a36ccd7e82e44d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.Localization.LocalizedText
+  key: controls.dash
+  chipKey: 
+--- !u!114 &1726257982566300273
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7943425681769381142}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4949d01c31a14d208a36ccd7e82e44d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.Localization.LocalizedText
+  key: controls.useitem
+  chipKey: 
+--- !u!114 &5048923544175426139
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8510300433171776266}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4949d01c31a14d208a36ccd7e82e44d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.Localization.LocalizedText
+  key: controls.stealsell
+  chipKey: 
+--- !u!114 &8672593890203635714
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9050657819118801374}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4949d01c31a14d208a36ccd7e82e44d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.Localization.LocalizedText
+  key: controls.stealsell
+  chipKey: 

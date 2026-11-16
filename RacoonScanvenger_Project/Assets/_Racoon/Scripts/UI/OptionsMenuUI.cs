@@ -97,6 +97,9 @@ public class OptionsMenuUI : MonoBehaviour
         RefreshDisplayModeText();
     }
 
+    void OnEnable() => Racoon.UI.Localization.Loc.Changed += RefreshDisplayModeText;
+    void OnDisable() => Racoon.UI.Localization.Loc.Changed -= RefreshDisplayModeText;
+
     void RefreshDisplayModeText()
     {
         if (displayModeButtonText == null)
@@ -107,12 +110,12 @@ public class OptionsMenuUI : MonoBehaviour
             // Si actualmente estamos en pantalla completa,
             // el botón indica lo que hará al pulsarlo.
             displayModeButtonText.text =
-                "WINDOWED SCREEN";
+                Racoon.UI.Localization.Loc.T("options.display.windowed");
         }
         else
         {
             displayModeButtonText.text =
-                "FULL SCREEN";
+                Racoon.UI.Localization.Loc.T("options.display.fullscreen");
         }
     }
 }

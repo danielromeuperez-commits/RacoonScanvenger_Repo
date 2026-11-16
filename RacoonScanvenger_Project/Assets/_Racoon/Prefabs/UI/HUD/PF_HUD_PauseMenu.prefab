@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 4492428121945469570}
   - component: {fileID: 6728883635319005295}
   - component: {fileID: 2231550586565751504}
+  - component: {fileID: 7672635428131143360}
   m_Layer: 5
   m_Name: TXT_Options
   m_TagString: Untagged
@@ -148,6 +149,7 @@ GameObject:
   - component: {fileID: 6711142930320004903}
   - component: {fileID: 4772390310336383107}
   - component: {fileID: 8274130751900196678}
+  - component: {fileID: 3425599446952437121}
   m_Layer: 5
   m_Name: Back
   m_TagString: Untagged
@@ -684,6 +686,7 @@ GameObject:
   - component: {fileID: 2846976861721191205}
   - component: {fileID: 742397170964251038}
   - component: {fileID: 2148413238313600545}
+  - component: {fileID: 6791725786409547566}
   m_Layer: 5
   m_Name: Main Menu
   m_TagString: Untagged
@@ -928,6 +931,7 @@ GameObject:
   - component: {fileID: 6792492123370440959}
   - component: {fileID: 323319663232068846}
   - component: {fileID: 857888462907965744}
+  - component: {fileID: 7968434430587143260}
   m_Layer: 5
   m_Name: Options
   m_TagString: Untagged
@@ -1275,6 +1279,7 @@ GameObject:
   - component: {fileID: 7215864251460650137}
   - component: {fileID: 1788546848435900670}
   - component: {fileID: 1639321823144288398}
+  - component: {fileID: 3091515408671952270}
   m_Layer: 5
   m_Name: TXT_Pause
   m_TagString: Untagged
@@ -1458,6 +1463,7 @@ GameObject:
   - component: {fileID: 1735078909980514147}
   - component: {fileID: 529803734287542299}
   - component: {fileID: 5739626008455887849}
+  - component: {fileID: 4711379419920702757}
   m_Layer: 5
   m_Name: Resume
   m_TagString: Untagged
@@ -1584,3 +1590,87 @@ MonoBehaviour:
   m_hasFontAssetChanged: 0
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
+--- !u!114 &7672635428131143360
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 53417912974053657}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4949d01c31a14d208a36ccd7e82e44d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.Localization.LocalizedText
+  key: options.title
+  chipKey: 
+--- !u!114 &3425599446952437121
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1196159538940920596}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4949d01c31a14d208a36ccd7e82e44d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.Localization.LocalizedText
+  key: pause.back
+  chipKey: 
+--- !u!114 &6791725786409547566
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4912332178028706976}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4949d01c31a14d208a36ccd7e82e44d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.Localization.LocalizedText
+  key: pause.mainmenu
+  chipKey: 
+--- !u!114 &7968434430587143260
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6559731997590138522}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4949d01c31a14d208a36ccd7e82e44d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.Localization.LocalizedText
+  key: pause.options
+  chipKey: 
+--- !u!114 &3091515408671952270
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8811782597114130234}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4949d01c31a14d208a36ccd7e82e44d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.Localization.LocalizedText
+  key: pause.title
+  chipKey: 
+--- !u!114 &4711379419920702757
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8949677422025600076}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4949d01c31a14d208a36ccd7e82e44d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.UI.Localization.LocalizedText
+  key: pause.resume
+  chipKey: 

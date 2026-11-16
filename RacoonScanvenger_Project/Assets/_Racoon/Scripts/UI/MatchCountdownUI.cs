@@ -83,7 +83,7 @@ public class MatchCountdownUI : MonoBehaviour
         // START!!
         PersistentMusic.Instance?.PlayStartSound();
         yield return AnimateText(
-            "START!!",
+            Racoon.UI.Localization.Loc.T("match.start"),
             startDuration,
             numberRotation * 0.5f,
             finalScale * 1.15f

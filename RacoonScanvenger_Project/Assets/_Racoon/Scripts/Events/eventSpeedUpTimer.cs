@@ -55,6 +55,6 @@ public class eventSpeedUpTimer : NetworkBehaviour, IGameEvent
     [ClientRpc]
     void TriggerSpeedUpClientRpc(float multiplier)
     {
-        GameEventAnnouncer.Announce(this, title, string.Format(subtitle, multiplier), accent, colorSkin);
+        GameEventAnnouncer.Announce(this, Racoon.UI.Localization.Loc.T("event.speed.title"), Racoon.UI.Localization.Loc.F("event.speed.subtitle", multiplier), accent, colorSkin);
     }
 }

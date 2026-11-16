@@ -4,6 +4,7 @@ using Racoon.Gameplay;
 using Racoon.Network;
 using Racoon.UI;
 using Racoon.UI.HUD;
+using Racoon.UI.Localization;
 using TMPro;
 using Unity.Netcode;
 using UnityEngine;
@@ -170,7 +171,7 @@ public class MatchResultUI : MonoBehaviour
         // Sin ganador entre los dos (no debería pasar): se trata como empate.
         if (!draw && result1 != 1 && result2 != 1) { draw = true; result1 = result2 = 0; }
 
-        string title = draw ? drawTitle : localId == winnerClientId ? victoryTitle : defeatTitle;
+        string title = Loc.T(draw ? "match.draw" : localId == winnerClientId ? "match.win" : "match.lose");
         Color color = draw ? drawColor : localId == winnerClientId ? victoryColor : defeatColor;
 
         Show(title, color,
@@ -325,7 +326,7 @@ public class MatchResultUI : MonoBehaviour
         if (slot.nameText != null)
         {
             string name = character != null && !string.IsNullOrEmpty(character.displayName) ? character.displayName : "???";
-            slot.nameText.text = local ? $"{name} <size=60%>(YOU)</size>" : name;
+            slot.nameText.text = local ? $"{name} <size=60%>{Loc.T("match.you")}</size>" : name;
             slot.nameText.alpha = loser ? 0.7f : 1f;
         }
 
