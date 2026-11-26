@@ -4896,12 +4896,12 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 419671681}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 17.529, y: 0, z: 9.522}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -0.44100094, y: 0, z: 0.0020008087}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 1818399359}
+  m_Father: {fileID: 819185825}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &420647873
 PrefabInstance:
@@ -9687,7 +9687,9 @@ Transform:
   m_LocalPosition: {x: 8.41, y: 0.72, z: 8.11}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 419671682}
+  - {fileID: 1170461178}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &819185826
@@ -9704,8 +9706,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Racoon.Player.VentilationPoint
   left: {fileID: 1818399360}
   right: {fileID: 819185826}
-  insidePoint: {fileID: 0}
-  exitPoint: {fileID: 0}
+  insidePoint: {fileID: 419671682}
+  exitPoint: {fileID: 1170461178}
   fallbackInteractRadius: 2
 --- !u!1 &819730555
 GameObject:
@@ -12743,12 +12745,12 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1170461177}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 17.529, y: 0, z: 9.522}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -0.44100094, y: 0, z: 0.0020008087}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 1818399359}
+  m_Father: {fileID: 819185825}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1182075188
 GameObject:
@@ -16682,8 +16684,6 @@ Transform:
   m_Children:
   - {fileID: 1765988272}
   - {fileID: 1791097880}
-  - {fileID: 419671682}
-  - {fileID: 1170461178}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1818399360
