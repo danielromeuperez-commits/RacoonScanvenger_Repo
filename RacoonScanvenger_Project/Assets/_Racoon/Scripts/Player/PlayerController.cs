@@ -77,6 +77,8 @@ namespace Racoon.Player
         [SerializeField] LayerMask interactMask = ~0;
         [Tooltip("Tiempo mínimo entre cada objeto recogido al mantener Interact.")]
         [SerializeField] float interactRepeatInterval = 0.25f;
+        [Tooltip("Con la bebida energética: multiplicador del tiempo de saquear y de vender (0,5 = el doble de rápido).")]
+        [SerializeField, Range(0.1f, 1f)] float energyActionTimeScale = 0.5f;
         float interactRepeatTimer;
 
         [Header("Golpe")]
@@ -111,18 +113,39 @@ namespace Racoon.Player
         [SerializeField] float chargedKnockbackMultiplier = 1f;
         [Tooltip("Estamina extra (fracción de la máxima) del golpe cargado, sumada a Punch Stamina Cost.")]
         [SerializeField, Range(0f, 1f)] float chargedPunchExtraStaminaCost = 0.15f;
-        [Tooltip("Multiplicador de velocidad mientras carga (no puede correr).")]
-        [SerializeField, Range(0f, 1f)] float chargeMoveMultiplier = 0.5f;
 
-        [Header("Apuntar objeto (mantener Usar con un objeto)")]
-        [Tooltip("Multiplicador de velocidad mientras apunta.")]
-        [SerializeField, Range(0f, 1f)] float aimMoveMultiplier = 0.6f;
-        [Tooltip("Ángulo (grados) entre el stick y hacia donde mira a partir del cual el objeto se suelta DETRÁS.")]
-        [SerializeField, Range(90f, 180f)] float dropBehindAngle = 120f;
-        [Tooltip("Metros por segundo a los que el stick mueve el punto de caída mientras se mantiene Apuntar.")]
-        [SerializeField, Min(0.1f)] float aimTargetSpeed = 7f;
-        [Tooltip("A qué distancia delante del jugador aparece el punto de caída al empezar a Apuntar.")]
+        [Header("Usar objeto (botón propio: clic derecho / RB)")]
+        [Tooltip("Segundos manteniendo el botón de objeto para pasar a apuntar a mano. Un toque más corto lanza con autoapuntado.")]
+        [SerializeField, Min(0f)] float manualAimDelay = 0.18f;
+        [Tooltip("A qué distancia delante del jugador aparece el punto de caída al empezar a apuntar con el stick.")]
         [SerializeField, Min(0f)] float aimTargetStartDistance = 4f;
+        [Tooltip("Lo más cerca que puede quedar el punto de caída al apuntar a mano (metros).")]
+        [SerializeField, Min(0f)] float aimTargetMinDistance = 1.3f;
+        [Tooltip("Mando: metros por segundo a los que el stick derecho mueve el punto de caída (bajo = más control).")]
+        [SerializeField, Min(0.1f)] float aimStickSpeed = 4f;
+
+        [Header("Autoapuntado de golpe y de recoger")]
+        [Tooltip("Al soltar el golpe, gira hacia el rival más cercano dentro de este alcance (m). 0 = desactivado.")]
+        [SerializeField, Min(0f)] float punchAssistRange = 2.2f;
+        [Tooltip("Grados a cada lado de hacia donde mira (o hacia donde empuja el stick) en los que engancha al rival.")]
+        [SerializeField, Range(0f, 180f)] float punchAssistAngle = 110f;
+        [Tooltip("Al interactuar, gira hacia la estantería o punto de venta más cercano dentro de este alcance (m). 0 = desactivado.")]
+        [SerializeField, Min(0f)] float interactAssistRange = 1.8f;
+        [SerializeField, Range(0f, 180f)] float interactAssistAngle = 80f;
+        [Tooltip("Segundos que se queda mirando al rival tras engancharlo al golpear (el stick no le gira mientras).")]
+        [SerializeField, Min(0f)] float assistHoldTime = 0.25f;
+        [Tooltip("Al lootear: 0 = mira al punto más cercano de la estantería, 1 = a su centro. Más alto = se gira más hacia ella.")]
+        [SerializeField, Range(0f, 1f)] float interactAssistCenterBias = 0.6f;
+
+        [Header("Rebote al chocar corriendo")]
+        [Tooltip("Velocidad contra la pared (m/s) a partir de la que rebota. Andando no llega.")]
+        [SerializeField, Min(0f)] float bounceMinImpact = 5f;
+        [Tooltip("Parte de la velocidad del choque que se devuelve como rebote (0 = nada, 1 = rebote completo).")]
+        [SerializeField, Range(0f, 1f)] float bounceStrength = 0.35f;
+        [Tooltip("Cuánto conserva del avance al chocar (0 = se para en seco).")]
+        [SerializeField, Range(0f, 1f)] float bounceKeepSpeed = 0.25f;
+        [Tooltip("Segundos mínimos entre dos rebotes (para no encadenarlos contra la misma pared).")]
+        [SerializeField, Min(0f)] float bounceCooldown = 0.35f;
 
         /// <summary>Cómo reacciona el jugador a un tipo de golpe.</summary>
         [Serializable]
@@ -285,6 +308,8 @@ namespace Racoon.Player
         public event Action<PlayerState, PlayerState> StateChanged;
         /// <summary>Se lanza al empezar una acción (Interact, SwitchItem, Punch, UseItem). Todos los clientes.</summary>
         public event Action<PlayerState> ActionStarted;
+        /// <summary>Choque contra una pared corriendo (rebote). Solo en el cliente dueño.</summary>
+        public event Action Bumped;
 
         public PlayerState State => netState.Value.State;
         /// <summary>Está en invincibility-frames. Replicado: válido en todos los clientes y en el servidor.</summary>
@@ -350,10 +375,24 @@ namespace Racoon.Player
         public event Action<ItemData> ItemUseRefused;
         /// <summary>Propulsado por el extintor. Solo tiene sentido en el dueño.</summary>
         public bool IsExtintorActive => extintorActive;
+
+        // Objeto mecánico (extintor, despertador) que lleva hasta venderlo. Lo pone el servidor al cogerlo y lo
+        // quita al vender (PlayerLoot.ServerSellLoot). Mientras lo lleva, los objetos de las cajas no se ven ni se usan.
+        readonly NetworkVariable<byte> carriedMech = new(0);
+
+        /// <summary>Objeto mecánico que lleva (None = ninguno). Todos los clientes.</summary>
+        public MechKind CarriedMech => (MechKind)carriedMech.Value;
+        public bool IsCarryingMech => carriedMech.Value != 0;
+
+        /// <summary>Solo servidor.</summary>
+        public void ServerSetCarriedMech(MechKind kind)
+        {
+            if (IsServer) carriedMech.Value = (byte)kind;
+        }
         /// <summary>Mantiene Usar con un objeto equipado: apuntando, lo usará al soltar. Solo tiene sentido en el dueño.</summary>
         public bool IsAimingItem => aimingItem;
         /// <summary>Apuntando con el stick hacia atrás: al soltar, el objeto cae detrás. Solo tiene sentido en el dueño.</summary>
-        public bool IsAimingBehind => aimingItem && aimingBehind;
+        public bool IsAimingBehind => false;
         /// <summary>Mantiene Apuntar con un objeto que se lanza: el stick mueve el punto de caída. Solo tiene sentido en el dueño.</summary>
         public bool IsAimingTarget => aimingTarget;
         /// <summary>Punto de caída elegido (la altura la pone quien lanza, según el suelo). Solo tiene sentido en el dueño.</summary>
@@ -401,11 +440,15 @@ namespace Racoon.Player
         float slipTimer;
         // Mantiene Usar con un objeto: apunta y lo usa al soltar (dueño).
         bool aimingItem;
-        bool aimingBehind;
+        float itemHoldTimer;
         // Mantiene Apuntar: el stick mueve el punto de caída, relativo al jugador (dueño).
         bool aimingTarget;
         Vector3 aimTargetOffset;
         float aimTargetRange;
+        // Autoapuntado de golpe/recoger: mira hacia aquí mientras dura el temporizador.
+        Vector3 aimAssistDirection;
+        float aimAssistTimer;
+        float lastBounceTime = float.NegativeInfinity;
 
         // Golpe cargado (dueño).
         bool chargingPunch;
@@ -440,6 +483,14 @@ namespace Racoon.Player
         int debugComboHits;
         float debugLastHitTime = float.NegativeInfinity;
 
+        // Velocidad vista desde esta máquina (también en rivales, cuyo Rigidbody es kinematic): para el autoapuntado.
+        Vector3 observedPosition;
+        Vector3 observedVelocity;
+        bool hasObservedPosition;
+
+        /// <summary>Velocidad horizontal suavizada, medida por el movimiento del transform. Vale en todos los clientes.</summary>
+        public Vector3 ObservedVelocity => observedVelocity;
+
         bool IsInAction => actionTimer > 0f;
         // Solo en el dueño (el estado lo escribe él, así que su copia siempre está al día).
         bool IsStunned => IsInAction && State.IsStun();
@@ -447,6 +498,8 @@ namespace Racoon.Player
 
         void Awake()
         {
+            // Modelo y efectos del objeto mecánico que lleve (no es de red: lo manda CarriedMech).
+            if (!TryGetComponent(out PlayerMechCarry _)) gameObject.AddComponent<PlayerMechCarry>();
             body = GetComponent<Rigidbody>();
             capsule = GetComponent<CapsuleCollider>();
             input = GetComponent<PlayerInputHandler>();
@@ -477,6 +530,7 @@ namespace Racoon.Player
             input.InteractPressed += OnInteractPressed;
             input.SwitchItemPressed += OnSwitchItemPressed;
             input.UsePressed += OnUsePressed;
+            input.UseItemPressed += OnUseItemPressed;
             input.DashPressed += OnDashPressed;
             LocalPlayerSpawned?.Invoke(this);
         }
@@ -491,6 +545,7 @@ namespace Racoon.Player
             input.InteractPressed -= OnInteractPressed;
             input.SwitchItemPressed -= OnSwitchItemPressed;
             input.UsePressed -= OnUsePressed;
+            input.UseItemPressed -= OnUseItemPressed;
             input.DashPressed -= OnDashPressed;
             if (Local == this) Local = null;
         }
@@ -548,11 +603,16 @@ namespace Racoon.Player
                 !aimingTarget &&
                 interactRepeatTimer <= 0f)
             {
-                StartAction(PlayerState.Interact, interactDuration);
-                interactRepeatTimer = interactRepeatInterval;
-                RepeatInteractRpc();
+                AssistInteract();
+                StartAction(PlayerState.Interact, interactDuration * ActionTimeScale);
+                interactRepeatTimer = interactRepeatInterval * ActionTimeScale;
+                RepeatInteractRpc(InteractForward);
             }
+
+            // Control del temporizador de acción limpio
             if (actionTimer > 0f) actionTimer -= dt;
+
+            if (aimAssistTimer > 0f) aimAssistTimer -= dt;
             if (dashCooldownTimer > 0f) dashCooldownTimer -= dt;
             if (infiniteDashTimer > 0f)
             {
@@ -581,25 +641,20 @@ namespace Racoon.Player
                 if (punchHitTimer < 0f) OwnerCheckPunchHit();
             }
             UpdatePunchCharge(dt);
-            UpdateAimTarget();
-            UpdateItemAim();
+            UpdateItemAim(dt);
 
             UpdateInvulnerability();
 
             Vector2 move = input.Move;
-            if (aimingTarget)
-            {
-                // El stick mueve el punto de caída, no al personaje.
-                if (move.sqrMagnitude > moveDeadzone * moveDeadzone)
-                    aimTargetOffset = Vector3.ClampMagnitude(
-                        aimTargetOffset + GetCameraRelativeDirection(move) * (move.magnitude * aimTargetSpeed * dt),
-                        aimTargetRange);
-                move = Vector2.zero;
-            }
+            // Saqueando una nevera (LootPoint exclusiva) se queda quieto mientras mantiene: así no se abren y cierran
+            // las puertas de varias a la vez.
+            if (input.InteractHeld && LootPoint.IsInUseBy(OwnerClientId)) move = Vector2.zero;
             bool hasMoveInput = move.sqrMagnitude > moveDeadzone * moveDeadzone;
             // El puñetazo va por el tren superior (capa UpperBody): las piernas siguen andando o corriendo.
             bool upperBodyAction = IsInAction && State == PlayerState.Punch;
-            bool isRunning = hasMoveInput && input.RunHeld && (!IsInAction || upperBodyAction) && !IsChargeSlowing &&
+            // Usar un objeto tampoco frena: sale con el tren superior a velocidad completa.
+            bool itemAction = IsInAction && State == PlayerState.UseItem;
+            bool isRunning = hasMoveInput && input.RunHeld && (!IsInAction || upperBodyAction || itemAction) &&
                              !exhausted && stamina > 0f;
 
             UpdateStamina(isRunning, dt);
@@ -622,22 +677,17 @@ namespace Racoon.Player
                 desiredDirection = GetCameraRelativeDirection(move);
                 Vector3 moveDirection = desiredDirection;
 
-                // Apuntando un objeto con el stick muy hacia atrás: lo soltará detrás. No se gira hacia el stick
-                // (si se girase, "atrás" pasaría a ser "delante" y se perdería el apuntado).
-                aimingBehind = aimingItem && hasMoveInput &&
-                    Vector3.Angle(Vector3.ProjectOnPlane(transform.forward, Vector3.up), moveDirection) > dropBehindAngle;
-                if (aimingBehind) desiredDirection = Vector3.zero;
-                // Quieto, pero mirando hacia el punto de caída.
+                // Apuntando a mano: se mueve libremente pero mira hacia el punto de caída.
                 if (aimingTarget && aimTargetOffset.sqrMagnitude > 0.01f) desiredDirection = aimTargetOffset.normalized;
+                // Recién enganchado por el autoapuntado: sigue mirando al objetivo un momento.
+                else if (aimAssistTimer > 0f) desiredDirection = aimAssistDirection;
 
                 float targetSpeed =
                     (isRunning ? runSpeed : walkSpeed) *
                     move.magnitude *
                     WeightLerp(fullBagSpeedMultiplier);
                 if (upperBodyAction) targetSpeed *= punchMoveMultiplier;
-                else if (IsInAction) targetSpeed *= actionMoveMultiplier;
-                else if (IsChargeSlowing) targetSpeed *= chargeMoveMultiplier;
-                else if (aimingItem) targetSpeed *= aimMoveMultiplier;
+                else if (IsInAction && !itemAction) targetSpeed *= actionMoveMultiplier;
                 desiredVelocity = moveDirection * targetSpeed;
             }
 
@@ -741,12 +791,16 @@ namespace Racoon.Player
             // Las pulsaciones que sobran al levantarse no deben convertirse en un dash.
             recoveryDashLockTimer = recoveryDashLock;
             ItemRecoveryFinished?.Invoke();
+
+            // Parar el sonido del plátano/mareo en el momento exacto en que te levantas con éxito
+            if (IsOwner && AudioManager.Instance != null && AudioManager.Instance.sfxSource != null)
+            {
+                AudioManager.Instance.sfxSource.Stop();
+                AudioManager.Instance.sfxSource.clip = null;
+            }
         }
 
         // ---------------- Golpe cargado ----------------
-
-        // Pasado el toque (chargeThreshold) ya está cargando de verdad: frena y no puede correr.
-        bool IsChargeSlowing => chargingPunch && punchChargeTimer >= chargeThreshold;
 
         void UpdatePunchCharge(float dt)
         {
@@ -757,6 +811,10 @@ namespace Racoon.Player
             {
                 CancelPunchCharge();
                 return;
+            }
+            if (IsOwner && AudioManager.Instance != null)
+            {
+                AudioManager.Instance.PlaySFX(26);
             }
 
             punchChargeTimer += dt;
@@ -778,6 +836,10 @@ namespace Racoon.Player
             chargingPunch = false;
             punchChargeTimer = 0f;
             SetChargingPunchReplicated(false);
+            if (IsOwner && AudioManager.Instance != null && AudioManager.Instance.sfxSource != null)
+            {
+                AudioManager.Instance.sfxSource.Stop();
+            }
         }
 
         void ReleasePunch()
@@ -790,52 +852,138 @@ namespace Racoon.Player
             SpendStamina((punchStaminaCost + (charged ? chargedPunchExtraStaminaCost : 0f)) * maxStamina);
 
             CancelRecoveryInvulnerability();
+            AssistPunch();
             releasedPunchCharged = charged;
             StartAction(PlayerState.Punch, punchDuration, charged);
             punchHitTimer = punchHitDelay;
             punchCooldownTimer = punchDuration + punchCooldown;
+            AudioManager.Instance.PlaySFX(19);
         }
 
         // ---------------- Usar objeto (apuntar mientras se mantiene, usar al soltar) ----------------
 
-        // Apuntar no gasta nada: soltarlo sin haber usado el objeto solo devuelve el stick al personaje.
-        void UpdateAimTarget()
+        // Botón de objeto: un toque lanza con autoapuntado al rival más cercano dentro del alcance (si no hay,
+        // hacia delante). Mantenido pasa a apuntar a mano (ratón o stick derecho) y el autoapuntado se pierde.
+        // Apuntar no gasta nada y no frena: se puede andar mientras.
+        void LateUpdate()
         {
-            ItemData equipped = inventory.EquippedItem;
-            aimTargetRange = equipped != null && equipped.Effect != null ? equipped.Effect.MaxAimRange : 0f;
-
-            bool active = input.AimHeld && aimTargetRange > 0f && !IsInAction && !itemRecoveryRequired &&
-                          !chargingPunch && !extintorActive && !inventory.IsRouletteSpinning && !State.IsGrounded();
-
-            if (active && !aimingTarget)
-                aimTargetOffset = Vector3.ProjectOnPlane(transform.forward, Vector3.up).normalized *
-                                  Mathf.Min(aimTargetStartDistance, aimTargetRange);
-
-            aimingTarget = active;
+            Vector3 position = transform.position;
+            float dt = Time.deltaTime;
+            if (hasObservedPosition && dt > 0f)
+            {
+                Vector3 velocity = Vector3.ProjectOnPlane((position - observedPosition) / dt, Vector3.up);
+                // Suavizado corto: quita el ruido de la interpolación de red sin ir muy por detrás.
+                observedVelocity = Vector3.Lerp(observedVelocity, velocity, 1f - Mathf.Exp(-20f * dt));
+            }
+            observedPosition = position;
+            hasObservedPosition = true;
         }
 
-        void UpdateItemAim()
+        void UpdateItemAim(float dt)
         {
             if (!aimingItem) return;
 
-            // Algo le ha quitado el control (golpe, plátano, dash...) o ya no tiene el objeto:
-            // se cancela sin gastarlo.
+            // Algo le ha quitado el control (golpe, plátano, dash...) o ya no tiene el objeto: se cancela sin gastarlo.
             if (IsInAction || itemRecoveryRequired || !inventory.HasEquipped)
             {
                 aimingItem = false;
-                aimingBehind = false;
+                aimingTarget = false;
                 return;
             }
 
-            // Un toque rápido lo usa al instante (al frame siguiente de soltar).
-            if (input.UseHeld) return;
+            ItemData equipped = inventory.EquippedItem;
+            aimTargetRange = equipped != null && equipped.Effect != null ? equipped.Effect.MaxAimRange : 0f;
+            itemHoldTimer += dt;
 
-            bool dropBehind = aimingBehind;
+            if (input.UseItemHeld)
+            {
+                if (!aimingTarget && aimTargetRange > 0f && itemHoldTimer >= manualAimDelay)
+                {
+                    aimingTarget = true;
+                    aimTargetOffset = Vector3.ProjectOnPlane(transform.forward, Vector3.up).normalized *
+                                      Mathf.Min(aimTargetStartDistance, aimTargetRange);
+                }
+                if (aimingTarget) UpdateManualAimPoint(dt);
+                return;
+            }
+
+            bool hasTarget = aimingTarget;
+            Vector3 target = AimTarget;
+            if (!hasTarget && aimTargetRange > 0f && TryFindAutoAimTarget(equipped, aimTargetRange, out Vector3 autoTarget))
+            {
+                hasTarget = true;
+                target = autoTarget;
+            }
+
             aimingItem = false;
-            aimingBehind = false;
+            aimingTarget = false;
             CancelRecoveryInvulnerability();
             StartAction(PlayerState.UseItem, useItemDuration);
-            UseItemRpc(dropBehind, aimingTarget, AimTarget);
+            UseItemRpc(false, hasTarget, target);
+        }
+
+        // Ratón: el punto bajo el cursor (en el plano de los pies). Mando: el stick derecho marca dirección y distancia.
+        void UpdateManualAimPoint(float dt)
+        {
+            Vector3 offset = aimTargetOffset;
+
+            if (input.UsingMouse)
+            {
+                Camera cam = Camera.main;
+                if (cam != null)
+                {
+                    Ray ray = cam.ScreenPointToRay(input.PointerPosition);
+                    Plane ground = new(Vector3.up, transform.position);
+                    if (ground.Raycast(ray, out float enter))
+                        offset = Vector3.ProjectOnPlane(ray.GetPoint(enter) - transform.position, Vector3.up);
+                }
+            }
+            else
+            {
+                // El stick mueve el punto poco a poco (no lo coloca donde apunta): más control.
+                Vector2 stick = input.AimStick;
+                if (stick.sqrMagnitude > moveDeadzone * moveDeadzone)
+                    offset += GetCameraRelativeDirection(stick) * (aimStickSpeed * dt);
+            }
+
+            float distance = offset.magnitude;
+            if (distance < 0.01f) return;
+            aimTargetOffset = offset / distance * Mathf.Clamp(distance, Mathf.Min(aimTargetMinDistance, aimTargetRange), aimTargetRange);
+        }
+
+        // Rival más cercano dentro del alcance (en horizontal), adelantándose a donde estará cuando caiga el objeto.
+        bool TryFindAutoAimTarget(ItemData item, float range, out Vector3 target)
+        {
+            target = default;
+            float best = range * range;
+            PlayerController victim = null;
+
+            foreach (PlayerController other in FindObjectsByType<PlayerController>(FindObjectsSortMode.None))
+            {
+                if (other == this || !other.IsSpawned) continue;
+                Vector3 offset = Vector3.ProjectOnPlane(other.transform.position - transform.position, Vector3.up);
+                float sqr = offset.sqrMagnitude;
+                if (sqr > best) continue;
+                best = sqr;
+                victim = other;
+            }
+
+            if (victim == null) return false;
+
+            // Intercepción: el tiempo de vuelo depende de la distancia y la distancia del tiempo; converge en pocas vueltas.
+            Vector3 start = victim.transform.position;
+            Vector3 velocity = victim.ObservedVelocity;
+            target = start;
+            if (item != null && item.Effect != null && velocity.sqrMagnitude > 0.01f)
+            {
+                for (int i = 0; i < 6; i++)
+                {
+                    if (!item.Effect.TryGetFlightTime(this, target, out float flightTime)) break;
+                    target = start + velocity * flightTime;
+                }
+            }
+
+            return true;
         }
 
         void UpdateInvulnerability()
@@ -868,33 +1016,21 @@ namespace Racoon.Player
 
         void FixedUpdate()
         {
-            // En el rival el Rigidbody es kinematic y lo mueve NetworkRigidbody: no tocar.
             if (!IsSpawned || !IsOwner || body.isKinematic)
                 return;
 
             if (extintorActive)
             {
-                // Usamos la dirección que ya calcula tu movimiento normal
-                Vector3 inputDirection = desiredDirection;
+                Vector3 inputDir = desiredDirection;
+                inputDir.y = 0f;
 
-                if (inputDirection.sqrMagnitude > 0.01f)
+                if (inputDir.sqrMagnitude > 0.01f)
                 {
-                    inputDirection.y = 0f;
-                    inputDirection.Normalize();
-
-                    // Girar poco a poco hacia donde está pulsando el jugador
-                    extintorDirection = Vector3.RotateTowards(
-                        extintorDirection,
-                        inputDirection,
-                        extintorTurnSpeed * Mathf.Deg2Rad * Time.fixedDeltaTime,
-                        0f
-                    );
-
+                    extintorDirection = Vector3.Slerp(extintorDirection, inputDir.normalized, 3f * Time.fixedDeltaTime);
                     extintorDirection.y = 0f;
                     extintorDirection.Normalize();
                 }
 
-                // Mantener velocidad constante
                 body.linearVelocity = new Vector3(
                     extintorDirection.x * extintorBounceSpeed,
                     body.linearVelocity.y,
@@ -1050,12 +1186,13 @@ namespace Racoon.Player
 
         void StartAction(PlayerState action, float duration, bool chargedPunch = false)
         {
+            // Antes de replicar: si un suscriptor de StateChanged falla, la acción no se pierde.
+            actionTimer = duration;
             NetState value = netState.Value;
             value.State = action;
             value.ActionSequence++;
             value.ChargedPunch = chargedPunch;
             netState.Value = value;
-            actionTimer = duration;
         }
 
         /// <summary>Solo el dueño. Útil para respawns (el spawn inicial lo hace el servidor en la aprobación).</summary>
@@ -1148,8 +1285,14 @@ namespace Racoon.Player
 
         private void OnCollisionEnter(Collision collision)
         {
-            if (!IsOwner || !extintorActive)
+            if (!IsOwner)
                 return;
+
+            if (!extintorActive)
+            {
+                TryCollisionBounce(collision);
+                return;
+            }
 
             // 1. Comprobar si hemos chocado contra otro jugador
             PlayerController otherPlayer = collision.collider.GetComponentInParent<PlayerController>();
@@ -1174,7 +1317,7 @@ namespace Racoon.Player
 
             ContactPoint contact = collision.GetContact(0);
 
-            // Refleja la dirección respecto a la superficie golpeada (paredes, etc.)
+            // 2. Refleja la dirección respecto a la superficie golpeada (paredes, etc.)
             Vector3 reflected = Vector3.Reflect(
                 extintorDirection,
                 contact.normal
@@ -1187,6 +1330,10 @@ namespace Racoon.Player
                 return;
 
             extintorDirection = reflected.normalized;
+
+            // 3. CORRECCIÓN DE ATASCOS: Despegar ligeramente al jugador de la pared
+            transform.position += contact.normal * 0.1f;
+            body.position = transform.position;
         }
 
         // RPC para gestionar el empuje al otro jugador de forma segura en el servidor
@@ -1237,16 +1384,17 @@ namespace Racoon.Player
         {
             if (extintorActive || IsInAction || itemRecoveryRequired || chargingPunch || aimingItem || aimingTarget) return;
 
-            StartAction(PlayerState.Interact, interactDuration);
-            interactRepeatTimer = interactRepeatInterval;
-            InteractRpc();
+            AssistInteract();
+            StartAction(PlayerState.Interact, interactDuration * ActionTimeScale);
+            interactRepeatTimer = interactRepeatInterval * ActionTimeScale;
+            InteractRpc(InteractForward);
         }
 
         void OnSwitchItemPressed()
         {
             // CanSwitch evita desequipar el único objeto que llevas.
             // Mientras apunta no cambia: la flecha es del objeto que tiene en la mano.
-            if (extintorActive || IsInAction || itemRecoveryRequired || chargingPunch || aimingItem || aimingTarget || !inventory.CanSwitch ||
+            if (extintorActive || IsCarryingMech || IsInAction || itemRecoveryRequired || chargingPunch || aimingItem || aimingTarget || !inventory.CanSwitch ||
                 inventory.IsRouletteSpinning) return;
             StartAction(PlayerState.SwitchItem, switchItemDuration);
             SwitchItemRpc();
@@ -1260,27 +1408,35 @@ namespace Racoon.Player
             // Con un objeto en la ruleta, Usar solo la para (HUDController): no golpea ni lanza nada.
             if (inventory.IsRouletteSpinning) return;
 
-            if (inventory.HasEquipped)
-            {
-                // Ahora no se puede usar (otra bebida con la primera activa): no se apunta ni se gasta, se avisa.
-                ItemData equipped = inventory.EquippedItem;
-                if (equipped != null && !equipped.CanUse(this))
-                {
-                    ItemUseRefused?.Invoke(equipped);
-                    return;
-                }
+            // Usar = solo golpear (los objetos van por su propio botón). Un toque rápido es un puñetazo normal;
+            // mantener carga el golpe (sin frenar).
+            if (punchCooldownTimer > 0f || !HasStaminaFor(StaminaCost(punchStaminaCost))) return;
+            punchChargeTimer = 0f;
+            chargingPunch = true;
+        }
 
-                // Mientras mantiene se ve la flecha (PlayerItemHandler); el objeto se usa al soltar (UpdateItemAim).
-                aimingItem = true;
-            }
-            else
+        void OnUseItemPressed()
+        {
+            if (extintorActive || IsInAction || itemRecoveryRequired || chargingPunch || aimingItem || State.IsGrounded()) return;
+
+            // Llevando un objeto mecánico, los de las cajas están guardados: no se pueden usar.
+            if (IsCarryingMech) return;
+
+            // Con un objeto en la ruleta, el botón solo la para (HUDController).
+            if (inventory.IsRouletteSpinning || !inventory.HasEquipped) return;
+
+            // Ahora no se puede usar (otra bebida con la primera activa): no se apunta ni se gasta, se avisa.
+            ItemData equipped = inventory.EquippedItem;
+            if (equipped != null && !equipped.CanUse(this))
             {
-                // Con las manos vacías empieza a cargar: el puñetazo sale al soltar (UpdatePunchCharge).
-                // Un toque rápido es un puñetazo normal.
-                if (punchCooldownTimer > 0f || !HasStaminaFor(StaminaCost(punchStaminaCost))) return;
-                punchChargeTimer = 0f;
-                chargingPunch = true;
+                ItemUseRefused?.Invoke(equipped);
+                return;
             }
+
+            // Se usa al soltar (UpdateItemAim): toque = autoapuntado, mantener = apuntar a mano.
+            aimingItem = true;
+            aimingTarget = false;
+            itemHoldTimer = 0f;
         }
 
         void OnDashPressed()
@@ -1305,6 +1461,9 @@ namespace Racoon.Player
 
             // Incluye el stun: no se puede salir del aturdimiento con un dash.
             if (IsInAction) return;
+
+            // Con la bolsa llena no se puede hacer dash.
+            if (playerLoot != null && playerLoot.IsBagFull) return;
 
             // Con la bebida energética no hay cooldown ni coste de estamina.
             if (!infiniteDashActive)
@@ -1336,23 +1495,34 @@ namespace Racoon.Player
 
         // ---------------- Dash ----------------
 
-        // SendTo.Everyone: los VFX salen al instante en el dueño y con la dirección exacta en el resto.
         [Rpc(SendTo.Everyone, InvokePermission = RpcInvokePermission.Owner)]
         void DashRpc(Vector3 direction)
         {
+            // El sonido solo suena si eres el dueño local
+            if (IsOwner)
+            {
+                AudioManager.Instance.PlaySFX(2);
+            }
+
+            // El evento y los VFX se ejecutan para todos los clientes
             onDash?.Invoke(direction);
         }
 
         // ---------------- Interactuar ----------------
 
-        // SendTo.Everyone: se ejecuta al instante en el dueño y luego en servidor y rival.
         [Rpc(SendTo.Everyone, InvokePermission = RpcInvokePermission.Owner)]
-        void InteractRpc()
+        void InteractRpc(Vector3 forward)
         {
+            // El sonido de interacción solo lo reproduce el jugador local
+            if (IsOwner)
+            {
+                AudioManager.Instance.PlaySFX(1);
+            }
+
             onInteract?.Invoke(this);
 
             if (IsServer)
-                ServerInteractWithNearest(false);
+                ServerInteractWithNearest(false, forward);
         }
 
         /// <summary>
@@ -1360,9 +1530,9 @@ namespace Racoon.Player
         /// Solo funciona con interactuables marcados como IRepeatableInteractable.
         /// </summary>
         [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Owner)]
-        void RepeatInteractRpc()
+        void RepeatInteractRpc(Vector3 forward)
         {
-            ServerInteractWithNearest(true);
+            ServerInteractWithNearest(true, forward);
         }
 
         // Igual que el golpe: una esfera por delante del personaje (no se interactúa con lo que hay detrás).
@@ -1376,14 +1546,36 @@ namespace Racoon.Player
         }
 
         // A la misma altura que la esfera del golpe (punchHeight), no por encima del personaje.
-        Vector3 InteractCenter => transform.position + Vector3.up * punchHeight + InteractForward * frontInteractRange;
+        Vector3 InteractCenter => InteractCenterFor(InteractForward);
 
-        void ServerInteractWithNearest(bool repeatOnly)
+        /// <summary>
+        /// Hasta dónde llega la interacción desde el jugador (m, en el suelo): el borde de la esfera de interacción.
+        /// Como el autoapuntado le gira hacia el objetivo, vale en cualquier dirección. Lo usan los avisos de «mantén».
+        /// </summary>
+        public float InteractReach => frontInteractRange + frontInteractRadius;
+
+        /// <summary>Cada cuánto llega al servidor una interacción mantenida: dura interactDuration y no se repite
+        /// antes de interactRepeatInterval. Los avisos de mantener (vender) cuadran su dial con esto.</summary>
+        public float InteractRepeatCadence => Mathf.Max(interactRepeatInterval, interactDuration) * ActionTimeScale;
+
+        /// <summary>
+        /// Multiplicador del tiempo de saquear y de vender: 1 normalmente y menos con la bebida energética (más rápido).
+        /// Válido en el dueño y en el servidor (los demás clientes no lo necesitan).
+        /// </summary>
+        public float ActionTimeScale => IsEnergyDrinkActive ? energyActionTimeScale : 1f;
+
+        Vector3 InteractCenterFor(Vector3 forward) => transform.position + Vector3.up * punchHeight + forward * frontInteractRange;
+
+        // «forward» es hacia donde miraba el dueño al pulsar: el autoapuntado le gira al instante y el giro puede
+        // llegar al servidor después que el RPC.
+        void ServerInteractWithNearest(bool repeatOnly, Vector3 forward)
         {
+            forward = Vector3.ProjectOnPlane(forward, Vector3.up);
+            forward = forward.sqrMagnitude < 0.0001f ? InteractForward : forward.normalized;
             Vector3 origin = transform.position + Vector3.up * punchHeight;
 
             int count = Physics.OverlapSphereNonAlloc(
-                InteractCenter,
+                InteractCenterFor(forward),
                 frontInteractRadius,
                 overlapBuffer,
                 interactMask,
@@ -1425,6 +1617,133 @@ namespace Racoon.Player
             best?.Interact(this);
         }
 
+        // ---------------- Rebote al chocar (solo dueño) ----------------
+
+        // Corriendo (o en dash) contra algo: pequeño rebote hacia atrás en vez de pararse en seco.
+        void TryCollisionBounce(Collision collision)
+        {
+            if (bounceStrength <= 0f || body.isKinematic || IsStunned || itemRecoveryRequired) return;
+            if (Time.time - lastBounceTime < bounceCooldown || collision.contactCount == 0) return;
+
+            // Normal media de los contactos que son pared (no suelo ni techo).
+            Vector3 normal = Vector3.zero;
+            for (int i = 0; i < collision.contactCount; i++)
+            {
+                Vector3 n = collision.GetContact(i).normal;
+                if (Mathf.Abs(n.y) < 0.5f) normal += n;
+            }
+            normal = Vector3.ProjectOnPlane(normal, Vector3.up);
+            if (normal.sqrMagnitude < 0.0001f) return;
+            normal.Normalize();
+
+            float impact = -Vector3.Dot(moveVelocity, normal);
+            if (impact < bounceMinImpact) return;
+
+            lastBounceTime = Time.time;
+            Bumped?.Invoke();
+            // Se quita lo que iba contra la pared y se devuelve una parte como rebote.
+            Vector3 along = moveVelocity + normal * impact;
+            moveVelocity = along * bounceKeepSpeed;
+            knockbackVelocity += normal * (impact * bounceStrength);
+        }
+
+        // ---------------- Autoapuntado (solo dueño) ----------------
+
+        // Hacia donde quiere ir: el stick si lo empuja; si no, hacia donde mira.
+        Vector3 AssistReferenceDirection()
+        {
+            Vector2 move = input.Move;
+            Vector3 direction = move.sqrMagnitude > moveDeadzone * moveDeadzone
+                ? GetCameraRelativeDirection(move)
+                : Vector3.ProjectOnPlane(transform.forward, Vector3.up);
+            return direction.sqrMagnitude < 0.0001f ? Vector3.forward : direction.normalized;
+        }
+
+        // Nota de 0 (mejor) en adelante, o -1 si queda fuera del alcance o del ángulo.
+        static float AssistScore(Vector3 origin, Vector3 reference, Vector3 point, float range, float maxAngle)
+        {
+            Vector3 toTarget = Vector3.ProjectOnPlane(point - origin, Vector3.up);
+            float distance = toTarget.magnitude;
+            if (distance > range) return -1f;
+            if (distance < 0.05f) return 0f;
+            float angle = Vector3.Angle(reference, toTarget);
+            if (angle > maxAngle) return -1f;
+            // Pesa más la distancia, pero entre dos parecidos gana el que tiene delante.
+            return distance / range + angle / 180f;
+        }
+
+        void FaceAssistTarget(Vector3 point, float holdTime)
+        {
+            Vector3 direction = Vector3.ProjectOnPlane(point - transform.position, Vector3.up);
+            if (direction.sqrMagnitude < 0.0025f) return;
+            aimAssistDirection = direction.normalized;
+            aimAssistTimer = holdTime;
+            // Giro instantáneo: el impacto o la interacción ya salen hacia el objetivo.
+            Quaternion rotation = Quaternion.LookRotation(aimAssistDirection, Vector3.up);
+            body.rotation = rotation;
+            transform.rotation = rotation;
+        }
+
+        // Golpe: el rival más cercano por delante (o hacia donde empuja el stick).
+        void AssistPunch()
+        {
+            if (punchAssistRange <= 0f) return;
+            Vector3 origin = transform.position;
+            Vector3 reference = AssistReferenceDirection();
+            PlayerController best = null;
+            float bestScore = float.MaxValue;
+
+            int count = Physics.OverlapSphereNonAlloc(origin + Vector3.up * punchHeight, punchAssistRange, overlapBuffer,
+                hitMask, QueryTriggerInteraction.Ignore);
+            for (int i = 0; i < count; i++)
+            {
+                PlayerController other = FindPlayerForHitCollider(overlapBuffer[i]);
+                if (other == null || other == this || other == best) continue;
+                float score = AssistScore(origin, reference, other.transform.position, punchAssistRange, punchAssistAngle);
+                if (score < 0f || score >= bestScore) continue;
+                bestScore = score;
+                best = other;
+            }
+
+            if (best != null) FaceAssistTarget(best.transform.position, assistHoldTime);
+        }
+
+        // Recoger o vender: el interactuable útil más cercano (estantería con loot, punto de venta con algo que vender).
+        void AssistInteract()
+        {
+            if (interactAssistRange <= 0f) return;
+            Vector3 origin = transform.position;
+            Vector3 reference = AssistReferenceDirection();
+            Collider best = null;
+            Vector3 bestPoint = origin;
+            float bestScore = float.MaxValue;
+
+            int count = Physics.OverlapSphereNonAlloc(origin + Vector3.up * punchHeight, interactAssistRange, overlapBuffer,
+                interactMask, QueryTriggerInteraction.Collide);
+            for (int i = 0; i < count; i++)
+            {
+                Collider hit = overlapBuffer[i];
+                IInteractable interactable = hit.GetComponentInParent<IInteractable>();
+                if (interactable == null) continue;
+                // CanInteract es del servidor: en el dueño solo se mira lo que se sabe aquí.
+                bool useful = interactable is LootPoint loot ? loot.LooksLootable : interactable.CanInteract(this);
+                if (!useful) continue;
+                // Hacia la estantería de verdad: entre su punto más cercano y su centro (si está dentro del
+                // trigger, el punto más cercano es él mismo y no giraría nada).
+                Vector3 closest = hit.ClosestPoint(origin);
+                Vector3 point = Vector3.Lerp(closest, hit.bounds.center, interactAssistCenterBias);
+                float score = AssistScore(origin, reference, point, interactAssistRange + hit.bounds.extents.magnitude,
+                    interactAssistAngle);
+                if (score < 0f || score >= bestScore) continue;
+                bestScore = score;
+                best = hit;
+                bestPoint = point;
+            }
+
+            // Mientras dura el gesto de coger no le gira el stick.
+            if (best != null) FaceAssistTarget(bestPoint, Mathf.Max(assistHoldTime, interactDuration));
+        }
+
         // ---------------- Inventario ----------------
 
         [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Owner)]
@@ -1456,7 +1775,16 @@ namespace Racoon.Player
         void ItemUsedRpc(int itemId)
         {
             ItemData item = inventory.Database.Get(itemId);
-            if (item != null) item.useSfx.Play(transform.position);
+            if (item != null)
+            {
+                // El sonido del objeto equipado solo suena localmente para el dueño
+                if (IsOwner)
+                {
+                    item.useSfx.Play(transform.position);
+                    AudioManager.Instance.PlaySFX(22);
+                }
+            }
+
             onItemUsed?.Invoke(item);
         }
 
@@ -1581,6 +1909,11 @@ namespace Racoon.Player
         [Rpc(SendTo.Owner, InvokePermission = RpcInvokePermission.Server)]
         void ItemStunRpc(float duration, bool slip)
         {
+            if (slip)
+            {
+                // 2. Sonido de dizzy al quedarse tirado por el plátano
+                AudioManager.Instance.PlaySFX(15);
+            }
             // Cancela cualquier golpe que estuviera preparando.
             punchHitTimer = -1f;
 
@@ -1651,6 +1984,11 @@ namespace Racoon.Player
         [Rpc(SendTo.Owner, InvokePermission = RpcInvokePermission.Server)]
         void EnergyDrinkRpc(float duration)
         {
+            if (IsOwner)
+            {
+                AudioManager.Instance.PlaySFX(11);
+            }
+
             infiniteDashActive = true;
             energyDrinkVisible.Value = true;
             infiniteDashTimer = Mathf.Max(infiniteDashTimer, duration);
@@ -1728,6 +2066,14 @@ namespace Racoon.Player
         [Rpc(SendTo.Everyone, InvokePermission = RpcInvokePermission.Owner)]
         void HitReactedRpc(ulong attackerObjectId, byte hitNumber, bool heavy, bool charged)
         {
+            if (IsOwner)
+            {
+                if (heavy)
+                {
+                    AudioManager.Instance.PlaySFX(15);
+
+                }
+            }
             PlayerController attacker = null;
             if (NetworkManager.SpawnManager.SpawnedObjects.TryGetValue(attackerObjectId, out NetworkObject attackerObject))
                 attackerObject.TryGetComponent(out attacker);
@@ -1745,8 +2091,15 @@ namespace Racoon.Player
             }
 
             onHitReceived?.Invoke(attacker);
-            if (heavy) onHeavyHit?.Invoke(attacker);
-            else onLightHit?.Invoke(attacker, hitNumber);
+            if (heavy)
+            {
+                onHeavyHit?.Invoke(attacker);
+            }
+            else
+            {
+                onLightHit?.Invoke(attacker, hitNumber);
+            }
+
         }
 
         // Rangos configurados (con el objeto seleccionado, también fuera de Play).

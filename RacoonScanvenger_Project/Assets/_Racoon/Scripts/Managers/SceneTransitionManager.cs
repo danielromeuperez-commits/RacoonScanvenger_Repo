@@ -161,6 +161,23 @@ public class SceneTransitionManager : MonoBehaviour
         return true;
     }
 
+    public IEnumerator FadeToBlack()
+    {
+        yield return FadeBlack(
+            blackFade != null ? blackFade.color.a : 0f,
+            1f,
+            blackFadeDuration
+        );
+    }
+
+    public IEnumerator FadeFromBlack()
+    {
+        yield return FadeBlack(
+            blackFade != null ? blackFade.color.a : 1f,
+            0f,
+            blackFadeDuration
+        );
+    }
     IEnumerator FadeBlack(float from, float to, float duration)
     {
         if (blackFade == null)

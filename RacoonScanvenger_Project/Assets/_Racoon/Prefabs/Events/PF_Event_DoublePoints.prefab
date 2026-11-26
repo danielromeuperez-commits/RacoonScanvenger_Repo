@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 8343685912269427571}
   - component: {fileID: 2524042027244304524}
   - component: {fileID: 8552347916122805552}
+  - component: {fileID: 4718203946615203391}
   m_Layer: 0
   m_Name: PF_Event_DoublePoints
   m_TagString: Untagged
@@ -76,3 +77,16 @@ MonoBehaviour:
   PopUpPanel: {fileID: 0}
   PopUpText: {fileID: 0}
   displayDuration: 5
+--- !u!114 &4718203946615203391
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2575152771452336082}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 83446aa9c2d44ce3aa10cbb620eb9086, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LootPointSync
+  ShowTopMostFoldoutHeaderGroup: 1

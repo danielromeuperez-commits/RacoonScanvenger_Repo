@@ -13,5 +13,7 @@ namespace Racoon.Gameplay
         public Sprite portrait;
         [Tooltip("Prefab del jugador (con NetworkObject). Debe estar en la Network Prefabs List del NetworkManager.")]
         public NetworkObject prefab;
+        [Tooltip("Bloqueado: sale en la selección oscurecido y con el candado, y no se puede confirmar.")]
+        public bool locked;
     }
 }

@@ -279,7 +279,7 @@ namespace Racoon.UI.HUD
             {
                 previous.Controller.ActionStarted -= actionHandlers[index];
                 previous.Controller.StateChanged -= stateHandlers[index];
-                if (previous.Controller.InputHandler) previous.Controller.InputHandler.UsePressed -= skipHandlers[index];
+                if (previous.Controller.InputHandler) previous.Controller.InputHandler.UsePressed -= skipHandlers[index]; previous.Controller.InputHandler.UseItemPressed -= skipHandlers[index];
             }
             bound[index] = null;
         }
@@ -321,7 +321,7 @@ namespace Racoon.UI.HUD
                 standing.Controller.StateChanged += stateHandlers[index];
                 // Solo el jugador de esta máquina puede saltarse su ruleta pulsando Usar
                 if (standing.Controller.IsOwner && standing.Controller.InputHandler)
-                    standing.Controller.InputHandler.UsePressed += skipHandlers[index];
+                    { standing.Controller.InputHandler.UsePressed += skipHandlers[index]; standing.Controller.InputHandler.UseItemPressed += skipHandlers[index]; }
                 OnState(index, standing.Controller.State);
             }
         }
@@ -413,7 +413,7 @@ namespace Racoon.UI.HUD
                     for (int id = 0; id < database.Count; id++)
                     {
                         var item = database.Get(id);
-                        if (item && item.icon) itemPool.Add(item);
+                        if (ItemModelIcons.Has(item)) itemPool.Add(item);
                     }
             }
             return itemPool;

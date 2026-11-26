@@ -13,7 +13,6 @@ Material:
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
   - DR_CEL_EXTRA_ON
-  - DR_ENABLE_LIGHTMAP_DIR
   - DR_OUTLINE_ON
   - DR_RIM_ON
   - DR_SPECULAR_ON
@@ -156,7 +155,7 @@ Material:
     - _OutlineEnabled: 1
     - _OutlineScale: 1
     - _OutlineSpace: 1
-    - _OutlineWidth: 0.5
+    - _OutlineWidth: 0.75
     - _OverrideLightmapDir: 0
     - _Parallax: 0.005
     - _QueueOffset: 0

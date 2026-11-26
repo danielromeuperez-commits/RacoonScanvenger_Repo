@@ -71,6 +71,9 @@ namespace Racoon.Player
         [SerializeField] SfxCue switchSfx = new();
 
         const int MaxArcDots = 36;
+        // Sin HUD (o si la ruleta no llega a arrancar), cuánto se espera antes de enseñarlo igualmente.
+        const float RevealGrace = 0.6f;
+        const float RevealTimeout = 6f;
         const float ArcMaxTime = 2f, ArcStep = 0.03f, ArcMarchSpeed = 1.2f;
 
         GameObject currentHeldVisual;
@@ -79,6 +82,9 @@ namespace Racoon.Player
         float heldPopStart = -99f;
         int lastCount;
         float aimHeldTime;
+        // El objeto recién cogido espera a que la ruleta del HUD lo descubra (solo el nuevo, no uno que ya llevaba).
+        bool heldAwaitingReveal, sawRouletteSpin, hiddenByMech;
+        float heldCreatedTime;
 
         // Apuntado (solo dueño)
         GameObject arcRoot;
@@ -102,6 +108,7 @@ namespace Racoon.Player
         public override void OnNetworkSpawn()
         {
             inventory.EquippedItemChanged += OnEquippedItemChanged;
+            inventory.ItemAdded += OnItemAdded;
 
             lastCount = inventory.Count;
             OnEquippedItemChanged(inventory.EquippedItem);
@@ -110,6 +117,7 @@ namespace Racoon.Player
         public override void OnNetworkDespawn()
         {
             inventory.EquippedItemChanged -= OnEquippedItemChanged;
+            inventory.ItemAdded -= OnItemAdded;
         }
 
         public override void OnDestroy()
@@ -122,15 +130,37 @@ namespace Racoon.Player
 
         // ---------------- Objeto en la mano ----------------
 
+        // Con el inventario vacío, la lista y el slot equipado llegan en dos avisos: primero el objeto entra (aún sin
+        // equipar, así que no se ve nada) y después se equipa, cuando el recuento ya no cambia. Por eso «recién
+        // cogido» se marca aquí y no solo comparando el recuento.
+        ItemData pendingReveal;
+
+        void OnItemAdded(int slot, ItemData item)
+        {
+            pendingReveal = item;
+            // Si el slot llegó antes que la lista, el modelo ya se ha creado este mismo instante: se oculta igual.
+            if (item == currentItem && currentHeldVisual != null && !heldAwaitingReveal && Time.time - heldCreatedTime < 0.2f)
+            {
+                heldAwaitingReveal = true;
+                sawRouletteSpin = false;
+                pendingReveal = null;
+            }
+        }
+
         void OnEquippedItemChanged(ItemData item)
         {
             int count = inventory.Count;
             bool used = count < lastCount;
+            bool picked = count > lastCount;
             lastCount = count;
 
             // El inventario puede avisar dos veces seguidas con el mismo objeto.
             if (item == currentItem && (currentHeldVisual != null || item == null))
+            {
+                // Ya llevaba uno equipado: el nuevo ha ido a otro hueco y no se ve hasta que cambie a él.
+                if (item != null) pendingReveal = null;
                 return;
+            }
 
             bool switched = !used && currentItem != null && item != null;
             if (switched)
@@ -152,6 +182,10 @@ namespace Racoon.Player
                 return;
 
             currentHeldVisual = InstantiateVisual(item.heldVisualPrefab);
+            heldAwaitingReveal = picked || item == pendingReveal;
+            pendingReveal = null;
+            sawRouletteSpin = false;
+            heldCreatedTime = Time.time;
             heldRestScale = currentHeldVisual.transform.localScale;
             StartCoroutine(AttachNextFrame(currentHeldVisual));
         }
@@ -199,6 +233,10 @@ namespace Racoon.Player
             visual.transform.localRotation = Quaternion.identity;
             Destroy(holder);
 
+            // Por si la pompa de visión lo marcó mientras aún no colgaba del jugador: lo de encima no se recorta.
+            foreach (Renderer r in visual.GetComponentsInChildren<Renderer>(true))
+                r.renderingLayerMask &= ~(1u << 30);
+
             heldPopStart = Time.time;
             ApplyHeldAnimation();
         }
@@ -215,6 +253,40 @@ namespace Racoon.Player
                 return;
 
             Transform held = currentHeldVisual.transform;
+
+            // Llevando un objeto mecánico (extintor, despertador) el de la caja está guardado; al entregarlo vuelve.
+            if (controller != null && controller.IsCarryingMech)
+            {
+                hiddenByMech = true;
+                held.localScale = Vector3.zero;
+                return;
+            }
+            if (hiddenByMech)
+            {
+                hiddenByMech = false;
+                heldPopStart = Time.time;
+            }
+
+            // Mientras la ruleta del HUD no lo ha descubierto, no se ve («sin definir»); al pararse entra con su pop.
+            // Espera a ver la ruleta girar y pararse (puede arrancar unos frames tarde). Sin HUD, o si no llega a
+            // girar, sale tras RevealGrace; RevealTimeout por si algo se queda colgado.
+            if (heldAwaitingReveal)
+            {
+                bool spinning = inventory != null && inventory.IsRouletteSpinning;
+                if (spinning) sawRouletteSpin = true;
+                float age = Time.time - heldCreatedTime;
+                bool hud = inventory != null && inventory.HasRouletteChecks;
+                bool revealed = sawRouletteSpin ? !spinning : age >= (hud ? RevealGrace : 0.1f);
+                if (!revealed && age < RevealTimeout)
+                {
+                    held.localScale = Vector3.zero;
+                    return;
+                }
+
+                heldAwaitingReveal = false;
+                heldPopStart = Time.time;
+            }
+
             float pop = FlatFx.OutBack((Time.time - heldPopStart) / equipPopTime, 2.2f);
             held.localScale = heldRestScale * pop;
 
@@ -274,7 +346,8 @@ namespace Racoon.Player
 
         void UpdateAim()
         {
-            bool aiming = controller != null && (controller.IsAimingItem || controller.IsAimingTarget);
+            // Solo al apuntar a mano: el toque rápido (autoapuntado) no enseña arco.
+            bool aiming = controller != null && controller.IsAimingTarget;
             aimHeldTime = aiming ? aimHeldTime + Time.deltaTime : 0f;
             bool show = aiming && aimHeldTime >= aimArrowDelay;
 

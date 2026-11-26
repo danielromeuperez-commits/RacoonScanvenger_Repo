@@ -61,8 +61,18 @@ namespace Racoon.Player
         /// </summary>
         public bool IsRouletteSpinning => rouletteChecks.Exists(check => check());
 
+        /// <summary>Hay algún HUD enseñando la ruleta de este jugador.</summary>
+        public bool HasRouletteChecks => rouletteChecks.Count > 0;
+
         public void AddRouletteCheck(Func<bool> check) => rouletteChecks.Add(check);
         public void RemoveRouletteCheck(Func<bool> check) => rouletteChecks.Remove(check);
+
+        /// <summary>¿Ya lleva este objeto? (no se repiten objetos en el inventario).</summary>
+        public bool Contains(ItemData item)
+        {
+            int id = database != null && item != null ? database.GetId(item) : -1;
+            return id >= 0 && items.Contains(id);
+        }
 
         public ItemData GetItemAt(int slot) => slot >= 0 && slot < items.Count ? database.Get(items[slot]) : null;
 
@@ -144,6 +154,9 @@ namespace Racoon.Player
                 Debug.LogWarning($"{item} no está en la ItemDatabase", this);
                 return false;
             }
+
+            // Sin repetidos: cada jugador lleva como mucho uno de cada.
+            if (items.Contains(id)) return false;
 
             items.Add(id);
             if (autoEquipOnPickup && !HasEquipped) equippedSlot.Value = items.Count - 1;

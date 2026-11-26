@@ -209,7 +209,8 @@ namespace Racoon.VFX
 
         public void SetMode(WindMode mode)
         {
-            if (mode == Mode) return;
+            // Objeto desactivado (Awake sin ejecutar): no hay estelas que mover.
+            if (states == null || mode == Mode) return;
             WindMode previous = Mode;
             Mode = mode;
 

@@ -172,7 +172,7 @@ namespace Racoon.UI
             hideTime = -1f;
             shownFill = 0f;
             punch = 0f;
-            if (labelText != null) labelText.SetText(label);
+            if (labelText != null) labelText.SetText(Localization.Loc.T("hud.mash"));
             OnKindChanged(input != null ? input.ActiveKind : InputDeviceKind.KeyboardMouse);
         }
 
@@ -187,7 +187,7 @@ namespace Racoon.UI
             if (!visible) return;
             hideTime = Time.time;
             punch = 1f;
-            if (labelText != null) labelText.SetText(doneLabel);
+            if (labelText != null) labelText.SetText(Localization.Loc.T("hud.mashdone"));
         }
 
         void OnKindChanged(InputDeviceKind kind)

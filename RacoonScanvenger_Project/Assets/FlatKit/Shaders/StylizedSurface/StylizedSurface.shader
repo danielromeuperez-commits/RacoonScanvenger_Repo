@@ -346,9 +346,13 @@
                 return o;
             }
 
+            // RACOON: pompa de visión (ver Assets/_Racoon/Visuals/Shaders/RacoonBubble.hlsl).
+            #include "Assets/_Racoon/Visuals/Shaders/RacoonBubble.hlsl"
+
             half4 FragmentProgram(VertexOutput i) : SV_TARGET
             {
                 UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
+                RacoonBubbleClipCS(i.position);
                 half4 color = _OutlineColor;
                 color.rgb = MixFog(color.rgb, i.fogCoord);
                 return color;
@@ -497,7 +501,7 @@
 
             HLSLPROGRAM
             #pragma vertex DepthOnlyVertex
-            #pragma fragment DepthOnlyFragment
+            #pragma fragment RacoonDepthOnlyFragment
 
             // -------------------------------------
             // Material Keywords
@@ -520,6 +524,13 @@
 
             #include "LibraryUrp/StylizedInput.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/Shaders/DepthOnlyPass.hlsl"
+            // RACOON: pompa de visión (ver Assets/_Racoon/Visuals/Shaders/RacoonBubble.hlsl).
+            #include "Assets/_Racoon/Visuals/Shaders/RacoonBubble.hlsl"
+            half RacoonDepthOnlyFragment(Varyings input) : SV_TARGET
+            {
+                RacoonBubbleClipCS(input.positionCS);
+                return DepthOnlyFragment(input);
+            }
 
 			/* start CurvedWorld */
 			//#define CURVEDWORLD_BEND_TYPE_CLASSICRUNNER_X_POSITIVE
@@ -543,7 +554,7 @@
 
             HLSLPROGRAM
             #pragma vertex DepthNormalsVertex
-            #pragma fragment DepthNormalsFragment
+            #pragma fragment RacoonDepthNormalsFragment
 
             // -------------------------------------
             // Material Keywords
@@ -569,6 +580,21 @@
 
             #include "LibraryUrp/StylizedInput.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/Shaders/DepthNormalsPass.hlsl"
+            // RACOON: pompa de visión (ver Assets/_Racoon/Visuals/Shaders/RacoonBubble.hlsl).
+            #include "Assets/_Racoon/Visuals/Shaders/RacoonBubble.hlsl"
+            void RacoonDepthNormalsFragment(Varyings input, out half4 outNormalWS : SV_Target0
+            #ifdef _WRITE_RENDERING_LAYERS
+                , out uint outRenderingLayers : SV_Target1
+            #endif
+            )
+            {
+                RacoonBubbleClipCS(input.positionCS);
+                #ifdef _WRITE_RENDERING_LAYERS
+                    DepthNormalsFragment(input, outNormalWS, outRenderingLayers);
+                #else
+                    DepthNormalsFragment(input, outNormalWS);
+                #endif
+            }
 
 			/* start CurvedWorld */
 			//#define CURVEDWORLD_BEND_TYPE_CLASSICRUNNER_X_POSITIVE

@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 77d432e62ab94712915bcea936f4eafc, type: 3}
+  m_Name: OcclusionBubbleSettings
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.VFX.OcclusionBubbleSettings
+  includedLayers:
+    serializedVersion: 2
+    m_Bits: 65
+  radius: 0.95
+  edge: 0.35
+  frontMargin: 0.45
+  chestHeight: 0.45
+  rescanInterval: 3
+  litBubbleShader: {fileID: 4800000, guid: e2deb07fa6d542ca9aff1b8ba18dbe92, type: 3}

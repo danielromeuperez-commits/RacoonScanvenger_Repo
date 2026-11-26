@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4b95c968f6254721a3c11e2c2ebdfbf0, type: 3}
+  m_Name: LOOT_Epica
+  m_EditorClassIdentifier: Assembly-CSharp::LootRarityPreset
+  displayName: "Épica"
+  pointsPerItem: 14
+  weightPerItem: 1.5
+  minItems: 3
+  maxItems: 5
+  respawnTimeMin: 180
+  respawnTimeMax: 200
+  normalCooldown: 0.15
+  maxDoublePointsCollections: 6
+  doublePointsCooldown: 1.5

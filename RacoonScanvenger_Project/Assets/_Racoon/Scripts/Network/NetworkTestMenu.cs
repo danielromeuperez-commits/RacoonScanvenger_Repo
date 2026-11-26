@@ -10,6 +10,7 @@ using Unity.Services.Authentication;
 using Unity.Services.Core;
 using Unity.Services.Multiplayer;
 using Racoon.Player;
+using Racoon.UI.Localization;
 using UnityEngine;
 
 namespace Racoon.Network
@@ -103,7 +104,7 @@ namespace Racoon.Network
             if (!networkManager.IsServer && clientId == networkManager.LocalClientId)
             {
                 string reason = networkManager.DisconnectReason;
-                status = string.IsNullOrEmpty(reason) ? "Desconectado del host." : $"Desconectado: {reason}";
+                status = string.IsNullOrEmpty(reason) ? Loc.T("net.disconnectedhost") : Loc.F("net.disconnected.reason", reason);
             }
         }
 
@@ -152,6 +153,25 @@ namespace Racoon.Network
 
         /// <summary>Sale de la partida (local u online) y apaga la red.</summary>
         public void LeaveGame() => Disconnect();
+
+        /// <summary>Busca partidas online públicas de esta misma versión. El resultado sale en <see cref="FoundSessions"/>.</summary>
+        public void SearchOnlineGames() => SearchSessions();
+
+        /// <summary>Partidas de la última búsqueda (null si aún no se ha buscado).</summary>
+        public IList<ISessionInfo> FoundSessions => foundSessions;
+
+        /// <summary>Se puede entrar en esta partida (hay hueco, no está cerrada ni tiene contraseña).</summary>
+        public static bool CanJoin(ISessionInfo info) =>
+            info != null && info.AvailableSlots > 0 && !info.IsLocked && !info.HasPassword;
+
+        /// <summary>Se une a la partida número <paramref name="index"/> de <see cref="FoundSessions"/>.</summary>
+        public void JoinFoundGame(int index)
+        {
+            if (foundSessions == null || index < 0 || index >= foundSessions.Count) return;
+            ISessionInfo info = foundSessions[index];
+            if (!CanJoin(info)) return;
+            JoinFoundSession(info);
+        }
 
         // El personaje elegido viaja al host dentro de los datos de conexión.
         void ApplySelection() => spawnManager.SetLocalSelection(selectedCharacter);
@@ -209,7 +229,7 @@ namespace Racoon.Network
             string address = joinAddress.Trim();
             if (!IPAddress.TryParse(address, out _))
             {
-                status = "IP no válida.";
+                status = Loc.T("net.invalidip");
                 return;
             }
 
@@ -218,11 +238,11 @@ namespace Racoon.Network
             if (networkManager.StartClient())
             {
                 LogNetworkConfig("Cliente");
-                status = $"Conectando a {address}:{port}...";
+                status = Loc.F("net.connectingto", address, port);
             }
             else
             {
-                status = "No se pudo iniciar el cliente.";
+                status = Loc.T("net.clientfailed");
             }
         }
 
@@ -285,7 +305,7 @@ namespace Racoon.Network
 
         async void StartOnlineHost()
         {
-            await RunBusy("Creando partida online...", async () =>
+            await RunBusy(Loc.T("net.creatingonline"), async () =>
             {
                 await EnsureSignedInAsync();
                 ApplySelection();
@@ -303,7 +323,7 @@ namespace Racoon.Network
                 }.WithRelayNetwork();
                 // La sesión configura el transporte con Relay y llama a StartHost por nosotros.
                 SetSession(await MultiplayerService.Instance.CreateSessionAsync(options));
-                status = $"Partida \"{session.Name}\" creada. Código: {session.Code}";
+                status = Loc.F("net.created", session.Name, session.Code);
             });
         }
 
@@ -312,17 +332,17 @@ namespace Racoon.Network
             string code = joinCode.Trim().ToUpperInvariant();
             if (code.Length == 0)
             {
-                status = "Escribe el código de la partida.";
+                status = Loc.T("net.entercode");
                 return;
             }
 
-            await RunBusy("Uniéndose...", async () =>
+            await RunBusy(Loc.T("net.joining"), async () =>
             {
                 await EnsureSignedInAsync();
                 ApplySelection();
                 // Configura Relay y llama a StartClient por nosotros.
                 SetSession(await MultiplayerService.Instance.JoinSessionByCodeAsync(code));
-                status = $"Unido a \"{session.Name}\" ({session.Code})";
+                status = Loc.F("net.joined", session.Name, session.Code);
             });
         }
 
@@ -357,7 +377,7 @@ namespace Racoon.Network
             if (this == null) return;
             SetSession(null);
             if (networkManager.IsListening) networkManager.Shutdown();
-            status = "La partida se ha cerrado.";
+            status = Loc.T("net.closed");
         }
 
         async Task LeaveSessionAsync()
@@ -381,7 +401,7 @@ namespace Racoon.Network
 
         async void SearchSessions()
         {
-            await RunBusy("Buscando partidas...", async () =>
+            await RunBusy(Loc.T("net.searching"), async () =>
             {
                 await EnsureSignedInAsync();
                 var options = new QuerySessionsOptions();
@@ -389,30 +409,30 @@ namespace Racoon.Network
                 QuerySessionsResults results = await MultiplayerService.Instance.QuerySessionsAsync(options);
                 foundSessions = results.Sessions;
                 sessionListScroll = Vector2.zero;
-                status = foundSessions.Count == 0 ? "No hay partidas públicas." : $"{foundSessions.Count} partida(s) encontrada(s).";
+                status = foundSessions.Count == 0 ? Loc.T("net.nopublic") : Loc.F("net.found", foundSessions.Count);
             });
         }
 
         async void JoinFoundSession(ISessionInfo info)
         {
-            await RunBusy($"Uniéndose a \"{info.Name}\"...", async () =>
+            await RunBusy(Loc.F("net.joiningnamed", info.Name), async () =>
             {
                 await EnsureSignedInAsync();
                 ApplySelection();
                 SetSession(await MultiplayerService.Instance.JoinSessionByIdAsync(info.Id));
                 foundSessions = null;
-                status = $"Unido a \"{session.Name}\" ({session.Code})";
+                status = Loc.F("net.joined", session.Name, session.Code);
             });
         }
 
         async void Disconnect()
         {
-            await RunBusy("Saliendo...", async () =>
+            await RunBusy(Loc.T("net.leaving"), async () =>
             {
                 await LeaveSessionAsync();
                 if (networkManager.IsListening) networkManager.Shutdown();
                 localAddresses = null;
-                status = "Desconectado.";
+                status = Loc.T("net.disconnected");
             });
         }
 
@@ -428,7 +448,7 @@ namespace Racoon.Network
             catch (Exception exception)
             {
                 Debug.LogException(exception);
-                status = $"Error: {FriendlyError(exception)}";
+                status = Loc.F("net.error", FriendlyError(exception));
                 // Si algo falló a medias (p. ej. la sesión se creó pero Relay no), no dejamos la red a medio abrir.
                 if (session == null && networkManager != null && networkManager.IsListening) networkManager.Shutdown();
             }
@@ -450,11 +470,12 @@ namespace Racoon.Network
             Event current = Event.current;
             if (current.type == EventType.KeyDown && current.keyCode == toggleKey)
             {
+                AudioManager.Instance.PauseMusic();
                 hidden = !hidden;
                 current.Use();
             }
             if (hidden) return;
-
+            AudioManager.Instance.PlayMusic(2);
             float scale = Scale;
             GUI.matrix = Matrix4x4.Scale(new Vector3(scale, scale, 1f));
 

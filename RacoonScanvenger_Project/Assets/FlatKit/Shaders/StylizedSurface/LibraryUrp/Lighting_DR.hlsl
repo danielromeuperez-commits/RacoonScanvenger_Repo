@@ -143,6 +143,22 @@ void StylizeLight(inout Light light)
     light.color = lightColor;
 }
 
+#if defined(RACOON_URP_LAYER_LIGHTS)
+// Racoon: las luces puntuales/foco cuya Light Layer es _UrpLightLayer iluminan como en URP Lit (difuso + especular
+// PBR, con su caída y sombras reales), sin cel shading y aunque el renderer no tenga esa capa. El resto de luces,
+// igual que siempre (las de esa capa no afectan con cel shading).
+inline bool RacoonIsUrpLight(Light light)
+{
+    return (light.layerMask & (1u << (uint)_UrpLightLayer)) != 0u;
+}
+
+inline half3 RacoonUrpLight(BRDFData brdfData, Light light, InputData inputData)
+{
+    light.shadowAttenuation = lerp(1.0h, light.shadowAttenuation, _UrpLightShadows);
+    return LightingPhysicallyBased(brdfData, light, inputData.normalWS, inputData.viewDirectionWS) * _UrpLightIntensity;
+}
+#endif
+
 half4 UniversalFragment_DSTRM(InputData inputData, SurfaceData surfaceData, float2 uv)
 {
     const half4 shadowMask = CalculateShadowMask(inputData);
@@ -206,6 +222,11 @@ half4 UniversalFragment_DSTRM(InputData inputData, SurfaceData surfaceData, floa
     BRDFData brdfData;
     InitializeBRDFData(brdf, 1.0 - 1.0 / kDielectricSpec.a, 0, 0, surfaceData.alpha, brdfData);
     half3 color = GlobalIllumination(brdfData, inputData.bakedGI, 1.0, inputData.normalWS, inputData.viewDirectionWS);
+    #if defined(RACOON_URP_LAYER_LIGHTS)
+    BRDFData urpBrdfData;
+    half urpAlpha = surfaceData.alpha;
+    InitializeBRDFData(brdf, 0.0h, half3(0.0h, 0.0h, 0.0h), _UrpLightSmoothness, urpAlpha, urpBrdfData);
+    #endif
     #if VERSION_GREATER_EQUAL(12, 0)
     #ifdef _LIGHT_LAYERS
     if (IsMatchingLightLayer(mainLight.layerMask, meshRenderingLayers))
@@ -222,6 +243,12 @@ half4 UniversalFragment_DSTRM(InputData inputData, SurfaceData surfaceData, floa
         FLATKIT_CLUSTER_LIGHT_LOOP_SUBTRACTIVE_LIGHT_CHECK
 
         Light light = GetAdditionalLight(lightIndex, inputData.positionWS, shadowMask);//, aoFactor);
+        #if defined(RACOON_URP_LAYER_LIGHTS)
+        if (RacoonIsUrpLight(light))
+            color += RacoonUrpLight(urpBrdfData, light, inputData);
+        else
+        #endif
+        {
         StylizeLight(light);
 
         #ifdef _LIGHT_LAYERS
@@ -230,11 +257,18 @@ half4 UniversalFragment_DSTRM(InputData inputData, SurfaceData surfaceData, floa
         {
             color += LightingPhysicallyBased_DSTRM(light, inputData);
         }
+        }
     }
     #endif
 
     LIGHT_LOOP_BEGIN(pixelLightCount)
         Light light = GetAdditionalLight(lightIndex, inputData.positionWS, shadowMask);//, aoFactor);
+    #if defined(RACOON_URP_LAYER_LIGHTS)
+    if (RacoonIsUrpLight(light))
+        color += RacoonUrpLight(urpBrdfData, light, inputData);
+    else
+    #endif
+    {
         StylizeLight(light);
 
     #ifdef _LIGHT_LAYERS
@@ -242,6 +276,7 @@ half4 UniversalFragment_DSTRM(InputData inputData, SurfaceData surfaceData, floa
         #endif
     {
         color += LightingPhysicallyBased_DSTRM(light, inputData);
+    }
     }
     LIGHT_LOOP_END
     #endif

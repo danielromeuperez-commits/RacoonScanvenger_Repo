@@ -61,13 +61,22 @@
                     "initialStateCheck": false
                 },
                 {
-                    "name": "Aim",
+                    "name": "UseItem",
                     "type": "Button",
-                    "id": "e7a1d3c5-6b2f-4d80-a3e9-5c7b1f9d2e46",
+                    "id": "2e7d82e4-bb5b-454e-9444-a92794c8013c",
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
+                },
+                {
+                    "name": "AimStick",
+                    "type": "Value",
+                    "id": "1d458f2a-ce9f-4d72-8a08-8e3eba656006",
+                    "expectedControlType": "Vector2",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
                 }
             ],
             "bindings": [
@@ -260,23 +269,34 @@
                 },
                 {
                     "name": "",
-                    "id": "f3b9c1e7-4a6d-4c52-8e1f-9d3a7b5c0f68",
-                    "path": "<Gamepad>/leftTrigger",
+                    "id": "86fef347-a5bd-4823-94d4-e07fcdbd0b89",
+                    "path": "<Mouse>/rightButton",
                     "interactions": "",
                     "processors": "",
-                    "groups": "Gamepad",
-                    "action": "Aim",
+                    "groups": "Keyboard&Mouse",
+                    "action": "UseItem",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
                 {
                     "name": "",
-                    "id": "a8d4e2f6-1c7b-49e3-b5a0-3f6e8c2d7a91",
-                    "path": "<Mouse>/rightButton",
+                    "id": "1e32faa8-35a0-466e-9f0f-29cc9a06fdf7",
+                    "path": "<Gamepad>/rightShoulder",
                     "interactions": "",
                     "processors": "",
-                    "groups": "Keyboard&Mouse",
-                    "action": "Aim",
+                    "groups": "Gamepad",
+                    "action": "UseItem",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "166cafd4-44fd-49fe-997d-30fe835e5b48",
+                    "path": "<Gamepad>/rightStick",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Gamepad",
+                    "action": "AimStick",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

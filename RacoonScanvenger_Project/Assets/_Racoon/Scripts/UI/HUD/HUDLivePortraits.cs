@@ -80,11 +80,11 @@ namespace Racoon.UI.HUD
             crane.model = animator ? animator.transform : player.transform;
             int layer = number == 1 ? layerP1 : layerP2;
 
-            // Solo las mallas del modelo (ni partículas ni estelas ni colisionadores)
+            // Solo las mallas del modelo y sus ojos (ni partículas ni estelas ni colisionadores)
             var bounds = new Bounds(crane.model.position, Vector3.zero);
             foreach (var renderer in crane.model.GetComponentsInChildren<Renderer>(true))
             {
-                if (renderer is not (SkinnedMeshRenderer or MeshRenderer)) continue;
+                if (renderer is not (SkinnedMeshRenderer or MeshRenderer or SpriteRenderer)) continue; // SpriteRenderer: los ojos
                 if (renderer.GetComponent<Collider>()) continue;
                 crane.moved.Add((renderer.gameObject, renderer.gameObject.layer));
                 crane.sourceMask |= 1 << renderer.gameObject.layer;

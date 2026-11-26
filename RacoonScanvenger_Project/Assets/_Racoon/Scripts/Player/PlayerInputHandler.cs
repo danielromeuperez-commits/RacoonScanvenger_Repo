@@ -35,8 +35,14 @@ namespace Racoon.Player
 
         public bool InteractHeld { get; private set; }
         public bool DashHeld { get; private set; }
-        /// <summary>Apuntar: el stick mueve el punto de caída del objeto en vez de al jugador.</summary>
-        public bool AimHeld { get; private set; }
+        /// <summary>Botón de objeto mantenido (clic derecho / RB).</summary>
+        public bool UseItemHeld { get; private set; }
+        /// <summary>Stick derecho del mando: punto de caída al apuntar a mano.</summary>
+        public Vector2 AimStick { get; private set; }
+        /// <summary>Teclado+ratón: se apunta con el cursor.</summary>
+        public bool UsingMouse => PairedDevice is Keyboard || PairedDevice is Mouse;
+        /// <summary>Posición del cursor en pantalla (píxeles).</summary>
+        public Vector2 PointerPosition => Mouse.current != null ? Mouse.current.position.ReadValue() : Vector2.zero;
 
         /// <summary>Dispositivo que controla a este jugador (null si aún no se ha elegido).</summary>
         public InputDevice PairedDevice { get; private set; }
@@ -49,6 +55,8 @@ namespace Racoon.Player
         public event Action UsePressed;
         public event Action UseStarted;
         public event Action UseReleased;
+        /// <summary>Botón de objeto (clic derecho / RB). Separado de golpear.</summary>
+        public event Action UseItemPressed;
 
         public bool UseHeld { get; private set; }      // Botón oeste
         public event Action DashPressed;               // Botón este / Espacio
@@ -59,7 +67,7 @@ namespace Racoon.Player
 
         InputActionAsset runtimeActions;
         InputActionMap map;
-        InputAction moveAction, runAction, interactAction, switchItemAction, useAction, dashAction, aimAction;
+        InputAction moveAction, runAction, interactAction, switchItemAction, useAction, dashAction, useItemAction, aimStickAction;
         bool listening;
         bool inputEnabled;
 
@@ -78,6 +86,7 @@ namespace Racoon.Player
                 useAction.performed += OnUse;
                 useAction.canceled += OnUseReleased;
                 dashAction.performed += OnDash;
+                useItemAction.started += OnUseItem;
                 InputSystem.onDeviceChange += OnDeviceChange;
 
                 if (deviceAssignment == DeviceAssignment.AllDevices)
@@ -106,6 +115,7 @@ namespace Racoon.Player
                 useAction.performed -= OnUse;
                 useAction.canceled -= OnUseReleased;
                 dashAction.performed -= OnDash;
+                useItemAction.started -= OnUseItem;
                 InputSystem.onDeviceChange -= OnDeviceChange;
                 StopListening();
                 map.Disable();
@@ -124,7 +134,8 @@ namespace Racoon.Player
             switchItemAction = map.FindAction("SwitchItem", true);
             useAction = map.FindAction("Use", true);
             dashAction = map.FindAction("Dash", true);
-            aimAction = map.FindAction("Aim", true);
+            useItemAction = map.FindAction("UseItem", true);
+            aimStickAction = map.FindAction("AimStick", true);
         }
 
         // ---------------- Dispositivo activo ----------------
@@ -209,7 +220,8 @@ namespace Racoon.Player
             RunHeld = runAction.IsPressed();
             InteractHeld = interactAction.IsPressed();
             DashHeld = dashAction.IsPressed();
-            AimHeld = aimAction.IsPressed();
+            UseItemHeld = useItemAction.IsPressed();
+            AimStick = Vector2.ClampMagnitude(aimStickAction.ReadValue<Vector2>(), 1f);
         }
 
         void ResetValues()
@@ -219,7 +231,8 @@ namespace Racoon.Player
             RunHeld = false;
             InteractHeld = false;
             DashHeld = false;
-            AimHeld = false;
+            UseItemHeld = false;
+            AimStick = Vector2.zero;
         }
 
         void OnInteract(InputAction.CallbackContext _) =>
@@ -246,6 +259,8 @@ namespace Racoon.Player
         }
 
         void OnDash(InputAction.CallbackContext _) => DashPressed?.Invoke();
+
+        void OnUseItem(InputAction.CallbackContext _) => UseItemPressed?.Invoke();
 
         void OnDestroy()
         {

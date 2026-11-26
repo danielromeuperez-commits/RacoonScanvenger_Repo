@@ -54,6 +54,16 @@ namespace Racoon.Items
         /// Igual que <see cref="TryGetThrow"/>, para que caiga en <paramref name="target"/> (se ajusta al alcance).
         /// Lo usan el servidor y el arco de apuntado: siempre coinciden.
         /// </summary>
+        /// <summary>
+        /// Segundos que tarda en caer en <paramref name="target"/> (para que el autoapuntado se adelante al rival).
+        /// false = este objeto no se lanza.
+        /// </summary>
+        public virtual bool TryGetFlightTime(PlayerController user, Vector3 target, out float flightTime)
+        {
+            flightTime = 0f;
+            return false;
+        }
+
         public virtual bool TryGetThrowAt(PlayerController user, Vector3 target, out Vector3 spawnPosition, out Vector3 velocity)
         {
             spawnPosition = velocity = Vector3.zero;

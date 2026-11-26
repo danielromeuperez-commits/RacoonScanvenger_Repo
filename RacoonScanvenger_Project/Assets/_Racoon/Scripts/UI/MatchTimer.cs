@@ -286,29 +286,9 @@ public class MatchTimer : NetworkBehaviour
             return;
         }
 
-        // Si ha habido empate, los dos jugadores
-        // muestran directamente el panel de empate.
-        if (draw)
-        {
-            MatchResultUI.Instance.ShowDraw();
-            return;
-        }
-
-        // Cada PC comprueba si su ClientId
-        // coincide con el jugador que ha ganado.
-        bool localPlayerWon =
-            NetworkManager.Singleton != null &&
-            NetworkManager.Singleton.LocalClientId ==
-            winnerClientId;
-
-        if (localPlayerWon)
-        {
-            MatchResultUI.Instance.ShowVictory();
-        }
-        else
-        {
-            MatchResultUI.Instance.ShowDefeat();
-        }
+        // Cada PC monta su pantalla: ganador, perdedor (o empate)
+        // y los personajes de los dos jugadores.
+        MatchResultUI.Instance.ShowResult(winnerClientId, draw);
     }
 
     void OnMatchFinishedChanged(

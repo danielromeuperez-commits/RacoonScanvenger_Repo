@@ -268,9 +268,14 @@ namespace Racoon.Player
         {
             if (!IsLocal) return;
             if (victim == controller)
+            {
+                AudioManager.Instance.PlaySFX(3);
                 Play(lightHit, 1f + comboStep * Mathf.Max(0, hitNumber - 1), MatchCameraFX.PlayerColor(attacker));
+            }
             else if (attacker == controller)
+            {
                 Play(hitConfirm, 1f + 0.25f * Mathf.Max(0, hitNumber - 1));
+            }
         }
 
         void OnHeavyHit(PlayerController victim, PlayerController attacker)
@@ -278,6 +283,7 @@ namespace Racoon.Player
             if (!IsLocal) return;
             if (victim == controller)
             {
+                AudioManager.Instance.PlaySFX(8);
                 Play(heavyHit, 1f, MatchCameraFX.PlayerColor(attacker));
                 Play(heavyImpactFrame);
             }

@@ -103,7 +103,7 @@ public class eventSpawnItem : NetworkBehaviour, IGameEvent
     [ClientRpc]
     void TriggerSpawnClientRpc(string itemName)
     {
-        GameEventAnnouncer.Announce(this, title, string.Format(subtitle, itemName.ToLowerInvariant()), accent, colorSkin);
+        GameEventAnnouncer.Announce(this, Racoon.UI.Localization.Loc.T("event.banana.title"), Racoon.UI.Localization.Loc.F("event.banana.subtitle", itemName.ToLowerInvariant()), accent, colorSkin);
     }
 
     // Dibuja esferas verdes en TODOS los puntos configurados para que los veas en la escena

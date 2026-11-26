@@ -15,8 +15,8 @@ TagManager:
   - Hitable
   - Player
   - Nonvisible
-  - 
-  - 
+  - Nontransparent
+  - FlatkitLight
   - 
   - 
   - 
@@ -50,3 +50,7 @@ TagManager:
   - Light Layer 5
   - Light Layer 6
   - Light Layer 7
+  - Light Layer 8
+  - Light Layer 9
+  - Light Layer 10
+  - FlatkitLight

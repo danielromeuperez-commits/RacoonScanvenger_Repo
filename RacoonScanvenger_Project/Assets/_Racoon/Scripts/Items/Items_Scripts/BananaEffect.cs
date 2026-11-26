@@ -128,30 +128,43 @@ namespace Racoon.Items
         }
 
         // Mismo ángulo de salida que el lanzamiento normal: lo que cambia con la distancia es la fuerza.
+        public override bool TryGetFlightTime(PlayerController user, Vector3 target, out float flightTime)
+        {
+            Solve(user, target, out _, out _, out _, out _, out flightTime);
+            return true;
+        }
+
         public override bool TryGetThrowAt(PlayerController user, Vector3 target, out Vector3 spawnPosition, out Vector3 velocity)
+        {
+            Solve(user, target, out spawnPosition, out Vector3 direction, out float flat, out float drop, out float flightTime);
+            float gravity = -Physics.gravity.y;
+
+            velocity = direction * (flat / flightTime) +
+                       Vector3.up * ((0.5f * gravity * flightTime * flightTime - drop) / flightTime);
+            return true;
+        }
+
+        void Solve(PlayerController user, Vector3 target, out Vector3 spawnPosition, out Vector3 direction,
+                   out float flat, out float drop, out float flightTime)
         {
             Vector3 origin = user.transform.position;
             Vector3 offset = Vector3.ProjectOnPlane(target - origin, Vector3.up);
             float distance = offset.magnitude;
-            Vector3 direction = distance > 0.01f ? offset / distance : Forward(user);
+            direction = distance > 0.01f ? offset / distance : Forward(user);
 
             // El servidor también pasa por aquí: un punto fuera del círculo no llega más lejos.
             distance = Mathf.Clamp(distance, minAimRange, maxAimRange);
             spawnPosition = origin + direction * spawnForwardDistance + Vector3.up * spawnHeight;
 
             float landingY = GroundHeight(origin + direction * distance, origin.y);
-            float drop = spawnPosition.y - landingY;
-            float flat = Mathf.Max(0f, distance - spawnForwardDistance);
+            drop = spawnPosition.y - landingY;
+            flat = Mathf.Max(0f, distance - spawnForwardDistance);
             float gravity = -Physics.gravity.y;
 
-            float flightTime = Mathf.Max(
+            flightTime = Mathf.Max(
                 MinFlightTime,
                 Mathf.Sqrt(Mathf.Max(0f, 2f * (flat * upwardSpeed / throwSpeed + drop) / gravity))
             );
-
-            velocity = direction * (flat / flightTime) +
-                       Vector3.up * ((0.5f * gravity * flightTime * flightTime - drop) / flightTime);
-            return true;
         }
 
         // Dirección horizontal hacia la que mira el jugador.
