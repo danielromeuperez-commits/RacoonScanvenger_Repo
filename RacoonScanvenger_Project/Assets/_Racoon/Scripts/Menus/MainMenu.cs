@@ -9,6 +9,11 @@ public class MainMenu : MonoBehaviour
     [Header("Escenas")]
     [SerializeField] string gameSceneName = "SCN_Level_Polish";
 
+    [Header("Selección de modo")]
+    [SerializeField] GameObject mainButtons;
+    [SerializeField] GameObject gameModePanel;
+    [SerializeField] Button firstGameModeButton;
+
     [Header("Navegación")]
     [Tooltip("Primer botón que se seleccionará al empezar a usar mando o teclado.")]
     [SerializeField] Button firstSelectedButton;
@@ -194,11 +199,16 @@ public class MainMenu : MonoBehaviour
         if (EventSystem.current == null)
             return;
 
+        Button buttonToSelect = gameModePanel.activeInHierarchy
+    ? firstGameModeButton
+    : firstSelectedButton;
+
         if (EventSystem.current.currentSelectedGameObject == null &&
-            firstSelectedButton != null)
+            buttonToSelect != null &&
+            buttonToSelect.gameObject.activeInHierarchy)
         {
             EventSystem.current.SetSelectedGameObject(
-                firstSelectedButton.gameObject
+                buttonToSelect.gameObject
             );
         }
     }
@@ -207,28 +217,66 @@ public class MainMenu : MonoBehaviour
     // PLAY
     // ============================================================
 
-    public void Play()
+public void Play()
+{
+    if (AudioManager.Instance != null)
+        AudioManager.Instance.PlaySFX(23);
+
+    mainButtons.SetActive(false);
+    gameModePanel.SetActive(true);
+
+    SelectMenuButton(firstGameModeButton);
+}
+
+// ============================================================
+// VOLVER AL MENÚ PRINCIPAL
+// ============================================================
+
+public void BackToMainMenu()
+{
+    if (AudioManager.Instance != null)
+        AudioManager.Instance.PlaySFX(23);
+
+    gameModePanel.SetActive(false);
+    mainButtons.SetActive(true);
+
+    SelectMenuButton(firstSelectedButton);
+}
+
+// ============================================================
+// MULTIJUGADOR
+// ============================================================
+
+public void Multiplayer()
+{
+    if (AudioManager.Instance != null)
+        AudioManager.Instance.PlaySFX(23);
+
+    if (SceneTransitionManager.Instance != null)
     {
-        if (AudioManager.Instance != null)
-        {
-            AudioManager.Instance.PlaySFX(23);
-        }
-
-        if (SceneTransitionManager.Instance != null)
-        {
-            SceneTransitionManager.Instance
-                .LoadSceneWithDiagonalWipe(gameSceneName);
-        }
-        else
-        {
-            Debug.LogWarning(
-                "MainMenu: no se encontró SceneTransitionManager. " +
-                "Cargando la escena sin transición."
-            );
-
-            SceneManager.LoadScene(gameSceneName);
-        }
+        SceneTransitionManager.Instance
+            .LoadSceneWithDiagonalWipe(gameSceneName);
     }
+    else
+    {
+        SceneManager.LoadScene(gameSceneName);
+    }
+}
+
+// ============================================================
+// SELECCIONAR BOTÓN
+// ============================================================
+
+void SelectMenuButton(Button button)
+{
+    if (EventSystem.current == null)
+        return;
+
+    EventSystem.current.SetSelectedGameObject(null);
+
+    if (navigationMode && button != null)
+        EventSystem.current.SetSelectedGameObject(button.gameObject);
+}
 
     // ============================================================
     // SALIR
