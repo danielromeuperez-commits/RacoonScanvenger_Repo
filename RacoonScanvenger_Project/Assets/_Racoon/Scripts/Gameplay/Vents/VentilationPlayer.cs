@@ -10,12 +10,32 @@ namespace Racoon.Player
     {
         [SerializeField] Transform visualRoot;
 
+        [Header("Movimiento suave entre vents")]
+        [SerializeField, Min(0.05f)] float ventMoveDuration = 0.22f;
+
+        [Header("Cooldowns de ventilación (segundos)")]
+        [Tooltip("Tiempo de espera tras entrar o salir antes de poder volver a usar una vent. 0 = sin cooldown.")]
+        [SerializeField, Min(0f)] public float ventInteractCooldown = 10f;
+
+        [Tooltip("Tiempo máximo que puedes permanecer dentro de una vent antes de salir automáticamente. 0 = sin límite.")]
+        [SerializeField, Min(0f)] public float maxInsideVentDuration = 10f;
+
         PlayerController player;
         PlayerInputHandler input;
 
         readonly HashSet<VentilationPoint> nearby = new HashSet<VentilationPoint>();
         VentilationPoint currentVent;
         int lastHorizontalDirection;
+
+        float interactCooldownTimer;
+        float insideVentTimer;
+
+        bool isMovingBetweenVents;
+        float ventMoveTimer;
+        Vector3 ventMoveStartPos;
+        Vector3 ventMoveTargetPos;
+        Quaternion ventMoveStartRot;
+        Quaternion ventMoveTargetRot;
 
         readonly NetworkVariable<bool> insideVent = new NetworkVariable<bool>(
             false,
@@ -27,6 +47,11 @@ namespace Racoon.Player
         bool[] originalRendererStates;
 
         public bool IsInsideVent => currentVent != null;
+        public bool IsInsideVentSynced => insideVent.Value;
+        public float VentInteractCooldownRemaining => Mathf.Max(0f, interactCooldownTimer);
+        public float InsideVentRemaining => maxInsideVentDuration > 0f && currentVent != null
+            ? Mathf.Max(0f, maxInsideVentDuration - insideVentTimer)
+            : 0f;
 
         void Awake()
         {
@@ -55,12 +80,51 @@ namespace Racoon.Player
             insideVent.OnValueChanged -= OnInsideVentChanged;
             nearby.Clear();
             currentVent = null;
+            isMovingBetweenVents = false;
+            interactCooldownTimer = 0f;
+            insideVentTimer = 0f;
             if (player != null && IsOwner) player.SetVentilationLocked(false);
         }
 
         void Update()
         {
-            if (!IsSpawned || !IsOwner || currentVent == null || input == null) return;
+            if (!IsSpawned || !IsOwner) return;
+
+            float dt = Time.deltaTime;
+            if (interactCooldownTimer > 0f)
+                interactCooldownTimer = Mathf.Max(0f, interactCooldownTimer - dt);
+
+            if (currentVent == null) return;
+
+            if (maxInsideVentDuration > 0f)
+            {
+                insideVentTimer += dt;
+                if (insideVentTimer >= maxInsideVentDuration)
+                {
+                    ExitVent(triggerInteractCooldown: true);
+                    return;
+                }
+            }
+
+            if (isMovingBetweenVents)
+            {
+                ventMoveTimer += dt;
+                float rawT = Mathf.Clamp01(ventMoveTimer / ventMoveDuration);
+                float smoothT = rawT * rawT * (3f - 2f * rawT);
+
+                Vector3 pos = Vector3.Lerp(ventMoveStartPos, ventMoveTargetPos, smoothT);
+                Quaternion rot = Quaternion.Slerp(ventMoveStartRot, ventMoveTargetRot, smoothT);
+                player.Teleport(pos, rot);
+
+                if (rawT >= 1f)
+                {
+                    isMovingBetweenVents = false;
+                    player.Teleport(ventMoveTargetPos, ventMoveTargetRot);
+                }
+                return;
+            }
+
+            if (input == null) return;
 
             float horizontal = input.Move.x;
             int direction = horizontal > 0.6f ? 1 : (horizontal < -0.6f ? -1 : 0);
@@ -85,9 +149,12 @@ namespace Racoon.Player
 
             if (currentVent != null)
             {
-                ExitVent();
+                if (interactCooldownTimer > 0f) return true;
+                ExitVent(triggerInteractCooldown: true);
                 return true;
             }
+
+            if (interactCooldownTimer > 0f) return false;
 
             VentilationPoint closest = GetClosestVent();
             if (closest == null) return false;
@@ -123,6 +190,9 @@ namespace Racoon.Player
         {
             if (vent == null) return;
             currentVent = vent;
+            insideVentTimer = 0f;
+            interactCooldownTimer = ventInteractCooldown;
+            isMovingBetweenVents = false;
             lastHorizontalDirection = 0;
             player.SetVentilationLocked(true);
             player.Teleport(vent.InsidePosition, vent.InsideRotation);
@@ -134,17 +204,30 @@ namespace Racoon.Player
             if (currentVent == null) return;
             VentilationPoint next = direction < 0 ? currentVent.left : currentVent.right;
             if (next == null) return;
+
             currentVent = next;
-            player.Teleport(next.InsidePosition, next.InsideRotation);
+            isMovingBetweenVents = true;
+            ventMoveTimer = 0f;
+            ventMoveStartPos = transform.position;
+            ventMoveTargetPos = next.InsidePosition;
+            ventMoveStartRot = transform.rotation;
+            ventMoveTargetRot = next.InsideRotation;
         }
 
-        void ExitVent()
+        void ExitVent(bool triggerInteractCooldown = true)
         {
-            if (currentVent == null) return;
             VentilationPoint vent = currentVent;
             currentVent = null;
+            insideVentTimer = 0f;
+            isMovingBetweenVents = false;
             lastHorizontalDirection = 0;
-            player.Teleport(vent.ExitPosition, vent.ExitRotation);
+
+            if (triggerInteractCooldown)
+                interactCooldownTimer = ventInteractCooldown;
+
+            if (vent != null)
+                player.Teleport(vent.ExitPosition, vent.ExitRotation);
+
             player.SetVentilationLocked(false);
             SetInsideVentServerRpc(false);
         }

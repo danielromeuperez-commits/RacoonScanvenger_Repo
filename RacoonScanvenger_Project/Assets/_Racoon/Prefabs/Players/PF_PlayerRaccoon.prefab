@@ -1579,6 +1579,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Racoon.Player.VentilationPlayer
   ShowTopMostFoldoutHeaderGroup: 1
   visualRoot: {fileID: 7177057439815059068}
+  ventMoveDuration: 0.22
+  ventInteractCooldown: 10
+  maxInsideVentDuration: 10
 --- !u!1 &6483509581117828954
 GameObject:
   m_ObjectHideFlags: 0
