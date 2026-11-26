@@ -399,6 +399,8 @@ namespace Racoon.Player
         public Vector3 AimTarget => transform.position + aimTargetOffset;
         /// <summary>Radio del círculo hasta el que llega el punto de caída. Solo tiene sentido en el dueño.</summary>
         public float AimTargetRange => aimTargetRange;
+
+        public bool ventilationLocked;
         public PlayerInventory Inventory => inventory;
         public PlayerInputHandler InputHandler => input;
 
@@ -588,6 +590,19 @@ namespace Racoon.Player
             float dt = Time.deltaTime;
 
             if (extintorActive) return; // Si el extintor está activo, ignoramos todo el input y la lógica de juego habitual
+
+            if (ventilationLocked)
+            {
+                if (actionTimer > 0f) actionTimer -= dt;
+                desiredVelocity = Vector3.zero;
+                desiredDirection = Vector3.zero;
+                moveVelocity = Vector3.zero;
+                knockbackVelocity = Vector3.zero;
+                if (input.InteractHeld)
+                    interactRepeatTimer = interactRepeatInterval;
+
+                return;
+            }
 
             if (interactRepeatTimer > 0f)
                 interactRepeatTimer -= dt;
@@ -1041,6 +1056,14 @@ namespace Racoon.Player
 
                 return;
             }
+
+            if (ventilationLocked)
+            {
+                body.linearVelocity = Vector3.zero;
+                body.angularVelocity = Vector3.zero;
+                return;
+            }
+
             float dt = Time.fixedDeltaTime;
 
             // =========================================================
@@ -1383,6 +1406,11 @@ namespace Racoon.Player
         void OnInteractPressed()
         {
             if (extintorActive || IsInAction || itemRecoveryRequired || chargingPunch || aimingItem || aimingTarget) return;
+
+            VentilationPlayer ventilation = GetComponent<VentilationPlayer>();
+
+            if (ventilation != null && ventilation.TryHandleInteract())
+                return;
 
             AssistInteract();
             StartAction(PlayerState.Interact, interactDuration * ActionTimeScale);
@@ -1742,6 +1770,22 @@ namespace Racoon.Player
 
             // Mientras dura el gesto de coger no le gira el stick.
             if (best != null) FaceAssistTarget(bestPoint, Mathf.Max(assistHoldTime, interactDuration));
+        }
+
+        public void SetVentilationLocked(bool locked)
+        {
+            if (!IsOwner)
+                return;
+
+            ventilationLocked = locked;
+
+            desiredVelocity = Vector3.zero;
+            desiredDirection = Vector3.zero;
+            moveVelocity = Vector3.zero;
+            knockbackVelocity = Vector3.zero;
+
+            if (body != null && !body.isKinematic)
+                body.linearVelocity = Vector3.zero;
         }
 
         // ---------------- Inventario ----------------
