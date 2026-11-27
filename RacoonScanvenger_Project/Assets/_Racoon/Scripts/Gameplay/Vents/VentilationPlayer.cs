@@ -13,9 +13,12 @@ namespace Racoon.Player
         [Header("Movimiento suave entre vents")]
         [SerializeField, Min(0.05f)] float ventMoveDuration = 0.22f;
 
-        [Header("Cooldowns de ventilación (segundos)")]
-        [Tooltip("Tiempo de espera tras entrar o salir antes de poder volver a usar una vent. 0 = sin cooldown.")]
+        [Header("Cooldowns y tiempos de ventilación (segundos)")]
+        [Tooltip("Tiempo de espera tras SALIR antes de poder volver a entrar a una vent. 0 = sin cooldown.")]
         [SerializeField, Min(0f)] public float ventInteractCooldown = 10f;
+
+        [Tooltip("Tiempo mínimo dentro de una vent antes de poder salir manualmente (evita salidas accidentales inmediatas).")]
+        [SerializeField, Min(0f)] float minExitDelay = 0.15f;
 
         [Tooltip("Tiempo máximo que puedes permanecer dentro de una vent antes de salir automáticamente. 0 = sin límite.")]
         [SerializeField, Min(0f)] public float maxInsideVentDuration = 10f;
@@ -96,14 +99,13 @@ namespace Racoon.Player
 
             if (currentVent == null) return;
 
-            if (maxInsideVentDuration > 0f)
+            insideVentTimer += dt;
+
+            // Salida automática al superar el tiempo máximo
+            if (maxInsideVentDuration > 0f && insideVentTimer >= maxInsideVentDuration)
             {
-                insideVentTimer += dt;
-                if (insideVentTimer >= maxInsideVentDuration)
-                {
-                    ExitVent(triggerInteractCooldown: true);
-                    return;
-                }
+                ExitVent(triggerInteractCooldown: true);
+                return;
             }
 
             if (isMovingBetweenVents)
@@ -147,13 +149,15 @@ namespace Racoon.Player
         {
             if (!IsSpawned || !IsOwner) return false;
 
+            // Salida manual si ya está dentro
             if (currentVent != null)
             {
-                if (interactCooldownTimer > 0f) return true;
+                if (insideVentTimer < minExitDelay) return true;
                 ExitVent(triggerInteractCooldown: true);
                 return true;
             }
 
+            // Entrada solo si no está en cooldown de reentrada
             if (interactCooldownTimer > 0f) return false;
 
             VentilationPoint closest = GetClosestVent();
@@ -191,7 +195,6 @@ namespace Racoon.Player
             if (vent == null) return;
             currentVent = vent;
             insideVentTimer = 0f;
-            interactCooldownTimer = ventInteractCooldown;
             isMovingBetweenVents = false;
             lastHorizontalDirection = 0;
             player.SetVentilationLocked(true);
