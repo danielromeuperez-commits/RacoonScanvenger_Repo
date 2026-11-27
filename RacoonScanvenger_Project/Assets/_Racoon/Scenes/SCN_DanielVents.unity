@@ -7605,6 +7605,17 @@ Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 632458d5f5d8def4f96784e5e1afb701, type: 3}
   m_PrefabInstance: {fileID: 512105455}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &519293872 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2361205996826867598, guid: 43fcd1bc97b2a0a41af2d6b2d77e2e62, type: 3}
+  m_PrefabInstance: {fileID: 8536206491646659128}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f9dfa5b682dcd46bda6128250e975f58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Cinemachine::Unity.Cinemachine.CinemachineCamera
 --- !u!4 &522413782 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 8331726109564739842, guid: bc5e0b8b626af6a49a277197a88ac8e3, type: 3}
@@ -7858,6 +7869,11 @@ MonoBehaviour:
 Transform:
   m_CorrespondingSourceObject: {fileID: 578705836831606210, guid: 1ef9d0c2e9d435e4b8434cb4cbaf647b, type: 3}
   m_PrefabInstance: {fileID: 1123368365}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &578562070 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 3369100248926517304, guid: 43fcd1bc97b2a0a41af2d6b2d77e2e62, type: 3}
+  m_PrefabInstance: {fileID: 8536206491646659128}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &581876593
 PrefabInstance:
@@ -14249,6 +14265,61 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 8331726109564739842, guid: bc5e0b8b626af6a49a277197a88ac8e3, type: 3}
   m_PrefabInstance: {fileID: 644092945}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1416757351
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1416757352}
+  - component: {fileID: 1416757353}
+  m_Layer: 0
+  m_Name: VentCam
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1416757352
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1416757351}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -7.96088, y: 1.45848, z: -3.77583}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1416757353
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1416757351}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c404371bbda43ca4fa9d23ccf9fa9b57, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.Cameras.VentCam
+  vcam: {fileID: 519293872}
+  targetGroupTransform: {fileID: 578562070}
+  groupOffset: {x: 0, y: 6, z: -12}
+  groupFov: 40
+  soloOffset: {x: 0, y: 4.5, z: -9}
+  soloFov: 35
+  ventZoomOffset: {x: 0, y: 4.2, z: -8.5}
+  ventZoomFov: 34
+  transitionSpeed: 8
+  returnToGroupSpeed: 4.5
+  groupFramingDamping: 2.5
 --- !u!4 &1428104201 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 3301317538338045323, guid: 3f769aa4263b2634a943236bcdd41634, type: 3}
@@ -19596,11 +19667,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4652541795205666395, guid: 43fcd1bc97b2a0a41af2d6b2d77e2e62, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 3.8965461
+      value: 3.8965452
       objectReference: {fileID: 0}
     - target: {fileID: 4652541795205666395, guid: 43fcd1bc97b2a0a41af2d6b2d77e2e62, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -1.1117482
+      value: -1.1117473
       objectReference: {fileID: 0}
     - target: {fileID: 4652541795205666395, guid: 43fcd1bc97b2a0a41af2d6b2d77e2e62, type: 3}
       propertyPath: m_LocalRotation.w
@@ -19699,3 +19770,4 @@ SceneRoots:
   - {fileID: 753918070}
   - {fileID: 1818399359}
   - {fileID: 819185825}
+  - {fileID: 1416757352}
