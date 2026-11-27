@@ -2,7 +2,7 @@
 - Project name: RacoonScanvenger_Project
 - Unity version: Unity 6000.3.16f1
 - Active game object:
-  - Name: PF_MainMenuManager
+  - Name: MainButtons
   - Tag: Untagged
-  - Layer: Default
+  - Layer: UI
 <!-- UNITY CODE ASSIST INSTRUCTIONS END -->
