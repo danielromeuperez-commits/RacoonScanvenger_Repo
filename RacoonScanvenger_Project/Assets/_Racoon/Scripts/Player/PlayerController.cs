@@ -399,6 +399,8 @@ namespace Racoon.Player
         public Vector3 AimTarget => transform.position + aimTargetOffset;
         /// <summary>Radio del círculo hasta el que llega el punto de caída. Solo tiene sentido en el dueño.</summary>
         public float AimTargetRange => aimTargetRange;
+
+        public bool ventilationLocked;
         public PlayerInventory Inventory => inventory;
         public PlayerInputHandler InputHandler => input;
 
@@ -588,6 +590,19 @@ namespace Racoon.Player
             float dt = Time.deltaTime;
 
             if (extintorActive) return; // Si el extintor está activo, ignoramos todo el input y la lógica de juego habitual
+
+            if (ventilationLocked)
+            {
+                if (actionTimer > 0f) actionTimer -= dt;
+                desiredVelocity = Vector3.zero;
+                desiredDirection = Vector3.zero;
+                moveVelocity = Vector3.zero;
+                knockbackVelocity = Vector3.zero;
+                if (input.InteractHeld)
+                    interactRepeatTimer = interactRepeatInterval;
+
+                return;
+            }
 
             if (interactRepeatTimer > 0f)
                 interactRepeatTimer -= dt;
@@ -1041,6 +1056,14 @@ namespace Racoon.Player
 
                 return;
             }
+
+            if (ventilationLocked)
+            {
+                body.linearVelocity = Vector3.zero;
+                body.angularVelocity = Vector3.zero;
+                return;
+            }
+
             float dt = Time.fixedDeltaTime;
 
             // =========================================================
@@ -1384,6 +1407,11 @@ namespace Racoon.Player
         {
             if (extintorActive || IsInAction || itemRecoveryRequired || chargingPunch || aimingItem || aimingTarget) return;
 
+            VentilationPlayer ventilation = GetComponent<VentilationPlayer>();
+
+            if (ventilation != null && ventilation.TryHandleInteract())
+                return;
+
             AssistInteract();
             StartAction(PlayerState.Interact, interactDuration * ActionTimeScale);
             interactRepeatTimer = interactRepeatInterval * ActionTimeScale;
@@ -1441,31 +1469,23 @@ namespace Racoon.Player
 
         void OnDashPressed()
         {
-            // Si el extintor está activo, se bloquea totalmente el dash
             if (extintorActive) return;
 
-            // Tirado por un objeto: Dash se machaca para levantarse.
             if (itemRecoveryRequired)
             {
                 OnItemRecoveryMash();
                 return;
             }
 
-            // Recién levantado del plátano: sigue machacando, no quiere un dash. Cada pulsación reinicia la
-            // espera, así el dash vuelve cuando deja de machacar y no a los pocos segundos de levantarse.
             if (recoveryDashLockTimer > 0f)
             {
                 recoveryDashLockTimer = recoveryDashLock;
                 return;
             }
 
-            // Incluye el stun: no se puede salir del aturdimiento con un dash.
             if (IsInAction) return;
-
-            // Con la bolsa llena no se puede hacer dash.
             if (playerLoot != null && playerLoot.IsBagFull) return;
 
-            // Con la bebida energética no hay cooldown ni coste de estamina.
             if (!infiniteDashActive)
             {
                 if (dashCooldownTimer > 0f) return;
@@ -1473,23 +1493,23 @@ namespace Racoon.Player
                 SpendStamina(dashStaminaCostFraction * maxStamina);
             }
 
-            // El dash cancela la carga del puñetazo.
             if (chargingPunch) CancelPunchCharge();
 
-            // Hacia donde apunta el stick; sin input, hacia delante.
+            if (Camera.main != null)
+                cameraTransform = Camera.main.transform;
+
             Vector2 move = input.Move;
             Vector3 direction = move.sqrMagnitude > moveDeadzone * moveDeadzone
                 ? GetCameraRelativeDirection(move)
                 : Vector3.ProjectOnPlane(transform.forward, Vector3.up).normalized;
+
             if (direction.sqrMagnitude < 0.0001f) direction = Vector3.forward;
 
-            CancelRecoveryInvulnerability(); // El dash ya trae sus propios i-frames.
+            CancelRecoveryInvulnerability();
             dashDirection = direction;
-            dashCooldownTimer = infiniteDashActive
-            ? 0f
-            : dashDuration + dashCooldown;
+            dashCooldownTimer = infiniteDashActive ? 0f : dashDuration + dashCooldown;
             StartAction(PlayerState.Dash, dashDuration);
-            UpdateInvulnerability(); // Si los i-frames empiezan en 0, ya cuentan desde este frame.
+            UpdateInvulnerability();
             DashRpc(direction);
         }
 
@@ -1742,6 +1762,22 @@ namespace Racoon.Player
 
             // Mientras dura el gesto de coger no le gira el stick.
             if (best != null) FaceAssistTarget(bestPoint, Mathf.Max(assistHoldTime, interactDuration));
+        }
+
+        public void SetVentilationLocked(bool locked)
+        {
+            if (!IsOwner)
+                return;
+
+            ventilationLocked = locked;
+
+            desiredVelocity = Vector3.zero;
+            desiredDirection = Vector3.zero;
+            moveVelocity = Vector3.zero;
+            knockbackVelocity = Vector3.zero;
+
+            if (body != null && !body.isKinematic)
+                body.linearVelocity = Vector3.zero;
         }
 
         // ---------------- Inventario ----------------

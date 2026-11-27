@@ -930,6 +930,7 @@ GameObject:
   - component: {fileID: 4691211560147461367}
   - component: {fileID: 3190472360854094177}
   - component: {fileID: 111450340824447271}
+  - component: {fileID: 1739586720887385113}
   m_Layer: 8
   m_Name: PF_PlayerRaccoon
   m_TagString: Player
@@ -1174,6 +1175,7 @@ MonoBehaviour:
   onDash:
     m_PersistentCalls:
       m_Calls: []
+  ventilationLocked: 0
   extintorTurnSpeed: 360
   extintorPushCooldown: 5
 --- !u!114 &6877927705847804177
@@ -1563,6 +1565,23 @@ MonoBehaviour:
     kickRoll: 0
     attack: 0
     decayPower: 2
+--- !u!114 &1739586720887385113
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6443071073951013002}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ff126b043c7f617419b40c9b9a8c5e9a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Racoon.Player.VentilationPlayer
+  ShowTopMostFoldoutHeaderGroup: 1
+  visualRoot: {fileID: 7177057439815059068}
+  ventMoveDuration: 0.22
+  ventInteractCooldown: 10
+  maxInsideVentDuration: 10
 --- !u!1 &6483509581117828954
 GameObject:
   m_ObjectHideFlags: 0
